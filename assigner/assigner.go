@@ -1,4 +1,4 @@
-package assigner
+package main
 
 import (
 	"encoding/json"
@@ -43,7 +43,7 @@ func main() {
 				Direction:   "up",
 				CabRequests: []bool{false, false, false, true},
 			},
-            "two": HRAElevState{
+			"two": HRAElevState{
 				Behavior:    "idle",
 				Floor:       3,
 				Direction:   "stop",
@@ -58,7 +58,7 @@ func main() {
 		return
 	}
 
-	ret, err := exec.Command("../Assigner/" + hraExecutable, "-i", string(jsonBytes)).CombinedOutput()
+	ret, err := exec.Command("../Assigner/"+hraExecutable, "-i", string(jsonBytes)).CombinedOutput()
 	if err != nil {
 		fmt.Println("exec.Command error: ", err)
 		fmt.Println(string(ret))
