@@ -1,8 +1,8 @@
-package main
+package distributor
 
 import (
-	"sanntidprosjekt/assigner"
 	"fmt"
+	"root/assigner"
 )
 
 var commonstate = assigner.HRAInput{
