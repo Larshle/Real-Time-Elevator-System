@@ -7,12 +7,9 @@ import (
 
 )
 
-type elevator struct {
-	currentFloor int
-	MotorDirection int
-	doorsOpen bool
+func HandleButtonPress(elevator *Elevator, outputDevice *ElevOutputDevice, floor int, buttonType Button) {
+    // Handle button press event and update elevator state
 }
-
 
 
 func(e *elevator) ElevatorInit() {
