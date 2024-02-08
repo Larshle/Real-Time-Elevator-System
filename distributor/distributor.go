@@ -1,7 +1,6 @@
 package distributor
 
 import (
-	"fmt"
 	"root/assigner"
 )
 
@@ -21,18 +20,4 @@ var commonstate = assigner.HRAInput{
 			CabRequests: []bool{true, false, false, false},
 		},
 	},
-}
-
-func updateCommonstate() {
-	fmt.Println("Hello, World!")
-}
-
-func main() {
-	// Now you can use exported identifiers from the assigner package
-	state := assigner.HRAInput{
-		// Initialize the struct
-	}
-
-	fmt.Println(state)
-	fmt.Println("Hello, World!")
 }
