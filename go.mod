@@ -1,5 +1,3 @@
-module SANNTID-PROSJEKT 
+module Sanntid-Prosjekt
 
 go 1.16
-
-

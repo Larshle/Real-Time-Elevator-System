@@ -1,4 +1,4 @@
-package updateState
+package distributor
 // Description: This file contains the code for the update state module. 
 //This module is responsible for updating the state of the elevator.q
 

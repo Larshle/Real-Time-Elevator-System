@@ -1,4 +1,4 @@
-package networkHandling
+package distributor
 import (
 	//må importere noe fra elevio og elevator
 	"Network-go/network/conn"

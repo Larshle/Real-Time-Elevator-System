@@ -1,4 +1,4 @@
-package main
+package network
 
 import (
 	"Network-go/network/bcast"
