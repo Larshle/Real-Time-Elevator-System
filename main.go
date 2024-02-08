@@ -1,4 +1,4 @@
-// midlertidig main fil for å teste coden vår (Lars er homo)
+// midlertidig main fil for å teste coden vår 
 
 package main
 
