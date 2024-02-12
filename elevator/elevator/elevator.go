@@ -1,7 +1,7 @@
 package elevator
 
 import (
-	"root/driver/elevio/"
+	"root/driver/elevio"
 )
 
 

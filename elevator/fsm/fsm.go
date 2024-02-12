@@ -1,18 +1,19 @@
 package fsm
 
 import (
-	"Driver-go/elevio/elevatorio"
+	"root/driver/elevio"
+	"root/elevator/elevator"
 	"fmt"
 	"time"
 
 )
 
-func HandleButtonPress(elevator *Elevator, outputDevice *ElevOutputDevice, floor int, buttonType Button) {
+func HandleButtonPress(elevator *localElevator, outputDevice *ElevOutputDevice, floor int, buttonType Button) {
     // Handle button press event and update elevator state
 }
 
 
-func(e *elevator) ElevatorInit() {
+func(e *localElevator) ElevatorInit() {
 	e.currentFloor = 0
 	e.MotorDirection = 0
 	e.doorsOpen = false
