@@ -8,39 +8,52 @@ import (
 
 // HandleButtonPress handles the button press event and updates the elevator state
 
-func hallUp(e localElevator.Elevator) bool {
-	for i:= 0; i < elevio._numFloors; i++ {
-		if e.assingments[i][elevio.BT_HallUp] {
+func HallCallUp(e localElevator.Elevator) bool {
+	for i:= 0; i < elevio.NumFloors; i++ {
+		if e.Assingments[i][elevio.BT_HallUp] {
 			return true
 		}
 	}
 	return false
 }
 
-func hallDown(e localElevator.Elevator) bool {
-	for i:= 0; i < elevio._numFloors; i++ {
-		if e.assingments[i][elevio.BT_HallDown] {
+func HallCallDown(e localElevator.Elevator) bool {
+	for i:= 0; i < elevio.NumFloors; i++ {
+		if e.Assingments[i][elevio.BT_HallDown] {
 			return true
 		}
 	}
 	return false
 }
 
-func cabCall(e localElevator.Elevator) bool {
-	for i:= 0; i < elevio._numFloors; i++ {
-		if e.assingments[i][elevio.BT_Cab] {
+func CabCall(e localElevator.Elevator) bool {
+	for i:= 0; i < elevio.NumFloors; i++ {
+		if e.Assingments[i][elevio.BT_Cab] {
 			return true
 		}
 	}
 	return false
 }
 
-func emptyHallUp(e localElevator.Elevator) bool {
-	for i:= 0; i < elevio._numFloors; i++ {
-		if !e.assingments[i][elevio.BT_HallUp] {
-			return true
-		}
-	}
-	return false
+func EmptyHallUp(e localElevator.Elevator) bool {
+    for i := 0; i < elevio.NumFloors; i++ {
+        if e.CurrentFloor == i && e.Assingments[i][elevio.BT_HallUp] {
+            e.Assingments[i][elevio.BT_HallUp] = false
+            return true
+        }
+    }
+    return false
 }
+
+func EmptyHallDown(e localElevator.Elevator) bool {
+    for i := 0; i < elevio.NumFloors; i++ {
+        if e.CurrentFloor == i && e.Assingments[i][elevio.BT_HallUp] {
+            e.Assingments[i][elevio.BT_HallUp] = false
+            return true
+        }
+    }
+    return false
+}
+
+
 

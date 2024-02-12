@@ -1,6 +1,4 @@
-
 #include "fsm.h"
-
 #include <stdio.h>
 
 #include "con_load.h"
