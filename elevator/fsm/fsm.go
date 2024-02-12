@@ -2,13 +2,13 @@ package fsm
 
 import (
 	"root/driver/elevio"
-	"root/elevator/elevator"
+	"root/elevator/localElevator"
 	"fmt"
 	"time"
 
 )
 
-func HandleButtonPress(elevator *localElevator, outputDevice *ElevOutputDevice, floor int, buttonType Button) {
+func HandleButtonPress(e *elevator, outputDevice *ElevOutputDevice, floor int, buttonType Button) {
     // Handle button press event and update elevator state
 }
 

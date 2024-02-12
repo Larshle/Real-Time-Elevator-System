@@ -1,4 +1,4 @@
-package elevator
+package localElevator
 
 import (
 	"root/driver/elevio"
@@ -15,7 +15,7 @@ const (
 	EB_Moving
 )
 
-type localElevator struct {
+type Elevator struct {
 	currentFloor int
 	Direction elevio.MotorDirection
 	Behavior elevatorBehavior
@@ -24,8 +24,8 @@ type localElevator struct {
 }
 
 
-func initializeElevator() localElevator{
-	e := localElevator{}
+func initializeElevator() Elevator{
+	e := Elevator{}
 	e.currentFloor = 0
 	e.Direction = 0
 	e.Behavior = EB_Idle

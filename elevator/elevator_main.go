@@ -1,9 +1,7 @@
 package main
 
 import(
-	"fmt"
-	"time"
-	"github.com/vebjornwn/Sanntid-Prosjekt/Driver-go/elevio/elevio"
+	"root/driver/elevio"
 )
 
 func main() {
