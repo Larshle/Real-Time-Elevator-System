@@ -1,4 +1,4 @@
-package elevator
+package fsm
 
 import (
 	"Driver-go/elevio/elevatorio"
