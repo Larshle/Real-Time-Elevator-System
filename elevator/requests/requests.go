@@ -35,25 +35,26 @@ func CabCall(e localElevator.Elevator) bool {
 	return false
 }
 
-func EmptyHallUp(e localElevator.Elevator) bool {
-    for i := 0; i < elevio.NumFloors; i++ {
-        if e.CurrentFloor == i && e.Assingments[i][elevio.BT_HallUp] {
-            e.Assingments[i][elevio.BT_HallUp] = false
-            return true
-        }
-    }
+func EmptyHall(e localElevator.Elevator) bool {
+	switch e.Direction {
+	case elevio.MD_Up:
+		for i := 0; i < elevio.NumFloors; i++ {
+			if e.CurrentFloor == i && e.Assingments[i][elevio.BT_HallUp] {
+				e.Assingments[i][elevio.BT_HallUp] = false
+				return true
+			}
+		}
+	case elevio.MD_Down:
+		for i := 0; i < elevio.NumFloors; i++ {
+			if e.CurrentFloor == i && e.Assingments[i][elevio.BT_HallDown] {
+				e.Assingments[i][elevio.BT_HallDown] = false
+				return true
+			}
+		}
     return false
 }
 
-func EmptyHallDown(e localElevator.Elevator) bool {
-    for i := 0; i < elevio.NumFloors; i++ {
-        if e.CurrentFloor == i && e.Assingments[i][elevio.BT_HallUp] {
-            e.Assingments[i][elevio.BT_HallUp] = false
-            return true
-        }
-    }
-    return false
-}
+
 
 
 

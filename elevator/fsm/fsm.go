@@ -52,14 +52,11 @@ func HandleButtonPress(e *localElevator.Elevator, outputDevice *ElevOutputDevice
 }
 
 
-func(e *localElevator.Elevator) ElevatorInit() {
-	e.CurrentFloor = 0
-	e.Direction = 0
-	e.doorsOpen = false
-}
+
 
 func(e *localElevator.Elevator) GetElevatorDirection(){
 	e.MotorDirection = int(dir)
+	return e.MotorDirection
 }
 
 func main() {
