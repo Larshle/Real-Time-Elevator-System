@@ -11,7 +11,7 @@ import (
 // This means they must start with a capital letter, so we need to use field renaming struct tags to make them camelCase
 
 type HRAElevState struct {
-	Behavior    string `json:"behaviour"`
+	Behaviour   string `json:"behaviour"`
 	Floor       int    `json:"floor"`
 	Direction   string `json:"direction"`
 	CabRequests []bool `json:"cabRequests"`
@@ -38,13 +38,13 @@ func main() {
 		HallRequests: [][2]bool{{false, false}, {true, false}, {false, false}, {false, true}},
 		States: map[string]HRAElevState{
 			"one":{
-				Behavior:    "moving",
+				Behaviour:    "moving",
 				Floor:       2,
 				Direction:   "up",
 				CabRequests: []bool{false, false, false, true},
 			},
 			"two":{
-				Behavior:    "idle",
+				Behaviour:    "idle",
 				Floor:       3,
 				Direction:   "stop",
 				CabRequests: []bool{true, false, false, false},

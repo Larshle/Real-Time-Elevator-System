@@ -30,6 +30,15 @@ const (
 	BT_Cab		ButtonType = 2
 )
 
+type Behaviour string
+
+const (
+	Idle        Behaviour = "idle"
+	Moving      Behaviour = "moving"
+	DoorOpen    Behaviour = "doorOpen"
+)
+
+
 type ButtonEvent struct {
 	Floor  int
 	Button ButtonType
