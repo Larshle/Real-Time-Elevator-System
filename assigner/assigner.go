@@ -37,13 +37,13 @@ func main() {
 	input := HRAInput{
 		HallRequests: [][2]bool{{false, false}, {true, false}, {false, false}, {false, true}},
 		States: map[string]HRAElevState{
-			"one": HRAElevState{
+			"one":{
 				Behavior:    "moving",
 				Floor:       2,
 				Direction:   "up",
 				CabRequests: []bool{false, false, false, true},
 			},
-			"two": HRAElevState{
+			"two":{
 				Behavior:    "idle",
 				Floor:       3,
 				Direction:   "stop",
@@ -58,7 +58,7 @@ func main() {
 		return
 	}
 
-	ret, err := exec.Command("../Assigner/"+hraExecutable, "-i", string(jsonBytes)).CombinedOutput()
+	ret, err := exec.Command("../assigner/"+hraExecutable, "-i", string(jsonBytes)).CombinedOutput()
 	if err != nil {
 		fmt.Println("exec.Command error: ", err)
 		fmt.Println(string(ret))
