@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-func Fsm( c
+func Fsm( orders <-chan Assingments, 
 	//Add channels here
 	){
 		localElev = localElevator.initializeElevator()

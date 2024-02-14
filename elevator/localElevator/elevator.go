@@ -7,6 +7,11 @@ import (
 
 
 
+const (NotAcked = iota, Acked, NotConnected)
+
+
+
+
 type ElevatorBehavior int
 
 const (
