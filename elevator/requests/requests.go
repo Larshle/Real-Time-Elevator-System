@@ -8,7 +8,7 @@ import (
 
 // HandleButtonPress handles the button press event and updates the elevator state
 
-func HallCallUp(e localElevator.Elevator) bool {
+func HallCallUp(e *localElevator.Elevator) bool {
 	for i:= 0; i < elevio.NumFloors; i++ {
 		if e.Assingments[i][elevio.BT_HallUp] {
 			return true
@@ -17,7 +17,7 @@ func HallCallUp(e localElevator.Elevator) bool {
 	return false
 }
 
-func HallCallDown(e localElevator.Elevator) bool {
+func HallCallDown(e *localElevator.Elevator) bool {
 	for i:= 0; i < elevio.NumFloors; i++ {
 		if e.Assingments[i][elevio.BT_HallDown] {
 			return true
@@ -26,7 +26,7 @@ func HallCallDown(e localElevator.Elevator) bool {
 	return false
 }
 
-func CabCall(e localElevator.Elevator) bool {
+func CabCall(e *localElevator.Elevator) bool {
 	for i:= 0; i < elevio.NumFloors; i++ {
 		if e.Assingments[i][elevio.BT_Cab] {
 			return true
@@ -35,7 +35,7 @@ func CabCall(e localElevator.Elevator) bool {
 	return false
 }
 
-func EmptyHall(e localElevator.Elevator) bool {
+func EmptyHall(e *localElevator.Elevator) bool {
 	switch e.Direction {
 	case elevio.MD_Up:
 		for i := 0; i < elevio.NumFloors; i++ {
@@ -51,7 +51,8 @@ func EmptyHall(e localElevator.Elevator) bool {
 				return true
 			}
 		}
-    return false
+	}
+	return false
 }
 
 

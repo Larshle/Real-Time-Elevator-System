@@ -20,6 +20,7 @@ type Elevator struct {
 	Direction elevio.MotorDirection
 	Behavior ElevatorBehavior
 	Assingments [][]bool
+	Obstruction bool
 
 }
 
@@ -29,6 +30,7 @@ func initializeElevator() Elevator{
 	e.CurrentFloor = 0
 	e.Direction = 0
 	e.Behavior = EB_Idle
+	e.Obstruction = false
 	e.Assingments = make([][]bool, 4)
 	for i := range e.Assingments {
 		e.Assingments[i] = make([]bool, 3)

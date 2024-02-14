@@ -8,56 +8,46 @@ import (
 	"time"
 )
 
-func HandleButtonPress(e *localElevator.Elevator, outputDevice *ElevOutputDevice, floor int, elevio.ButtonType Button) {
-    // Handle button press event and update elevator state
+func Fsm( c
+	//Add channels here
+	){
+		localElev = localElevator.initializeElevator()
+		e = &localElev
 
-	switch e.Behavior {
-	case localElevator.EB_Idle:
-		if e.CurrentFloor == floor {
-			elevio.SetButtonLamp(floor, Button, true)
-			elevio.SetMotorDirection(elevio.MD_Stop)
-			elevio.SetDoorOpenLamp(true)
-			e.Behavior = localElevator.EB_DoorOpen
-			time.Sleep(3 * time.Second)
-			elevio.SetDoorOpenLamp(false)
-			elevio.SetMotorDirection(elevio.MD_Up)
-			e.Behavior = localElevator.EB_Moving
-		} else {
-			e.Assingments[floor][Button] = true
-			elevio.SetButtonLamp(floor, Button, true)
-			e.GetElevatorDirection()
-			elevio.SetMotorDirection(e.MotorDirection)
-			e.Behavior = localElevator.EB_Moving
+		for{
+			select{
+			e.CurrentFloor = <- ch_arrivedAtFloors
+			case e.CurrentFloor = -1:
+				elevio.SetMotorDirection(elevio.MD_Down)
+			}
+			case e.CurrentFloor != -1:
+				e.Direction = elevio.MD_Stop
+				elevio.SetMotorDirection(elevio.MD_Down)
+
 		}
-		
-	case localElevator.EB_DoorOpen:
-		if e.CurrentFloor == floor {
-			elevio.SetButtonLamp(floor, Button, true)
-			elevio.SetDoorOpenLamp(true)
-			time.Sleep(3 * time.Second)
-			elevio.SetDoorOpenLamp(false)
-			requests.EmptyHall(e)
-			elevio.SetButtonLamp(floor, Button, false)
-		} else {
-			e.Assingments[floor][Button] = true
-			elevio.SetButtonLamp(floor, Button, true)
-		}
-	
-	case localElevator.EB_Moving:
-		e.Assingments[floor][Button] = true
-		elevio.SetButtonLamp(floor, Button, true)
 
 	}
 
-}
 
 
 
+	go elevio.PollFloorSensor(ch_arrivedAtFloors)
+	go elevio.PollObstructionSwitch(ch_obstruction)
+	go elevio.PollButtons(ch_newLocalOrder)
+
+
+	ch_orderChan chan elevio.ButtonEvent,
+	ch_elevatorState chan<- elevator.Elevator,
+	ch_clearLocalHallOrders chan bool,
+	ch_arrivedAtFloors chan int,
+	ch_obstruction chan bool,
+	ch_timerDoor chan bool) {
 
 func(e *localElevator.Elevator) GetElevatorDirection(){
 	e.MotorDirection = int(dir)
 	return e.MotorDirection
 }
+
 
 func main() {
 	e =: localElevator.initializeElevator()
