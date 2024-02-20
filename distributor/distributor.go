@@ -11,6 +11,30 @@ import (
 var N_floors = 4
 
 var Commonstate = assigner.HRAInput{
+	Origin: "string",
+	ID: 1,
+	Ackmap: map[string]string{},
+	HallRequests: [][2]bool{{false, false}, {true, false}, {false, false}, {false, true}},
+	States: map[string]assigner.HRAElevState{
+		"one":{
+			Behaviour:   "moving",
+			Floor:       2,
+			Direction:   "up",
+			CabRequests: []bool{false, false, false, true},
+		},
+		"two":{
+			Behaviour:   "idle",
+			Floor:       3,
+			Direction:   "stop",
+			CabRequests: []bool{true, false, false, false},
+		},
+	},
+}
+
+var Unacked_Commonstate = assigner.HRAInput{
+	Origin: "string",
+	ID: 1,
+	Ackmap: map[string]string{},
 	HallRequests: [][2]bool{{false, false}, {true, false}, {false, false}, {false, true}},
 	States: map[string]assigner.HRAElevState{
 		"one":{
@@ -36,11 +60,13 @@ var motorDirectionMap = map[elevio.MotorDirection]string{
 }
 
 func printCommonState(cs assigner.HRAInput) {
-	fmt.Println("\nHall Requests:")
-	fmt.Println(cs.HallRequests)
+	fmt.Println("\nOrigin:", cs.Origin)
+	fmt.Println("ID:", cs.ID)
+	fmt.Println("Ackmap:", cs.Ackmap)
+	fmt.Println("Hall Requests:", cs.HallRequests)
 
 	for i, state := range cs.States {
-		fmt.Printf("\nElevator %s:\n", string(i))
+		fmt.Printf("Elevator %s:\n", string(i))
 		fmt.Printf("\tBehaviour: %s\n", state.Behaviour)
 		fmt.Printf("\tFloor: %d\n", state.Floor)
 		fmt.Printf("\tDirection: %s\n", state.Direction)
@@ -48,7 +74,7 @@ func printCommonState(cs assigner.HRAInput) {
 	}
 }
 
-func Update_Commonstate(local_elevator_state Elevator) {
+func Update_Commonstate(local_elevator_state localElevator.Elevator) {
 
 	// skal bytte dette ut med unik id
 	elevator_id := "one"
@@ -74,4 +100,68 @@ func Update_Commonstate(local_elevator_state Elevator) {
 		Direction:   motorDirectionMap[local_elevator_state.Direction],
 		CabRequests: new_CabRequests,
 	}
+}
+
+
+func Commonstates_are_equal(new_commonstate, Commonstate assigner.HRAInput) bool {
+    // Compare Ackmaps
+    // for k, v := range a.Ackmap {
+    //     if b.Ackmap[k] != v {
+    //         return false
+    //     }
+    // }
+	
+	if new_commonstate.ID != Commonstate.ID {
+		return false
+	}
+    // Compare HallRequests
+    if len(new_commonstate.HallRequests) != len(Commonstate.HallRequests) {
+        return false
+    }
+    for i, v := range new_commonstate.HallRequests {
+        if Commonstate.HallRequests[i] != v {
+            return false
+        }
+    }
+
+    // Compare States
+    for k, v := range new_commonstate.States {
+		bv, ok := Commonstate.States[k]
+		if !ok {
+			return false
+		}
+		if bv.Behaviour != v.Behaviour || bv.Floor != v.Floor || bv.Direction != v.Direction {
+			return false
+		}
+		if len(bv.CabRequests) != len(v.CabRequests) {
+			return false
+		}
+		for i, cabRequest := range bv.CabRequests {
+			if cabRequest != v.CabRequests[i] {
+				return false
+			}
+		}
+	}
+
+	return true
+}
+
+func Recieve_commonstate(new_commonstate assigner.HRAInput) {
+	if Commonstates_are_equal(new_commonstate, Unacked_Commonstate) {
+		return
+	}
+	// if fullack (skriv dette senere)
+	// Commonstate = new_commonstate 
+	// broadcast
+	// kjør til assigner
+
+	// if new_commonstate har lavere prioritet
+	// return
+	if new_commonstate.ID < Unacked_Commonstate.ID {
+		return
+	}
+
+	// else
+	// ack, oppdater ack_commonstate og broadcast denne helt til den er acket eller det kommer en ny med høyere prioritet
+
 }

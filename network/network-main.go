@@ -1,4 +1,4 @@
-package main
+package network
 
 import (
 	"flag"
@@ -17,6 +17,20 @@ import (
 type HelloMsg struct {
 	Message string
 	Iter    int
+}
+
+func Generate_ID() string {
+	var id string
+	flag.StringVar(&id, "id", "", "id of this peer")
+	flag.Parse()
+
+	localIP, err := localip.LocalIP()
+	if err != nil {
+		fmt.Println(err)
+		localIP = "DISCONNECTED"
+	}
+	id = fmt.Sprintf("peer-%s-%d", localIP, os.Getpid())
+	return id
 }
 
 func main() {
