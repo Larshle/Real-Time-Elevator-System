@@ -1,62 +1,111 @@
-package fsm
+package elevator_fsm
 
 import (
 	"fmt"
 	"root/driver/elevio"
-	"root/elevator/localElevator"
+	"root/elevator/direction"
 	"root/elevator/requests"
 	"time"
 )
 
-func Fsm( orders <-chan Assingments, 
-	//Add channels here
-	){
-		localElev = localElevator.initializeElevator()
-		e = &localElev
+type State struct {
+	Direction direction.Direction
+	Behavior  Behavior
+	Floor int 
+}
 
-		for{
-			select{
-			e.CurrentFloor = <- ch_arrivedAtFloors
-			case e.CurrentFloor = -1:
-				elevio.SetMotorDirection(elevio.MD_Down)
+type Behavior int
+
+const (
+	Idle Behavior = iota
+	Moving
+	DoorOpen
+)
+
+
+func Elevator_Fsm( assingmentsC <-chan Assingments, 
+		stateC chan<- localElevator.ElevatorBehavior,
+		orederDelivered chan<- bool,
+		arrivedAtFloor chan<- int,
+		obstruction chan<- bool){
+		
+		doorOpenC := make(chan bool, config.ChanSize)
+		doorClosedC := make(chan bool, config.ChanSize)
+		floorEnteredC := make(chan int)
+
+		go door.Door(doorOpenC, doorClosedC)
+		go elevio.PollFloorSensor(floorEnteredC)
+		
+		
+		elevio.SetDoorOpenLamp(false)
+		elevio.SetMotorDirection(elevio.MD_Down)
+		state = State{Direction: direction.DownDown,Behavior:  Moving}
+		
+		var assingments Assingments
+
+
+
+		for {
+			select {
+				case <- doorClosedC:
+					switch state.Behavior{
+						case DoorOpen:
+							switch{
+								case requests.HallCallUp(e):
+									e.Direction = elevio.MD_Up
+									e.Behavior = localElevator.EB_Moving
+									elevio.SetMotorDirection(elevio.MD_Up)
+								case requests.HallCallDown(e):
+									e.Direction = elevio.MD_Down
+									e.Behavior = localElevator.EB_Moving
+									elevio.SetMotorDirection(elevio.MD_Down)
+
+								case requests.CabCall(e):
+							
+
+
+								default:
+									state.Behavior = Idle
+									stateC <- state
+								}
+							default:
+							panic("DoorClosed in wrong state")
+						}
+				
+				case state.Floor = <- floorEnteredC:
+					elevio.SetFloorIndicator(state.Floor)
+					switch state.Behavior{
+						case Moving:
+							switch {
+
+							}
+						default:
+							panic("FloorEntered in wrong state")
+							stateC <- state
+					}
+				
+				case assingments = <- assingmentsC:
+					
+
+
+	
+				
+				
+			select {
+			case o := <- orederDelivered:{
+
 			}
-			case e.CurrentFloor != -1:
-				e.Direction = elevio.MD_Stop
-				elevio.SetMotorDirection(elevio.MD_Down)
+			}
+			}
+		
+		
 
 		}
 
+
 	}
-
-
-
-
-	go elevio.PollFloorSensor(ch_arrivedAtFloors)
-	go elevio.PollObstructionSwitch(ch_obstruction)
-	go elevio.PollButtons(ch_newLocalOrder)
-
-
-	ch_orderChan chan elevio.ButtonEvent,
-	ch_elevatorState chan<- elevator.Elevator,
-	ch_clearLocalHallOrders chan bool,
-	ch_arrivedAtFloors chan int,
-	ch_obstruction chan bool,
-	ch_timerDoor chan bool) {
-
-func(e *localElevator.Elevator) GetElevatorDirection(){
-	e.MotorDirection = int(dir)
-	return e.MotorDirection
 }
 
 
-func main() {
-	e =: localElevator.initializeElevator()
 
 
-
-	e.Direction := elevio.GetMotorDirection()
-	fmt.Println(motorDir)
-
-	time.Sleep(100 * time.Millisecond)
-
-}
