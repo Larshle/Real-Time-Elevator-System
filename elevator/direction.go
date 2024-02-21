@@ -1,4 +1,4 @@
-package direction
+package elevator
 
 import (
 	"root/driver/elevio"

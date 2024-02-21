@@ -1,24 +1,23 @@
-package requests
+package elevator
 
 import (
 	"root/driver/elevio"
-	"root/elevator/direction"
 )
 
 // HandleButtonPress handles the button press event and updates the elevator state
 
 type Assingments [4][3] bool
 
-func (a Assingments) ReqInDirection(floor int, dir direction.Direction) bool {
+func (a Assingments) ReqInDirection(floor int, dir Direction) bool {
 	switch dir {
-		case direction.Up:
+		case Up:
 			for i := floor + 1; i < elevio.NumFloors; i++ {
 				if a[i][elevio.BT_HallUp] || a[i][elevio.BT_Cab] {
 					return true
 				}
 			}
 			return false
-		case direction.Down:
+		case Down:
 			for i := 0; i < floor; i++ {
 				if a[i][elevio.BT_HallDown] || a[i][elevio.BT_Cab] {
 					return true
@@ -32,12 +31,12 @@ func (a Assingments) ReqInDirection(floor int, dir direction.Direction) bool {
 	
 
 
-func EmptyAssingner(floor int, dir direction.Direction, a Assingments, orderDoneC chan<- elevio.ButtonEvent) bool {
+func EmptyAssingner(floor int, dir Direction, a Assingments, orderDoneC chan<- elevio.ButtonEvent) bool {
 	if a[floor][elevio.BT_Cab] {
 		orderDoneC <- elevio.ButtonEvent{Floor: floor, Button: elevio.BT_Cab}
 	}
 	if a[floor][dir] {
-		orderDoneC <- elevio.ButtonEvent{Floor: floor, Button: dir.toBt()}
+		orderDoneC <- elevio.ButtonEvent{Floor: floor, Button: dir.toBT()}
 	}
 	return false
 }
