@@ -1,4 +1,4 @@
-package driver
+package main
 
 import "root/driver/elevio"
 import "fmt"
