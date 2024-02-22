@@ -40,20 +40,25 @@ func main() {
 	input := HRAInput{
 		ID: 1,
 		Origin: "string",
+<<<<<<< HEAD
 		Ackmap: map[string]int {"ein": "true", "to": "false"},
 		HallRequests: [][2]bool{{false, false}, {true, false}, {false, false}, {false, true}},
+=======
+		Ackmap: map[string]string {"ein": "true", "to": "false"},
+		HallRequests: [][2]bool{{false, false}, {false, false}, {false, false}, {false, false}},
+>>>>>>> c270e87a40ee3cc388cea87420d6e5fb9ae8378d
 		States: map[string]HRAElevState{
 			"one":{
 				Behaviour:    "moving",
 				Floor:       2,
 				Direction:   "up",
-				CabRequests: []bool{false, false, false, true},
+				CabRequests: []bool{true, true, false, false},
 			},
 			"two":{
 				Behaviour:    "idle",
 				Floor:       3,
 				Direction:   "stop",
-				CabRequests: []bool{true, false, false, false},
+				CabRequests: []bool{false, false, false, false},
 			},
 		},
 	}
@@ -64,7 +69,7 @@ func main() {
 		return
 	}
 
-	ret, err := exec.Command("../assigner/"+hraExecutable, "-i", string(jsonBytes)).CombinedOutput()
+	ret, err := exec.Command("../assigner/"+hraExecutable, "-i", "--includeCab", string(jsonBytes)).CombinedOutput()
 	if err != nil {
 		fmt.Println("exec.Command error: ", err)
 		fmt.Println(string(ret))

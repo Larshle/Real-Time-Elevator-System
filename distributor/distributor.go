@@ -21,6 +21,32 @@ const (
 
 
 
+type localAssignments struct {
+	localCabAssignments [4]bool
+	localHallAssignments [4][2]bool
+}
+
+
+
+
+func (a localAssignments) Add_Assingment(newAssignments elevio.ButtonEvent) localAssignments{
+	if newAssignments.Button == elevio.BT_Cab {
+		a.localCabAssignments[newAssignments.Floor] = true
+	} else {
+		a.localHallAssignments[newAssignments.Floor][newAssignments.Button] = true
+	}
+	return a
+}
+
+func (a localAssignments) Remove_Assingment( deliveredAssingement elevio.ButtonEvent) localAssignments{
+	if deliveredAssingement.Button == elevio.BT_Cab {
+		a.localCabAssignments[deliveredAssingement.Floor] = false
+	} else {
+		a.localHallAssignments[deliveredAssingement.Floor][deliveredAssingement.Button] = false
+	}
+	return a
+}
+
 var Commonstate = assigner.HRAInput{
 	Origin: "string",
 	ID: 1,
@@ -85,7 +111,7 @@ func printCommonState(cs assigner.HRAInput) {
 	}
 }
 
-func Update_Commonstate(local_elevator_state localElevator.Elevator) {
+func Update_Commonstate(local_elevator_state elevator.elevator) {
 
 	// skal bytte dette ut med unik id
 	elevator_id := "one"
