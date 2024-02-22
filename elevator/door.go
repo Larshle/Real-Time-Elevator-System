@@ -22,6 +22,7 @@ func Door(doorClosedC chan<- bool, doorOpenC <-chan bool) {
 	obstructionC := make(chan bool)
 	go elevio.PollObstructionSwitch(obstructionC)
 
+	
 	obstruction := false
 	timeCounter := time.NewTimer(time.Hour)
 	var ds DoorState = Closed

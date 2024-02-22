@@ -20,7 +20,7 @@ type HRAElevState struct {
 type HRAInput struct {
 	ID int
 	Origin string
-	Ackmap map[string]string
+	Ackmap map[string]int
 	HallRequests [][2]bool               `json:"hallRequests"`
 	States       map[string]HRAElevState `json:"states"`
 }
@@ -40,7 +40,7 @@ func main() {
 	input := HRAInput{
 		ID: 1,
 		Origin: "string",
-		Ackmap: map[string]string {"ein": "true", "to": "false"},
+		Ackmap: map[string]int {"ein": "true", "to": "false"},
 		HallRequests: [][2]bool{{false, false}, {true, false}, {false, false}, {false, true}},
 		States: map[string]HRAElevState{
 			"one":{
