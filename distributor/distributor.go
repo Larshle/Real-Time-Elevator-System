@@ -3,7 +3,7 @@ package distributor
 import (
 	"fmt"
 	"root/assigner"
-	"root/elevator/localElevator"
+	"root/elevator"
 	"root/network/network_modules/peers"
 	"root/driver/elevio"
 )
@@ -74,7 +74,7 @@ func printCommonState(cs assigner.HRAInput) {
 	}
 }
 
-func Update_Commonstate(local_elevator_state localElevator.Elevator) {
+func Update_Commonstate(local_elevator_state elevator.elevator) {
 
 	// skal bytte dette ut med unik id
 	elevator_id := "one"
