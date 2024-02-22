@@ -6,9 +6,38 @@ import (
 	"root/elevator/localElevator"
 	"root/network/network_modules/peers"
 	"root/driver/elevio"
+	"root/elevator"
 )
 
 var N_floors = 4
+
+type localAssignments struct {
+	localCabAssignments [4]bool
+	localHallAssignments [4][2]bool
+}
+
+
+
+
+func (a localAssignments) Add_Assingment(newAssignments elevio.ButtonEvent) localAssignments{
+	if newAssignments.Button == elevio.BT_Cab {
+		a.localCabAssignments[newAssignments.Floor] = true
+	} else {
+		a.localHallAssignments[newAssignments.Floor][newAssignments.Button] = true
+	}
+	return a
+}
+
+func (a localAssignments) Remove_Assingment( deliveredAssingement elevio.ButtonEvent) localAssignments{
+	if deliveredAssingement.Button == elevio.BT_Cab {
+		a.localCabAssignments[deliveredAssingement.Floor] = false
+	} else {
+		a.localHallAssignments[deliveredAssingement.Floor][deliveredAssingement.Button] = false
+	}
+	return a
+}
+
+
 
 var Commonstate = assigner.HRAInput{
 	Origin: "string",
