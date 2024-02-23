@@ -21,11 +21,6 @@ const (
 
 
 
-type localAssignments struct {
-	localCabAssignments [4]bool
-	localHallAssignments [4][2]bool
-}
-
 
 
 
