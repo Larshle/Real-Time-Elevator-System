@@ -27,40 +27,57 @@ type HRAInput struct {
 	States       map[string]HRAElevState `json:"states"`
 }
 
-func (a HRAInput) toLocalAssingment(elev string) elevator.Assingments {
+func toLocalAssingment(a map[string][][3]bool, elevatorID string) elevator.Assingments {
     var ea elevator.Assingments
-    L, ok := a.States[elev]
+    L, ok := a[elevatorID]
     if !ok {
         panic("elevator not here")
     }
-    for c := 0; c < elevio.NumFloors; c++ {
-        if c < len(L.CabRequests) {
-            ea[elevio.BT_Cab][c] = L.CabRequests[c]
-        }
-        ea[c][elevio.BT_HallUp] = a.HallRequests[c][elevio.BT_HallUp]
-        ea[c][elevio.BT_HallDown] = a.HallRequests[c][elevio.BT_HallDown]
-    }
+
+	for f := 0; f < 4; f++ {
+		for b := 0; b < 3; b++ {
+			ea[f][b] = L[f][b]
+		}
+	}		
     return ea
 }
 
-func Assingner(eleveatorAssingmentC chan<- elevator.Assingments, lightsAssingmentC chan<- elevio.ButtonEvent, csToAssingerC <-chan HRAInput){
-	var cs HRAInput
-	var elevatorID string
+func toLightsAssingment(cs HRAInput, elevatorID string) elevator.Assingments {
+	var lights elevator.Assingments
+	L, ok := cs.States[elevatorID]
+    if !ok {
+        panic("elevator not here")
+    }
+	for f := 0; f < 4; f++ {
+		for b := 0; b < 2; b++ {
+			lights[f][b] = cs.HallRequests[f][b]
+			
+		}
+	}
+	for f:= 0; f < 4; f++ {
+		lights[f][elevio.BT_Cab] = L.CabRequests[f]
+	}
+	return lights
+}
 
+func Assingner(eleveatorAssingmentC chan<- elevator.Assingments, lightsAssingmentC chan<- elevator.Assingments , csToAssingerC <-chan HRAInput, elevatorID string){
 	// MÅ finne noe her for å få tak i elevatorID
 	// Må ha bruke noe for å gjøre om  fra cs til enkel order
 
 	for{
 		select{
 		case cs := <- csToAssingerC:
-			localAssingment := cs.toLocalAssingment(elevatorID)
+			localAssingment := toLocalAssingment( CalculateHRA(cs), elevatorID)
+			lightsAssingment:= toLightsAssingment(cs, elevatorID)
+			lightsAssingmentC <- lightsAssingment
 			eleveatorAssingmentC <- localAssingment
+			
 			
 		}
 	}
 }
 
-func main() {
+func CalculateHRA(cs HRAInput) map[string][][3]bool {
 
 	hraExecutable := ""
 	switch runtime.GOOS {
@@ -72,49 +89,30 @@ func main() {
 		panic("OS not supported")
 	}
 
-	input := HRAInput{
-		ID: 1,
-		Origin: "string",
-		Ackmap: map[string]string {"ein": "true", "to": "false"},
-		HallRequests: [][2]bool{{false, false}, {false, false}, {false, false}, {false, false}},
-		States: map[string]HRAElevState{
-			"one":{
-				Behaviour:    "moving",
-				Floor:       2,
-				Direction:   "up",
-				CabRequests: []bool{true, true, false, false},
-			},
-			"two":{
-				Behaviour:    "idle",
-				Floor:       3,
-				Direction:   "stop",
-				CabRequests: []bool{false, false, false, false},
-			},
-		},
-	}
-
-	jsonBytes, err := json.Marshal(input)
+	jsonBytes, err := json.Marshal(cs)
 	if err != nil {
 		fmt.Println("json.Marshal error: ", err)
-		return
+		panic("json.Marshal error")
 	}
 
 	ret, err := exec.Command("../assigner/"+hraExecutable, "-i", "--includeCab", string(jsonBytes)).CombinedOutput()
 	if err != nil {
 		fmt.Println("exec.Command error: ", err)
 		fmt.Println(string(ret))
-		return
+		panic("exec.Command error")
 	}
 
-	output := new(map[string][][2]bool)
+	output := new(map[string][][3]bool)
 	err = json.Unmarshal(ret, &output)
 	if err != nil {
 		fmt.Println("json.Unmarshal error: ", err)
-		return
+		panic("json.Unmarshal error")
 	}
 
 	fmt.Printf("output: \n")
 	for k, v := range *output {
 		fmt.Printf("%6v :  %+v\n", k, v)
 	}
+	
+	return *output
 }

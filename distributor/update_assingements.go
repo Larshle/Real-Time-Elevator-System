@@ -22,6 +22,8 @@ func (a localAssignments) Add_Assingment(newAssignments elevio.ButtonEvent) loca
 	return a
 }
 
+
+
 func (a localAssignments) Remove_Assingment( deliveredAssingement elevio.ButtonEvent) localAssignments{
 	if deliveredAssingement.Button == elevio.BT_Cab {
 		a.localCabAssignments[deliveredAssingement.Floor] = false
