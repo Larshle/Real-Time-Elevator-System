@@ -34,4 +34,6 @@ func main() {
 	// Hva må skje her? Prøver å lage en liste
 	// Init - alle heisene må sende staten sin til distributor som oppdaterer commonstate
 
+	
+
 }

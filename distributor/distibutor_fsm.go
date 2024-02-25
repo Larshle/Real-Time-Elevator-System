@@ -19,6 +19,8 @@ func Distributor_fsm(
 
 	elevioOrdersC := make(chan elevio.ButtonEvent)
 	newAssingemntC := make(chan localAssignments)
+	var localAssignments localAssignments
+	var state elevator.State
 
 	// Initialize the distributor
 	var localAssignments = localAssignments
