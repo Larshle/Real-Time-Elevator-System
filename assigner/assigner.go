@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"os/exec"
+	"root/driver/elevio"
+	"root/elevator"
 	"runtime"
 )
 
@@ -25,6 +27,39 @@ type HRAInput struct {
 	States       map[string]HRAElevState `json:"states"`
 }
 
+func (a HRAInput) toLocalAssingment(elev string) elevator.Assingments {
+    var ea elevator.Assingments
+    L, ok := a.States[elev]
+    if !ok {
+        panic("elevator not here")
+    }
+    for c := 0; c < elevio.NumFloors; c++ {
+        if c < len(L.CabRequests) {
+            ea[elevio.BT_Cab][c] = L.CabRequests[c]
+        }
+        ea[c][elevio.BT_HallUp] = a.HallRequests[c][elevio.BT_HallUp]
+        ea[c][elevio.BT_HallDown] = a.HallRequests[c][elevio.BT_HallDown]
+    }
+    return ea
+}
+
+func Assingner(eleveatorAssingmentC chan<- elevator.Assingments, lightsAssingmentC chan<- elevio.ButtonEvent, csToAssingerC <-chan HRAInput){
+	var cs HRAInput
+	var elevatorID string
+
+	// MÅ finne noe her for å få tak i elevatorID
+	// Må ha bruke noe for å gjøre om  fra cs til enkel order
+
+	for{
+		select{
+		case cs := <- csToAssingerC:
+			localAssingment := cs.toLocalAssingment(elevatorID)
+			eleveatorAssingmentC <- localAssingment
+			
+		}
+	}
+}
+
 func main() {
 
 	hraExecutable := ""
@@ -40,13 +75,8 @@ func main() {
 	input := HRAInput{
 		ID: 1,
 		Origin: "string",
-<<<<<<< HEAD
-		Ackmap: map[string]int {"ein": "true", "to": "false"},
-		HallRequests: [][2]bool{{false, false}, {true, false}, {false, false}, {false, true}},
-=======
 		Ackmap: map[string]string {"ein": "true", "to": "false"},
 		HallRequests: [][2]bool{{false, false}, {false, false}, {false, false}, {false, false}},
->>>>>>> c270e87a40ee3cc388cea87420d6e5fb9ae8378d
 		States: map[string]HRAElevState{
 			"one":{
 				Behaviour:    "moving",
