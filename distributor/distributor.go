@@ -4,48 +4,42 @@ import (
 	"fmt"
 	"root/assigner"
 	"root/elevator"
+	"root/network"
 	"root/network/network_modules/peers"
 	"root/driver/elevio"
-
+	"root/main"
+	"strconv"
+	"strings"
+	"bytes"
+	"net"
 )
 
+var Elevator_id = network.Generate_ID()
 var N_floors = 4
 
-type ElevatorAckedStatus int
 
-const (
-    NotAcked ElevatorAckedStatus = iota
-    Acked
-    NotAvailable
-)
+// func (a localAssignments) Add_Assingment(newAssignments elevio.ButtonEvent) localAssignments{
+// 	if newAssignments.Button == elevio.BT_Cab {
+// 		a.localCabAssignments[newAssignments.Floor] = true
+// 	} else {
+// 		a.localHallAssignments[newAssignments.Floor][newAssignments.Button] = true
+// 	}
+// 	return a
+// }
 
-
-
-
-
-
-func (a localAssignments) Add_Assingment(newAssignments elevio.ButtonEvent) localAssignments{
-	if newAssignments.Button == elevio.BT_Cab {
-		a.localCabAssignments[newAssignments.Floor] = true
-	} else {
-		a.localHallAssignments[newAssignments.Floor][newAssignments.Button] = true
-	}
-	return a
-}
-
-func (a localAssignments) Remove_Assingment( deliveredAssingement elevio.ButtonEvent) localAssignments{
-	if deliveredAssingement.Button == elevio.BT_Cab {
-		a.localCabAssignments[deliveredAssingement.Floor] = false
-	} else {
-		a.localHallAssignments[deliveredAssingement.Floor][deliveredAssingement.Button] = false
-	}
-	return a
-}
+// func (a localAssignments) Remove_Assingment( deliveredAssingement elevio.ButtonEvent) localAssignments{
+// 	if deliveredAssingement.Button == elevio.BT_Cab {
+// 		a.localCabAssignments[deliveredAssingement.Floor] = false
+// 	} else {
+// 		a.localHallAssignments[deliveredAssingement.Floor][deliveredAssingement.Button] = false
+// 	}
+// 	return a
+// }
 
 var Commonstate = assigner.HRAInput{
 	Origin: "string",
 	ID: 1,
-	Ackmap: map[string]int{},
+	Ackmap: make(map[string]assigner.Ack_status),
 	HallRequests: [][2]bool{{false, false}, {true, false}, {false, false}, {false, true}},
 	States: map[string]assigner.HRAElevState{
 		"one":{
@@ -66,7 +60,7 @@ var Commonstate = assigner.HRAInput{
 var Unacked_Commonstate = assigner.HRAInput{
 	Origin: "string",
 	ID: 1,
-	Ackmap: map[string]string{},
+	Ackmap: make(map[string]assigner.Ack_status),
 	HallRequests: [][2]bool{{false, false}, {true, false}, {false, false}, {false, true}},
 	States: map[string]assigner.HRAElevState{
 		"one":{
@@ -85,10 +79,9 @@ var Unacked_Commonstate = assigner.HRAInput{
 }
 
 // Map for å endre fra type til string
-var motorDirectionMap = map[elevio.MotorDirection]string{
-	elevio.MD_Up:   "up",
-	elevio.MD_Down: "down",
-	elevio.MD_Stop: "stop",
+var DirectionMap = map[elevator.Direction]string{
+	elevator.Down:   "down",
+	elevator.Up: "up",
 }
 
 func printCommonState(cs assigner.HRAInput) {
@@ -106,10 +99,7 @@ func printCommonState(cs assigner.HRAInput) {
 	}
 }
 
-func Update_Commonstate(local_elevator_state elevator.elevator) {
-
-	// skal bytte dette ut med unik id
-	elevator_id := "one"
+func Update_assignments(local_elevator_assignments elevator.Assingments) {
 
 	var new_HallRequests [][2]bool
 	var new_CabRequests []bool
@@ -117,21 +107,29 @@ func Update_Commonstate(local_elevator_state elevator.elevator) {
 	new_HallRequests = make([][2]bool, N_floors)
 	new_CabRequests = make([]bool, N_floors)
 
-	// Endrer format fra Elevator til Commonstate
-	for i, row := range local_elevator_state.Assignments {
-		new_HallRequests[len(local_elevator_state.Assignments)-1-i][0] = row[0]
-		new_HallRequests[len(local_elevator_state.Assignments)-1-i][1] = row[1]
-		new_CabRequests[len(local_elevator_state.Assignments)-1-i] = row[2]
+	// Endrer format fra Assignments til Commonstate
+	for i, row := range local_elevator_assignments {
+		new_HallRequests[len(local_elevator_assignments)-1-i][0] = row[0]
+		new_HallRequests[len(local_elevator_assignments)-1-i][1] = row[1]
+		new_CabRequests[len(local_elevator_assignments)-1-i] = row[2]
 	}
+	// Oppdaterer hall requests
+	Unacked_Commonstate.HallRequests = new_HallRequests
 
-	// Oppdaterer Commonstate
-	Commonstate.HallRequests = new_HallRequests
-	Commonstate.States[elevator_id] = assigner.HRAElevState{
-		Behaviour:   string(local_elevator_state.Behaviour),
-		Floor:       local_elevator_state.CurrentFloor,
-		Direction:   motorDirectionMap[local_elevator_state.Direction],
-		CabRequests: new_CabRequests,
-	}
+	// Oppdaterer cab requests
+	temp_state := Unacked_Commonstate.States[Elevator_id]
+	temp_state.CabRequests = new_CabRequests
+	Unacked_Commonstate.States[Elevator_id] = temp_state
+}
+
+func Update_local_state(local_elevator_state elevator.State) {
+
+	// Create a temporary variable to hold the updated state
+	tempState := Unacked_Commonstate.States[Elevator_id]
+	tempState.Behaviour = string(local_elevator_state.Behaviour)
+
+	// Assign the updated state back to the map
+	Unacked_Commonstate.States[Elevator_id] = tempState
 }
 
 
@@ -178,18 +176,53 @@ func Commonstates_are_equal(new_commonstate, Commonstate assigner.HRAInput) bool
 	return true
 }
 
+func Fully_acked(ackmap map[string]assigner.Ack_status) bool {
+	for id, value := range ackmap {
+		if value == 0 && id != Elevator_id {
+			return false
+		}
+	}
+	return true
+}	
+
+func id_is_lower(id1, id2 string) bool {
+	// Parse IP addresses and process IDs
+	parts1 := strings.Split(id1, "-")
+	parts2 := strings.Split(id2, "-")
+	ip1 := net.ParseIP(parts1[1])
+	ip2 := net.ParseIP(parts2[1])
+	pid1, _ := strconv.Atoi(parts1[2])
+	pid2, _ := strconv.Atoi(parts2[2])
+
+	// Compare IP addresses
+	cmp := bytes.Compare(ip1, ip2)
+	if cmp < 0 {
+		return true
+	} else if cmp > 0 {
+		return false
+	}
+
+	// If IP addresses are equal, compare process IDs
+	return pid1 < pid2
+}
+
+
 func Recieve_commonstate(new_commonstate assigner.HRAInput) {
+	
 	if Commonstates_are_equal(new_commonstate, Unacked_Commonstate) {
 		return
 	}
-	// if fullack (skriv dette senere)
-	// Commonstate = new_commonstate 
-	// broadcast
-	// kjør til assigner
+
+	if Fully_acked(new_commonstate.Ackmap) {
+		Unacked_Commonstate = new_commonstate // vet ikke om dette er nødvendig
+		Commonstate = new_commonstate
+		// broadcast
+		// kjør til assigner
+	}
 
 	// if new_commonstate har lavere prioritet
 	// return
-	if new_commonstate.ID < Unacked_Commonstate.ID {
+	if new_commonstate.ID < Unacked_Commonstate.ID || id_is_lower(new_commonstate.Origin, Unacked_Commonstate.Origin) {
 		return
 	}
 

@@ -12,6 +12,13 @@ import (
 // Struct members must be public in order to be accessible by json.Marshal/.Unmarshal
 // This means they must start with a capital letter, so we need to use field renaming struct tags to make them camelCase
 
+type Ack_status int
+const (
+	NotAcked Ack_status = iota
+	Acked
+	NotAvailable
+)
+
 type HRAElevState struct {
 	Behaviour   string `json:"behaviour"`
 	Floor       int    `json:"floor"`
@@ -22,7 +29,7 @@ type HRAElevState struct {
 type HRAInput struct {
 	ID int
 	Origin string
-	Ackmap map[string]int
+	Ackmap map[string]Ack_status
 	HallRequests [][2]bool               `json:"hallRequests"`
 	States       map[string]HRAElevState `json:"states"`
 }
@@ -75,7 +82,7 @@ func main() {
 	input := HRAInput{
 		ID: 1,
 		Origin: "string",
-		Ackmap: map[string]string {"ein": "true", "to": "false"},
+		Ackmap: map[string]Ack_status {"en": Acked, "to": NotAcked, "tre": NotAvailable},
 		HallRequests: [][2]bool{{false, false}, {false, false}, {false, false}, {false, false}},
 		States: map[string]HRAElevState{
 			"one":{
@@ -106,7 +113,7 @@ func main() {
 		return
 	}
 
-	output := new(map[string][][2]bool)
+	output := new(map[string][][3]bool)
 	err = json.Unmarshal(ret, &output)
 	if err != nil {
 		fmt.Println("json.Unmarshal error: ", err)

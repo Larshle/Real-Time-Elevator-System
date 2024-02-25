@@ -7,14 +7,14 @@ import (
 
 type State struct {
 	Direction Direction
-	Behavior  Behavior
+	Behaviour  Behaviour
 	Floor int 
 }
 
-type Behavior int
+type Behaviour int
 
 const (
-	Idle Behavior = iota
+	Idle Behaviour = iota
 	Moving
 	DoorOpen
 )
@@ -32,7 +32,7 @@ func Elevator_Fsm( assingmentsC <-chan Assingments, stateC chan<- State, orderDe
 		// Initialize elevator
 		elevio.SetDoorOpenLamp(false)
 		elevio.SetMotorDirection(elevio.MD_Down)
-		state := State{Direction: Down, Behavior:  Moving}
+		state := State{Direction: Down, Behaviour:  Moving}
 		
 		var assingments Assingments
 
@@ -41,30 +41,30 @@ func Elevator_Fsm( assingmentsC <-chan Assingments, stateC chan<- State, orderDe
 		for {
 			select {
 				case <- doorClosedC:
-					switch state.Behavior{
+					switch state.Behaviour{
 						case DoorOpen:
 							switch{
 								case assingments[state.Floor][state.Direction.toOpposite()]:
 									elevio.SetMotorDirection(state.Direction.toOpposite().toMD())
 									EmptyAssingner(state.Floor, state.Direction, assingments, orderDelivered)
 									state.Direction = state.Direction.toOpposite()
-									state.Behavior = Moving
+									state.Behaviour = Moving
 									stateC <- state
 
 								case assingments.ReqInDirection(state.Floor, state.Direction):
 									elevio.SetMotorDirection(state.Direction.toMD())
-									state.Behavior = Moving
+									state.Behaviour = Moving
 									stateC <- state
 
 								case assingments.ReqInDirection(state.Floor, state.Direction.toOpposite()):
 									elevio.SetMotorDirection(state.Direction.toOpposite().toMD())
 									state.Direction = state.Direction.toOpposite()
-									state.Behavior = Moving
+									state.Behaviour = Moving
 									EmptyAssingner(state.Floor, state.Direction, assingments, orderDelivered)
 									stateC <- state
 
 								default:
-									state.Behavior = Idle
+									state.Behaviour = Idle
 									stateC <- state
 								}
 							default:
@@ -74,27 +74,27 @@ func Elevator_Fsm( assingmentsC <-chan Assingments, stateC chan<- State, orderDe
 				case f := <- floorEnteredC:
 					state.Floor = f
 					elevio.SetFloorIndicator(state.Floor)
-					switch state.Behavior{
+					switch state.Behaviour{
 						case Moving:
 							switch {
 
 								
 								case assingments[state.Floor][state.Direction]:
 									elevio.SetMotorDirection(elevio.MD_Stop)
-									state.Behavior = DoorOpen
+									state.Behaviour = DoorOpen
 									EmptyAssingner(state.Floor, state.Direction, assingments, orderDelivered)
 									doorOpenC <- true
 
 								case assingments[state.Floor][state.Direction] && assingments[state.Floor][elevio.BT_Cab]:
 									elevio.SetMotorDirection(elevio.MD_Stop)
-									state.Behavior = DoorOpen
+									state.Behaviour = DoorOpen
 									EmptyAssingner(state.Floor, state.Direction.toOpposite(), assingments, orderDelivered)
 									doorOpenC <- true
 
 								case assingments[state.Floor][elevio.BT_Cab] && !assingments[state.Floor][state.Direction.toOpposite()]:
 									elevio.SetMotorDirection(elevio.MD_Stop)
 									EmptyAssingner(state.Floor, state.Direction, assingments, orderDelivered)
-									state.Behavior = DoorOpen
+									state.Behaviour = DoorOpen
 									doorOpenC <- true
 
 								case assingments.ReqInDirection(state.Floor, state.Direction):
@@ -102,7 +102,7 @@ func Elevator_Fsm( assingmentsC <-chan Assingments, stateC chan<- State, orderDe
 								case assingments[state.Floor][state.Direction.toOpposite()]:
 									elevio.SetMotorDirection(elevio.MD_Stop)
 									EmptyAssingner(state.Floor, state.Direction.toOpposite(), assingments, orderDelivered)
-									state.Behavior = DoorOpen
+									state.Behaviour = DoorOpen
 									doorOpenC <- true
 
 								
@@ -112,7 +112,7 @@ func Elevator_Fsm( assingmentsC <-chan Assingments, stateC chan<- State, orderDe
 
 								default:
 									elevio.SetMotorDirection(elevio.MD_Stop)
-									state.Behavior = Idle
+									state.Behaviour = Idle
 									stateC <- state
 
 							}
@@ -121,30 +121,30 @@ func Elevator_Fsm( assingmentsC <-chan Assingments, stateC chan<- State, orderDe
 					}
 
 				case assingments = <- assingmentsC:
-					switch state.Behavior{
+					switch state.Behaviour{
 						case Idle:
 							switch{
 								case assingments[state.Floor][state.Direction] || assingments[state.Floor][elevio.BT_Cab]:
 									EmptyAssingner(state.Floor, state.Direction, assingments, orderDelivered)
-									state.Behavior = DoorOpen
+									state.Behaviour = DoorOpen
 									doorOpenC <- true
 									stateC <- state
 
 								case assingments[state.Floor][state.Direction.toOpposite()]:
 									EmptyAssingner(state.Floor, state.Direction.toOpposite(), assingments, orderDelivered)
 									state.Direction = state.Direction.toOpposite()
-									state.Behavior = DoorOpen
+									state.Behaviour = DoorOpen
 									doorOpenC <- true
 									stateC <- state
 
 								case assingments.ReqInDirection(state.Floor, state.Direction):
 									elevio.SetMotorDirection(state.Direction.toMD())	
-									state.Behavior = Moving
+									state.Behaviour = Moving
 									stateC <- state
 								case assingments.ReqInDirection(state.Floor, state.Direction.toOpposite()):
 									elevio.SetMotorDirection(state.Direction.toOpposite().toMD())
 									state.Direction = state.Direction.toOpposite()
-									state.Behavior = Moving
+									state.Behaviour = Moving
 									stateC <- state
 								default:
 							}
