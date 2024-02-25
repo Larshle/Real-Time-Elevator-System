@@ -99,7 +99,7 @@ func CalculateHRA(cs HRAInput) map[string][][3]bool {
 	input := HRAInput{
 		ID: 1,
 		Origin: "string",
-		Ackmap: map[string]string {"ein": "true", "to": "false"},
+		Ackmap: map[string]Ack_status {"ein": Acked, "to": Acked},
 		HallRequests: [][2]bool{{false, false}, {false, false}, {false, false}, {false, false}},
 		States: map[string]HRAElevState{
 			"one":{
