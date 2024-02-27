@@ -5,6 +5,8 @@ import (
 	"root/network/network_modules/peers"
 	"root/assigner"
 	"root/elevator"
+	"root/network/network_modules/peers"
+	
 )
 
 
@@ -28,6 +30,7 @@ func Distributor_fsm(
 	
 	go elevio.PollButtons(elevioOrdersC)
 	go Update_Assingments(elevioOrdersC, deliveredOrderC, newAssingemntC)
+	go peers.Receiver(15647, receiveFromNetworkC)
 
 	for{
 		select{
