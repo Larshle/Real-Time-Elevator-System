@@ -31,6 +31,7 @@ func Distributor_fsm(
 	go elevio.PollButtons(elevioOrdersC)
 	go Update_Assingments(elevioOrdersC, deliveredOrderC, newAssingemntC)
 	go peers.Receiver(15647, receiveFromNetworkC)
+	go network.
 
 	for{
 		select{
