@@ -133,14 +133,8 @@ func Update_local_state(local_elevator_state elevator.State) {
 }
 
 
-func Commonstates_are_equal(new_commonstate, Commonstate assigner.HRAInput) bool {
-    // Compare Ackmaps
-    // for k, v := range a.Ackmap {
-    //     if b.Ackmap[k] != v {
-    //         return false
-    //     }
-    // }
-	
+func Commonstates_are_equal(new_commonstate, Commonstate assigner.HRAInput) bool {	
+
 	if new_commonstate.ID != Commonstate.ID {
 		return false
 	}
@@ -208,7 +202,7 @@ func id_is_lower(id1, id2 string) bool {
 
 
 func Recieve_commonstate(new_commonstate assigner.HRAInput) {
-	
+
 	if Commonstates_are_equal(new_commonstate, Unacked_Commonstate) {
 		return
 	}
@@ -228,7 +222,15 @@ func Recieve_commonstate(new_commonstate assigner.HRAInput) {
 
 	// else
 	// ack, oppdater ack_commonstate og broadcast denne helt til den er acket eller det kommer en ny med høyere prioritet
+	new_commonstate.Ackmap[Elevator_id] = 1
+	Unacked_Commonstate = new_commonstate
 
 }
 
-
+func Create_commonstate(peerUpdateCh <-chan peers.PeerUpdate) {
+	// Create a new commonstate
+	Unacked_Commonstate.ID++
+	Unacked_Commonstate.Origin = Elevator_id
+	Unacked_Commonstate.Ackmap = make(map[string]assigner.Ack_status)
+	Unacked_Commonstate.Ackmap[Elevator_id] = 1
+}
