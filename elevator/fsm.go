@@ -19,6 +19,11 @@ const (
 	DoorOpen
 )
 
+func (b Behaviour) ToString() string {
+	return map[Behaviour]string{Idle: "Idle", Moving: "Moving", DoorOpen: "DoorOpen"}[b]
+}
+
+
 
 func Elevator(eleveatorAssingmentC <-chan Assingments, stateC chan<- State, orderDelivered chan<- elevio.ButtonEvent){
 		

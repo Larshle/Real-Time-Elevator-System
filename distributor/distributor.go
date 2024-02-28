@@ -76,10 +76,12 @@ var Unacked_Commonstate = HRAInput{
 	},
 }
 
+
+
 func (es *HRAElevState) toHRAElevState(localElevState elevator.State) {
-	es.Behaviour = string(localElevState.Behaviour)
+	es.Behaviour = localElevState.Behaviour.ToString()
 	es.Floor = localElevState.Floor
-	es.Direction = string(localElevState.Direction)
+	es.Direction = localElevState.Direction.ToString()
 }
 
 
