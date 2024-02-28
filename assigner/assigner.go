@@ -77,26 +77,26 @@ func CalculateHRA(cs distributor.HRAInput) map[string][][3]bool {
 		panic("OS not supported")
 	}
 
-	input := distributor.HRAInput{
-		ID: 1,
-		Origin: "string",
-		Ackmap: map[string]distributor.Ack_status {"ein": distributor.Acked, "to": distributor.Acked},
-		HallRequests: [][2]bool{{false, false}, {false, false}, {false, false}, {false, false}},
-		States: map[string]distributor.HRAElevState{
-			"one":{
-				Behaviour:    "moving",
-				Floor:       2,
-				Direction:   "up",
-				CabRequests: []bool{true, true, false, false},
-			},
-			"two":{
-				Behaviour:    "idle",
-				Floor:       3,
-				Direction:   "stop",
-				CabRequests: []bool{false, false, false, false},
-			},
-		},
-	}
+	// input := distributor.HRAInput{
+	// 	ID: 1,
+	// 	Origin: "string",
+	// 	Ackmap: map[string]distributor.Ack_status {"ein": distributor.Acked, "to": distributor.Acked},
+	// 	HallRequests: [][2]bool{{false, false}, {false, false}, {false, false}, {false, false}},
+	// 	States: map[string]distributor.HRAElevState{
+	// 		"one":{
+	// 			Behaviour:    "moving",
+	// 			Floor:       2,
+	// 			Direction:   "up",
+	// 			CabRequests: []bool{true, true, false, false},
+	// 		},
+	// 		"two":{
+	// 			Behaviour:    "idle",
+	// 			Floor:       3,
+	// 			Direction:   "stop",
+	// 			CabRequests: []bool{false, false, false, false},
+	// 		},
+	// 	},
+	// }
 
 	jsonBytes, err := json.Marshal(cs)
 	if err != nil {

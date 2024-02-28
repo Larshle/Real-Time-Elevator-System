@@ -97,7 +97,7 @@ func printCommonState(cs HRAInput) {
 	}
 }
 
-func (cs HRAInput) Update_Assingments(local_elevator_assignments localAssignments, Elevator_id string) HRAInput {
+func (cs HRAInput) Update_Assingments(local_elevator_assignments localAssignments) HRAInput {
 
 	for f := 0; f < N_floors; f++ {
 		for b := 0; b < 2; b++ {
@@ -123,7 +123,7 @@ func (cs HRAInput) Update_Assingments(local_elevator_assignments localAssignment
 	return cs
 }
 
-func (cs HRAInput) Update_local_state(local_elevator_state elevator.State, Elevator_id string) {
+func (cs HRAInput) Update_local_state(local_elevator_state elevator.State) {
 
 	// Create a temporary variable to hold the updated state
 	tempState := Unacked_Commonstate.States[Elevator_id]
@@ -171,7 +171,7 @@ func Commonstates_are_equal(new_commonstate, Commonstate HRAInput) bool {
 	return true
 }
 
-func Fully_acked(ackmap map[string]Ack_status, Elevator_id string) bool {
+func Fully_acked(ackmap map[string]Ack_status) bool {
 	for id, value := range ackmap {
 		if value == 0 && id != Elevator_id {
 			return false

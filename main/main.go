@@ -9,6 +9,7 @@ import (
 	"root/driver/elevio"
 	"root/elevator"
 	"root/assigner"
+	"root/lights"
 )
 
 
@@ -17,7 +18,6 @@ func main() {
 	N_floors := 4
 	N_elevators := 3
 	var Elevator_id = network.Generate_ID()
-
 
 	fmt.Println(Elevator_id)
 	fmt.Println("Hello, World!")
@@ -44,7 +44,7 @@ func main() {
 	eleveatorAssingmentC := make(chan elevator.Assingments)
 	lightsAssingmentC := make(chan elevator.Assingments)
 
-	go distributor.Distributor_fsm(
+	go distributor.Distributor(
 		deliveredOrderC,
 		newElevStateC,
 		giverToNetwork,
@@ -63,4 +63,7 @@ func main() {
 		newElevStateC,
 		deliveredOrderC)
 
+	go lights.Lights(lightsAssingmentC)
+
+	select {} // for å kjøre alltid lol lars er gey
 }
