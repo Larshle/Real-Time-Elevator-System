@@ -1,6 +1,7 @@
 package distributor
 
 import (
+	"root/config"
 	"fmt"
 	"root/elevator"
 	"strconv"
@@ -112,25 +113,25 @@ func (cs HRAInput) Update_Assingments(local_elevator_assignments localAssignment
 
 	for f := 0; f < N_floors; f++ {
 		if local_elevator_assignments.localCabAssignments[f] == add {
-			cs.States[Elevator_id].CabRequests[f] = true
+			cs.States[config.Elevator_id].CabRequests[f] = true
 		}
 		if local_elevator_assignments.localCabAssignments[f] == remove {
-			cs.States[Elevator_id].CabRequests[f] = false
+			cs.States[config.Elevator_id].CabRequests[f] = false
 		}
 	}
 	cs.ID++
-	cs.Origin = Elevator_id
+	cs.Origin = config.Elevator_id
 	return cs
 }
 
 func (cs HRAInput) Update_local_state(local_elevator_state elevator.State) {
 
 	// Create a temporary variable to hold the updated state
-	tempState := Unacked_Commonstate.States[Elevator_id]
+	tempState := Unacked_Commonstate.States[config.Elevator_id]
 	tempState.Behaviour = string(local_elevator_state.Behaviour)
 
 	// Assign the updated state back to the map
-	Unacked_Commonstate.States[Elevator_id] = tempState
+	Unacked_Commonstate.States[config.Elevator_id] = tempState
 }
 
 
@@ -173,7 +174,7 @@ func Commonstates_are_equal(new_commonstate, Commonstate HRAInput) bool {
 
 func Fully_acked(ackmap map[string]Ack_status) bool {
 	for id, value := range ackmap {
-		if value == 0 && id != Elevator_id {
+		if value == 0 && id != config.Elevator_id {
 			return false
 		}
 	}

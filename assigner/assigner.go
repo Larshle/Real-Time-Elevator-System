@@ -1,6 +1,7 @@
 package assigner
 
 import (
+	"root/config"
 	"encoding/json"
 	"fmt"
 	"os/exec"
@@ -15,9 +16,9 @@ import (
 
 
 
-func toLocalAssingment(a map[string][][3]bool, elevatorID string) elevator.Assingments {
+func toLocalAssingment(a map[string][][3]bool) elevator.Assingments {
     var ea elevator.Assingments
-    L, ok := a[elevatorID]
+    L, ok := a[config.Elevator_id]
     if !ok {
         panic("elevator not here")
     }
@@ -30,9 +31,9 @@ func toLocalAssingment(a map[string][][3]bool, elevatorID string) elevator.Assin
     return ea
 }
 
-func toLightsAssingment(cs distributor.HRAInput, elevatorID string) elevator.Assingments {
+func toLightsAssingment(cs distributor.HRAInput) elevator.Assingments {
 	var lights elevator.Assingments
-	L, ok := cs.States[elevatorID]
+	L, ok := cs.States[config.Elevator_id]
     if !ok {
         panic("elevator not here")
     }
@@ -51,14 +52,13 @@ func toLightsAssingment(cs distributor.HRAInput, elevatorID string) elevator.Ass
 func Assigner(
 	eleveatorAssingmentC chan<- elevator.Assingments,
 	lightsAssingmentC chan<- elevator.Assingments,
-	messageToAssinger <-chan distributor.HRAInput,
-	Elevator_id string){
+	messageToAssinger <-chan distributor.HRAInput){
 
 	for{
 		select{
 		case cs := <- messageToAssinger:
-			localAssingment := toLocalAssingment( CalculateHRA(cs), Elevator_id)
-			lightsAssingment:= toLightsAssingment(cs, Elevator_id)
+			localAssingment := toLocalAssingment( CalculateHRA(cs))
+			lightsAssingment:= toLightsAssingment(cs)
 			lightsAssingmentC <- lightsAssingment
 			eleveatorAssingmentC <- localAssingment
 		}

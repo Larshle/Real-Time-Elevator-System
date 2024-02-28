@@ -3,8 +3,8 @@
 package main
 
 import (
+	"root/config"
 	"fmt"
-	"root/network"
 	"root/distributor"
 	"root/driver/elevio"
 	"root/elevator"
@@ -15,14 +15,10 @@ import (
 
 func main() {
 
-	N_floors := 4
-	N_elevators := 3
-	var Elevator_id = network.Generate_ID()
-
-	fmt.Println(Elevator_id)
 	fmt.Println("Hello, World!")
-	fmt.Println("N_floors: ", N_floors)
-	fmt.Println("N_elevators: ", N_elevators)
+	fmt.Println("Elevator ID: ", config.Elevator_id)
+	fmt.Println("N_floors: ", config.N_floors)
+	fmt.Println("N_elevators: ", config.N_elevators)
 
 	// // Storing for powerloss, hentet fra vetle sin kode kan sees på
 	// store, err := skv.Open(fmt.Sprintf("elev%v.db", Elevator_id))
@@ -49,14 +45,12 @@ func main() {
 		newElevStateC,
 		giverToNetwork,
 		receiveFromNetworkC,
-		messageToAssinger,
-		Elevator_id)
+		messageToAssinger)
 	
 	go assigner.Assigner(
 		eleveatorAssingmentC,
 		lightsAssingmentC,
-		messageToAssinger,
-		Elevator_id)
+		messageToAssinger)
 	
 	go elevator.Elevator(
 		eleveatorAssingmentC,

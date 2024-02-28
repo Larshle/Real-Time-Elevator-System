@@ -1,14 +1,12 @@
 package distributor
 
 import (
+	"root/config"
 	"root/driver/elevio"
 	"root/network/network_modules/peers"
 	"root/network/network_modules/bcast"
 	"root/elevator"
-	"root/network"
 )
-
-var Elevator_id string
 
 func Distributor(
 	deliveredOrderC <-chan elevio.ButtonEvent, 
@@ -22,12 +20,11 @@ func Distributor(
 	peerUpdateC := make(chan peers.PeerUpdate)
 	var localAssignments localAssignments
 	var commonState HRAInput
-	Elevator_id = network.Generate_ID()
 	
 	go elevio.PollButtons(elevioOrdersC)
 	go Update_Assingments(elevioOrdersC, deliveredOrderC, newAssingemntC)
 	go peers.Receiver(15647, peerUpdateC)
-	go bcast.Transmitter(15647, Elevator_id, commonState) // MÅ ENDRES
+	go bcast.Transmitter(15647, commonState) // MÅ ENDRES
 
 	for{
 		select{
@@ -54,7 +51,7 @@ func Distributor(
 						commonState = receivedCommonState
 
 					default:
-						receivedCommonState.Ackmap[Elevator_id] = Acked
+						receivedCommonState.Ackmap[config.Elevator_id] = Acked
 						commonState = receivedCommonState
 					}
 		}
