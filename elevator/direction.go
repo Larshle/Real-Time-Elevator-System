@@ -21,9 +21,13 @@ func (d Direction) toBT() elevio.ButtonType{
 
 func (d Direction) toOpposite() Direction{
 	return map[Direction]Direction{Up: Down, Down: Up}[d]
+<<<<<<< HEAD
 }	
 
 func (d Direction) ToString() string{
 	return map[Direction]string{Up: "Up", Down: "Down"}[d]
 }
 
+=======
+}
+>>>>>>> b139c8d1a41a4a69a1614aec781e68d406693ac2

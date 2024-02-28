@@ -10,6 +10,8 @@ import (
 	"root/elevator"
 	"root/assigner"
 	"root/lights"
+	"root/network/network_modules/peers"
+	"root/network/network_modules/bcast"
 )
 
 
@@ -39,6 +41,16 @@ func main() {
 	messageToAssinger := make(chan distributor.HRAInput)
 	eleveatorAssingmentC := make(chan elevator.Assingments)
 	lightsAssingmentC := make(chan elevator.Assingments)
+	chan_receiver_from_peers := make(chan peers.PeerUpdate)
+	chan_giver_to_peers := make(chan bool)
+
+	go peers.Receiver(15647, chan_receiver_from_peers)
+	go peers.Transmitter(15647, config.Elevator_id, chan_giver_to_peers)
+
+	
+	go bcast.Receiver(15647, receiveFromNetworkC) // må endres
+	go bcast.Transmitter(15647, giverToNetwork)
+
 
 	go distributor.Distributor(
 		deliveredOrderC,

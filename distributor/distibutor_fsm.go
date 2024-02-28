@@ -4,7 +4,6 @@ import (
 	"root/config"
 	"root/driver/elevio"
 	"root/network/network_modules/peers"
-	"root/network/network_modules/bcast"
 	"root/elevator"
 )
 
@@ -23,9 +22,7 @@ func Distributor(
 	
 	go elevio.PollButtons(elevioOrdersC)
 	go Update_Assingments(elevioOrdersC, deliveredOrderC, newAssingemntC)
-	go peers.Receiver(15647, peerUpdateC)
-	go bcast.Transmitter(15647, commonState) // MÅ ENDRES
-
+	
 	for{
 		select{
 			case localAssignments = <- newAssingemntC:
