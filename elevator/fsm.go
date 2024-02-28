@@ -20,7 +20,7 @@ const (
 )
 
 
-func Elevator( assingmentsC <-chan Assingments, stateC chan<- State, orderDelivered chan<- elevio.ButtonEvent){
+func Elevator(eleveatorAssingmentC <-chan Assingments, stateC chan<- State, orderDelivered chan<- elevio.ButtonEvent){
 		
 		doorOpenC := make(chan bool, 16)
 		doorClosedC := make(chan bool, 16)
@@ -120,7 +120,7 @@ func Elevator( assingmentsC <-chan Assingments, stateC chan<- State, orderDelive
 							panic("FloorEntered in wrong state")
 					}
 
-				case assingments = <- assingmentsC:
+				case assingments = <- eleveatorAssingmentC:
 					switch state.Behaviour{
 						case Idle:
 							switch{

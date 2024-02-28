@@ -5,6 +5,10 @@ package main
 import (
 	"fmt"
 	"root/network"
+	"root/distributor"
+	"root/driver/elevio"
+	"root/elevator"
+	"root/assigner"
 )
 
 
@@ -32,9 +36,31 @@ func main() {
 	// }
 	// cs.Origin = Elevator_id
 
-	// Hva må skje her? Prøver å lage en liste
-	// Init - alle heisene må sende staten sin til distributor som oppdaterer commonstate
+	deliveredOrderC := make(chan elevio.ButtonEvent)
+	newElevStateC := make(chan elevator.State)
+	giverToNetwork := make(chan distributor.HRAInput)
+	receiveFromNetworkC := make(chan distributor.HRAInput)
+	messageToAssinger := make(chan distributor.HRAInput)
+	eleveatorAssingmentC := make(chan elevator.Assingments)
+	lightsAssingmentC := make(chan elevator.Assingments)
 
+	go distributor.Distributor_fsm(
+		deliveredOrderC,
+		newElevStateC,
+		giverToNetwork,
+		receiveFromNetworkC,
+		messageToAssinger,
+		Elevator_id)
 	
+	go assigner.Assigner(
+		eleveatorAssingmentC,
+		lightsAssingmentC,
+		messageToAssinger,
+		Elevator_id)
+	
+	go elevator.Elevator(
+		eleveatorAssingmentC,
+		newElevStateC,
+		deliveredOrderC)
 
 }

@@ -48,19 +48,19 @@ func toLightsAssingment(cs distributor.HRAInput, elevatorID string) elevator.Ass
 	return lights
 }
 
-func Assingner(eleveatorAssingmentC chan<- elevator.Assingments, lightsAssingmentC chan<- elevator.Assingments , csToAssingerC <-chan distributor.HRAInput, elevatorID string){
-	// MÅ finne noe her for å få tak i elevatorID
-	// Må ha bruke noe for å gjøre om  fra cs til enkel order
+func Assigner(
+	eleveatorAssingmentC chan<- elevator.Assingments,
+	lightsAssingmentC chan<- elevator.Assingments,
+	messageToAssinger <-chan distributor.HRAInput,
+	Elevator_id string){
 
 	for{
 		select{
-		case cs := <- csToAssingerC:
-			localAssingment := toLocalAssingment( CalculateHRA(cs), elevatorID)
-			lightsAssingment:= toLightsAssingment(cs, elevatorID)
+		case cs := <- messageToAssinger:
+			localAssingment := toLocalAssingment( CalculateHRA(cs), Elevator_id)
+			lightsAssingment:= toLightsAssingment(cs, Elevator_id)
 			lightsAssingmentC <- lightsAssingment
 			eleveatorAssingmentC <- localAssingment
-			
-			
 		}
 	}
 }
