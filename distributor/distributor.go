@@ -2,12 +2,10 @@ package distributor
 
 import (
 	"fmt"
-	"root/assigner"
 	"root/elevator"
 	"root/network"
 	"root/network/network_modules/peers"
 	"root/driver/elevio"
-	"root/main"
 	"strconv"
 	"strings"
 	"bytes"
@@ -17,31 +15,34 @@ import (
 var Elevator_id = network.Generate_ID()
 var N_floors = 4
 
+type Ack_status int
+const (
+	NotAcked Ack_status = iota
+	Acked
+	NotAvailable
+)
 
-// func (a localAssignments) Add_Assingment(newAssignments elevio.ButtonEvent) localAssignments{
-// 	if newAssignments.Button == elevio.BT_Cab {
-// 		a.localCabAssignments[newAssignments.Floor] = true
-// 	} else {
-// 		a.localHallAssignments[newAssignments.Floor][newAssignments.Button] = true
-// 	}
-// 	return a
-// }
+type HRAElevState struct {
+	Behaviour   string `json:"behaviour"`
+	Floor       int    `json:"floor"`
+	Direction   string `json:"direction"`
+	CabRequests []bool `json:"cabRequests"`
+}
 
-// func (a localAssignments) Remove_Assingment( deliveredAssingement elevio.ButtonEvent) localAssignments{
-// 	if deliveredAssingement.Button == elevio.BT_Cab {
-// 		a.localCabAssignments[deliveredAssingement.Floor] = false
-// 	} else {
-// 		a.localHallAssignments[deliveredAssingement.Floor][deliveredAssingement.Button] = false
-// 	}
-// 	return a
-// }
+type HRAInput struct {
+	ID int
+	Origin string
+	Ackmap map[string]Ack_status
+	HallRequests [][2]bool               `json:"hallRequests"`
+	States       map[string]HRAElevState `json:"states"`
+}
 
-var Commonstate = assigner.HRAInput{
+var Commonstate = HRAInput{
 	Origin: "string",
 	ID: 1,
-	Ackmap: make(map[string]assigner.Ack_status),
+	Ackmap: make(map[string]Ack_status),
 	HallRequests: [][2]bool{{false, false}, {true, false}, {false, false}, {false, true}},
-	States: map[string]assigner.HRAElevState{
+	States: map[string]HRAElevState{
 		"one":{
 			Behaviour:   "moving",
 			Floor:       2,
@@ -57,12 +58,12 @@ var Commonstate = assigner.HRAInput{
 	},
 }
 
-var Unacked_Commonstate = assigner.HRAInput{
+var Unacked_Commonstate = HRAInput{
 	Origin: "string",
 	ID: 1,
-	Ackmap: make(map[string]assigner.Ack_status),
+	Ackmap: make(map[string]Ack_status),
 	HallRequests: [][2]bool{{false, false}, {true, false}, {false, false}, {false, true}},
-	States: map[string]assigner.HRAElevState{
+	States: map[string]HRAElevState{
 		"one":{
 			Behaviour:   "moving",
 			Floor:       2,
@@ -78,13 +79,14 @@ var Unacked_Commonstate = assigner.HRAInput{
 	},
 }
 
-// Map for å endre fra type til string
-var DirectionMap = map[elevator.Direction]string{
-	elevator.Down:   "down",
-	elevator.Up: "up",
+func (es HRAElevState) toHRAElevState(localElevState elevator.State) {
+	es.Behaviour = string(localElevState.Behaviour)
+	es.Floor = localElevState.Floor
+	es.Direction = string(localElevState.Direction)
 }
 
-func printCommonState(cs assigner.HRAInput) {
+
+func printCommonState(cs HRAInput) {
 	fmt.Println("\nOrigin:", cs.Origin)
 	fmt.Println("ID:", cs.ID)
 	fmt.Println("Ackmap:", cs.Ackmap)
@@ -99,30 +101,34 @@ func printCommonState(cs assigner.HRAInput) {
 	}
 }
 
-func Update_assignments(local_elevator_assignments elevator.Assingments) {
+func (cs HRAInput) Update_Assingments(local_elevator_assignments localAssignments, elevatortID string) {
 
-	var new_HallRequests [][2]bool
-	var new_CabRequests []bool
-
-	new_HallRequests = make([][2]bool, N_floors)
-	new_CabRequests = make([]bool, N_floors)
-
-	// Endrer format fra Assignments til Commonstate
-	for i, row := range local_elevator_assignments {
-		new_HallRequests[len(local_elevator_assignments)-1-i][0] = row[0]
-		new_HallRequests[len(local_elevator_assignments)-1-i][1] = row[1]
-		new_CabRequests[len(local_elevator_assignments)-1-i] = row[2]
+	for f := 0; f < N_floors; f++ {
+		for b := 0; b < 2; b++ {
+			if local_elevator_assignments.localHallAssignments[f][b] == add {
+				cs.HallRequests[f][b] = true
+			}
+			if local_elevator_assignments.localHallAssignments[f][b] == remove {
+				cs.HallRequests[f][b] = false
+			}
+		}
 	}
-	// Oppdaterer hall requests
-	Unacked_Commonstate.HallRequests = new_HallRequests
 
-	// Oppdaterer cab requests
-	temp_state := Unacked_Commonstate.States[Elevator_id]
-	temp_state.CabRequests = new_CabRequests
-	Unacked_Commonstate.States[Elevator_id] = temp_state
+	for f := 0; f < N_floors; f++ {
+		if local_elevator_assignments.localCabAssignments[f] == add {
+			cs.States[elevatortID].CabRequests[f] = true
+		}
+		if local_elevator_assignments.localCabAssignments[f] == remove {
+			cs.States[elevatortID].CabRequests[f] = false
+		}
+	}
+	cs.ID++
+	cs.Origin = Elevator_id
+
+	
 }
 
-func Update_local_state(local_elevator_state elevator.State) {
+func (cs HRAInput) Update_local_state(local_elevator_state elevator.State, elevatorID string) {
 
 	// Create a temporary variable to hold the updated state
 	tempState := Unacked_Commonstate.States[Elevator_id]
@@ -133,7 +139,7 @@ func Update_local_state(local_elevator_state elevator.State) {
 }
 
 
-func Commonstates_are_equal(new_commonstate, Commonstate assigner.HRAInput) bool {
+func Commonstates_are_equal(new_commonstate, Commonstate HRAInput) bool {
     // Compare Ackmaps
     // for k, v := range a.Ackmap {
     //     if b.Ackmap[k] != v {
@@ -176,7 +182,7 @@ func Commonstates_are_equal(new_commonstate, Commonstate assigner.HRAInput) bool
 	return true
 }
 
-func Fully_acked(ackmap map[string]assigner.Ack_status) bool {
+func Fully_acked(ackmap map[string]Ack_status) bool {
 	for id, value := range ackmap {
 		if value == 0 && id != Elevator_id {
 			return false
@@ -207,7 +213,7 @@ func id_is_lower(id1, id2 string) bool {
 }
 
 
-func Recieve_commonstate(new_commonstate assigner.HRAInput) {
+func Recieve_commonstate(new_commonstate HRAInput) {
 	
 	if Commonstates_are_equal(new_commonstate, Unacked_Commonstate) {
 		return

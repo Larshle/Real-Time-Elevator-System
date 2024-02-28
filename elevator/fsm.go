@@ -20,7 +20,7 @@ const (
 )
 
 
-func Elevator_Fsm( assingmentsC <-chan Assingments, stateC chan<- State, orderDelivered chan<- elevio.ButtonEvent){
+func Elevator( assingmentsC <-chan Assingments, stateC chan<- State, orderDelivered chan<- elevio.ButtonEvent){
 		
 		doorOpenC := make(chan bool, 16)
 		doorClosedC := make(chan bool, 16)

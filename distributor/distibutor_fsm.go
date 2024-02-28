@@ -13,51 +13,55 @@ import (
 
 func Distributor_fsm(
 	deliveredOrderC <-chan elevio.ButtonEvent, 
-	newElevStateC <-chan elevator.State,  
-	peerUpdateC <-chan peers.PeerUpdate, 
+	newElevStateC <-chan elevator.State, 
 	giverToNetwork chan<- Commonstate, 
 	receiveFromNetworkC <-chan Commonstate,
 	messageToAssinger chan<- assigner.HRAInput,) {
 
 	elevioOrdersC := make(chan elevio.ButtonEvent)
 	newAssingemntC := make(chan localAssignments)
+	peerUpdateC := make(chan peers.PeerUpdate)
 	var localAssignments localAssignments
 	var state elevator.State
 
 	// Initialize the distributor
 	var localAssignments = localAssignments
-	var commonState = Commonstate
+	var commonState = assigner.HRAInput
+	var elevatorID = network.Generate_ID()
 	
 	go elevio.PollButtons(elevioOrdersC)
 	go Update_Assingments(elevioOrdersC, deliveredOrderC, newAssingemntC)
-	go peers.Receiver(15647, receiveFromNetworkC)
+	go peers.Receiver(15647, peerUpdateC)
 	go network.
 
 	for{
 		select{
 		case localAssignments := <- newAssingemntC:
-			switch{
-			case localAssignments.localCabAssignments != commonState.HallRequests:
-				commonState.HallRequests = localAssignments.localHallAssignments
-				giverToNetwork <- commonState
-			}
+			commonState = commonState.Update_Assingments(localAssignments, elevatorID)
+			giverToNetwork <- commonState
 
 		case newElevState := <- newElevStateC:
-			switch{
-
-			}
+			commonState = commonState.Update_ElevState(newElevState, elevatorID)
+			giverToNetwork <- commonState
+	
 		}
 		case peerUpdate := <- peerUpdateC:
 			switch{
-			case peerUpdate.New != "":
-				giverToNetwork <- commonState
-			}
+				case peer.Update.Lost != 0:
+				//Blalal	
+					giverToNetwork <- commonState
+				}
+
+
+
 		
 		case receivedCommonState := <- receiveFromNetworkC:
 			switch{
 				case fullyAcked(receivedCommonState, localAssignments):
 					messageToAssinger <- receivedCommonState
-				}	
+				}
+				case !fullyAcked(receivedCommonState, localAssignments):
+
 
 
 	}
