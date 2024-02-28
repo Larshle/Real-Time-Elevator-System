@@ -38,7 +38,7 @@ func (es *HRAElevState) toHRAElevState(localElevState elevator.State) {
 	es.Direction = localElevState.Direction.ToString()
 }
 
-func printCommonState(cs HRAInput) {
+func PrintCommonState(cs HRAInput) {
 	fmt.Println("\nOrigin:", cs.Origin)
 	fmt.Println("ID:", cs.ID)
 	fmt.Println("Ackmap:", cs.Ackmap)

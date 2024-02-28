@@ -1,49 +1,47 @@
 package assigner
 
 import (
-	"root/config"
 	"encoding/json"
 	"fmt"
 	"os/exec"
+	"root/config"
+	"root/distributor"
 	"root/driver/elevio"
 	"root/elevator"
-	"root/distributor"
 	"runtime"
 )
 
 // Struct members must be public in order to be accessible by json.Marshal/.Unmarshal
 // This means they must start with a capital letter, so we need to use field renaming struct tags to make them camelCase
 
-
-
 func toLocalAssingment(a map[string][][3]bool) elevator.Assingments {
-    var ea elevator.Assingments
-    L, ok := a[config.Elevator_id]
-    if !ok {
-        panic("elevator not here")
-    }
+	var ea elevator.Assingments
+	L, ok := a[config.Elevator_id]
+	if !ok {
+		panic("elevator not here")
+	}
 
 	for f := 0; f < 4; f++ {
 		for b := 0; b < 3; b++ {
 			ea[f][b] = L[f][b]
 		}
-	}		
-    return ea
+	}
+	return ea
 }
 
 func toLightsAssingment(cs distributor.HRAInput) elevator.Assingments {
 	var lights elevator.Assingments
 	L, ok := cs.States[config.Elevator_id]
-    if !ok {
-        panic("elevator not here")
-    }
+	if !ok {
+		panic("elevator not here")
+	}
 	for f := 0; f < 4; f++ {
 		for b := 0; b < 2; b++ {
 			lights[f][b] = cs.HallRequests[f][b]
-			
+
 		}
 	}
-	for f:= 0; f < 4; f++ {
+	for f := 0; f < 4; f++ {
 		lights[f][elevio.BT_Cab] = L.CabRequests[f]
 	}
 	return lights
@@ -52,13 +50,17 @@ func toLightsAssingment(cs distributor.HRAInput) elevator.Assingments {
 func Assigner(
 	eleveatorAssingmentC chan<- elevator.Assingments,
 	lightsAssingmentC chan<- elevator.Assingments,
-	messageToAssinger <-chan distributor.HRAInput){
+	messageToAssinger <-chan distributor.HRAInput) {
 
-	for{
-		select{
-		case cs := <- messageToAssinger:
-			localAssingment := toLocalAssingment( CalculateHRA(cs))
-			lightsAssingment:= toLightsAssingment(cs)
+	fmt.Print("Assigner started\n")
+
+	for {
+		select {
+		case cs := <-messageToAssinger:
+			distributor.PrintCommonState(cs)
+			localAssingment := toLocalAssingment(CalculateHRA(cs))
+			distributor.PrintCommonState(cs)
+			lightsAssingment := toLightsAssingment(cs)
 			lightsAssingmentC <- lightsAssingment
 			eleveatorAssingmentC <- localAssingment
 		}
@@ -83,7 +85,7 @@ func CalculateHRA(cs distributor.HRAInput) map[string][][3]bool {
 		panic("json.Marshal error")
 	}
 
-	ret, err := exec.Command("../assigner/"+hraExecutable, "-i", "--includeCab", string(jsonBytes)).CombinedOutput()
+	ret, err := exec.Command("assigner/"+hraExecutable, "-i", "--includeCab", string(jsonBytes)).CombinedOutput()
 	if err != nil {
 		fmt.Println("exec.Command error: ", err)
 		fmt.Println(string(ret))
@@ -101,6 +103,6 @@ func CalculateHRA(cs distributor.HRAInput) map[string][][3]bool {
 	for k, v := range *output {
 		fmt.Printf("%6v :  %+v\n", k, v)
 	}
-	
+
 	return *output
 }

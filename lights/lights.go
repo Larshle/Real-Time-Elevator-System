@@ -1,6 +1,7 @@
 package lights
 
 import (
+	"fmt"
 	"root/driver/elevio"
 	"root/elevator"
 )
@@ -18,6 +19,7 @@ func SetLights(light_assignment elevator.Assingments) {
 }
 
 func Lights(lightsAssingmentChan <-chan elevator.Assingments) {
+	fmt.Print("Lights started\n")
 	for {
 		select {
 		case a := <-lightsAssingmentChan:

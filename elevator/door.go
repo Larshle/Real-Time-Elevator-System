@@ -3,6 +3,7 @@ package elevator
 import (
 	"root/driver/elevio"
 	"time"
+	"fmt"
 )
 const(
 	DoorOpenDuration = 3*time.Second
@@ -18,6 +19,9 @@ const (
 )
 
 func Door(doorClosedC chan<- bool, doorOpenC <-chan bool) {
+
+	fmt.Print("Doors_larserhomo started\n")
+
 	elevio.SetDoorOpenLamp(false)
 	obstructionC := make(chan bool)
 	go elevio.PollObstructionSwitch(obstructionC)

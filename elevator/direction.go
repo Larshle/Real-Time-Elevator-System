@@ -26,6 +26,6 @@ func (d Direction) toOpposite() Direction{
 
 
 func (d Direction) ToString() string{
-	return map[Direction]string{Up: "Up", Down: "Down"}[d]
+	return map[Direction]string{Up: "up", Down: "down"}[d]
 }
 
