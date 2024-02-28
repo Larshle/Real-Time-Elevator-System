@@ -48,7 +48,7 @@ func toLightsAssingment(cs distributor.HRAInput, elevatorID string) elevator.Ass
 	return lights
 }
 
-func Assingner(eleveatorAssingmentC chan<- elevator.Assingments, lightsAssingmentC chan<- elevator.Assingments , csToAssingerC <-chan HRAInput, elevatorID string){
+func Assingner(eleveatorAssingmentC chan<- elevator.Assingments, lightsAssingmentC chan<- elevator.Assingments , csToAssingerC <-chan distributor.HRAInput, elevatorID string){
 	// MÅ finne noe her for å få tak i elevatorID
 	// Må ha bruke noe for å gjøre om  fra cs til enkel order
 

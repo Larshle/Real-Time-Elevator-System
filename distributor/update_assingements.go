@@ -12,10 +12,7 @@ const(
 )
 
 
- 
-
 type localAssignments struct {
-	elevator_id string
 	localCabAssignments [4]Ass
 	localHallAssignments [4][2]Ass
 }
