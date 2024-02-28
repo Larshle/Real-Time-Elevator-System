@@ -80,7 +80,7 @@ var Unacked_Commonstate = assigner.HRAInput{
 
 // Map for å endre fra type til string
 var DirectionMap = map[elevator.Direction]string{
-	elevator.Down:   "down",
+	elevator.Down: "down",
 	elevator.Up: "up",
 }
 
@@ -179,29 +179,35 @@ func Fully_acked(ackmap map[string]assigner.Ack_status) bool {
 	return true
 }	
 
-func id_is_lower(id1, id2 string) bool {
-	// Parse IP addresses and process IDs
-	parts1 := strings.Split(id1, "-")
-	parts2 := strings.Split(id2, "-")
-	ip1 := net.ParseIP(parts1[1])
-	ip2 := net.ParseIP(parts2[1])
-	pid1, _ := strconv.Atoi(parts1[2])
-	pid2, _ := strconv.Atoi(parts2[2])
+func Higher_priority(cs1, cs2 assigner.HRAInput) bool {
 
-	// Compare IP addresses
-	cmp := bytes.Compare(ip1, ip2)
-	if cmp < 0 {
+	if cs1.ID > cs2.ID {
 		return true
-	} else if cmp > 0 {
-		return false
 	}
 
-	// If IP addresses are equal, compare process IDs
-	return pid1 < pid2
+	id1 := cs1.Origin
+	id2 := cs2.Origin
+    parts1 := strings.Split(id1, "-")
+    parts2 := strings.Split(id2, "-")
+    ip1 := net.ParseIP(parts1[1])
+    ip2 := net.ParseIP(parts2[1])
+    pid1, _ := strconv.Atoi(parts1[2])
+    pid2, _ := strconv.Atoi(parts2[2])
+
+    // Compare IP addresses
+    cmp := bytes.Compare(ip1, ip2)
+    if cmp > 0 {
+        return true
+    } else if cmp < 0 {
+        return false
+    }
+
+    // If IP addresses are equal, compare process IDs
+    return pid1 > pid2
 }
 
 
-func Recieve_commonstate(new_commonstate assigner.HRAInput) {
+func Recieve_commonstate(new_commonstate assigner.HRAInput, cToAssingerC chan <- assigner.HRAInput) {
 
 	if Commonstates_are_equal(new_commonstate, Unacked_Commonstate) {
 		return
@@ -210,13 +216,13 @@ func Recieve_commonstate(new_commonstate assigner.HRAInput) {
 	if Fully_acked(new_commonstate.Ackmap) {
 		Unacked_Commonstate = new_commonstate // vet ikke om dette er nødvendig
 		Commonstate = new_commonstate
-		// broadcast
-		// kjør til assigner
+		// broadcast (gjøres hele tiden fra main)
+		cToAssingerC <- Commonstate
 	}
 
 	// if new_commonstate har lavere prioritet
 	// return
-	if new_commonstate.ID < Unacked_Commonstate.ID || id_is_lower(new_commonstate.Origin, Unacked_Commonstate.Origin) {
+	if new_commonstate.ID < Unacked_Commonstate.ID || Higher_priority(new_commonstate.Origin, Unacked_Commonstate.Origin) {
 		return
 	}
 

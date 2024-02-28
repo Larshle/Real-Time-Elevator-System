@@ -10,9 +10,6 @@ type localAssignments struct {
 	localHallAssignments [4][2]bool
 }
 
-
-
-
 func (a localAssignments) Add_Assingment(newAssignments elevio.ButtonEvent) localAssignments{
 	if newAssignments.Button == elevio.BT_Cab {
 		a.localCabAssignments[newAssignments.Floor] = true
@@ -21,8 +18,6 @@ func (a localAssignments) Add_Assingment(newAssignments elevio.ButtonEvent) loca
 	}
 	return a
 }
-
-
 
 func (a localAssignments) Remove_Assingment( deliveredAssingement elevio.ButtonEvent) localAssignments{
 	if deliveredAssingement.Button == elevio.BT_Cab {
