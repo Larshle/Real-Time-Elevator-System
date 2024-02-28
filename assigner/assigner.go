@@ -6,33 +6,14 @@ import (
 	"os/exec"
 	"root/driver/elevio"
 	"root/elevator"
+	"root/distributor"
 	"runtime"
 )
 
 // Struct members must be public in order to be accessible by json.Marshal/.Unmarshal
 // This means they must start with a capital letter, so we need to use field renaming struct tags to make them camelCase
 
-type Ack_status int
-const (
-	NotAcked Ack_status = iota
-	Acked
-	NotAvailable
-)
 
-type HRAElevState struct {
-	Behaviour   string `json:"behaviour"`
-	Floor       int    `json:"floor"`
-	Direction   string `json:"direction"`
-	CabRequests []bool `json:"cabRequests"`
-}
-
-type HRAInput struct {
-	ID int
-	Origin string
-	Ackmap map[string]Ack_status
-	HallRequests [][2]bool               `json:"hallRequests"`
-	States       map[string]HRAElevState `json:"states"`
-}
 
 func toLocalAssingment(a map[string][][3]bool, elevatorID string) elevator.Assingments {
     var ea elevator.Assingments
@@ -49,7 +30,7 @@ func toLocalAssingment(a map[string][][3]bool, elevatorID string) elevator.Assin
     return ea
 }
 
-func toLightsAssingment(cs HRAInput, elevatorID string) elevator.Assingments {
+func toLightsAssingment(cs distributor.HRAInput, elevatorID string) elevator.Assingments {
 	var lights elevator.Assingments
 	L, ok := cs.States[elevatorID]
     if !ok {
@@ -84,7 +65,7 @@ func Assingner(eleveatorAssingmentC chan<- elevator.Assingments, lightsAssingmen
 	}
 }
 
-func CalculateHRA(cs HRAInput) map[string][][3]bool {
+func CalculateHRA(cs distributor.HRAInput) map[string][][3]bool {
 
 	hraExecutable := ""
 	switch runtime.GOOS {
@@ -96,12 +77,12 @@ func CalculateHRA(cs HRAInput) map[string][][3]bool {
 		panic("OS not supported")
 	}
 
-	input := HRAInput{
+	input := distributor.HRAInput{
 		ID: 1,
 		Origin: "string",
-		Ackmap: map[string]Ack_status {"ein": Acked, "to": Acked},
+		Ackmap: map[string]distributor.Ack_status {"ein": distributor.Acked, "to": distributor.Acked},
 		HallRequests: [][2]bool{{false, false}, {false, false}, {false, false}, {false, false}},
-		States: map[string]HRAElevState{
+		States: map[string]distributor.HRAElevState{
 			"one":{
 				Behaviour:    "moving",
 				Floor:       2,

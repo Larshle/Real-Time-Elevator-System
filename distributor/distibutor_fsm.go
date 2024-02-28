@@ -11,61 +11,59 @@ import (
 
 func Distributor_fsm(
 	deliveredOrderC <-chan elevio.ButtonEvent, 
-	newElevStateC <-chan elevator.State,  
-	peerUpdateC <-chan peers.PeerUpdate, 
+	newElevStateC <-chan elevator.State, 
 	giverToNetwork chan<- Commonstate, 
 	receiveFromNetworkC <-chan Commonstate,
 	messageToAssinger chan<- assigner.HRAInput) {
 
 	elevioOrdersC := make(chan elevio.ButtonEvent)
 	newAssingemntC := make(chan localAssignments)
+	peerUpdateC := make(chan peers.PeerUpdate)
 	var localAssignments localAssignments
 	var state elevator.State
 
 	// Initialize the distributor
 	var localAssignments = localAssignments
-	var commonState = Commonstate
-	var peers = peers.PeerUpdate
-	
+	var commonState = assigner.HRAInput
+	var elevatorID = network.Generate_ID()
 	
 	go elevio.PollButtons(elevioOrdersC)
 	go Update_Assingments(elevioOrdersC, deliveredOrderC, newAssingemntC)
-	go peers.Receiver(15647, receiveFromNetworkC)
+	go peers.Receiver(15647, peerUpdateC)
+	go network.
 
 	for{
 		select{
-			case localAssignments := <- newAssingemntC:
-				switch{
-					case localAssignments.localCabAssignments != commonState.HallRequests:
-					commonState.HallRequests = localAssignments.localHallAssignments
-					giverToNetwork <- commonState
-				}
+		case localAssignments := <- newAssingemntC:
+			commonState = commonState.Update_Assingments(localAssignments, elevatorID)
+			giverToNetwork <- commonState
 
-			case newElevState := <- newElevStateC:
-				switch{
-
-				}
-			
-			case peers := <- peerUpdateC:
-				switch{
-					case peers.New != "":
-					giverToNetwork <- commonState
-				}
-			
-			case receivedCommonState := <- receiveFromNetworkC:
-				switch{
-					case Fully_acked(receivedCommonState.Ackmap):
-						messageToAssinger <- receivedCommonState
-
-					case Higher_priority(receivedCommonState, commonState):
-						commonState = receivedCommonState
-
-					default:
-						receivedCommonState.Ackmap[Elevator_id] = assigner.Acked
-						commonState = receivedCommonState
-					}
+		case newElevState := <- newElevStateC:
+			commonState = commonState.Update_ElevState(newElevState, elevatorID)
+			giverToNetwork <- commonState
+	
 		}
+		case peerUpdate := <- peerUpdateC:
+			switch{
+				case peer.Update.Lost != 0:
+				//Blalal	
+					giverToNetwork <- commonState
+				}
+
+
+
+		
+		case receivedCommonState := <- receiveFromNetworkC:
+			switch{
+				case fullyAcked(receivedCommonState, localAssignments):
+					messageToAssinger <- receivedCommonState
+				}
+				case !fullyAcked(receivedCommonState, localAssignments):
+
+
+
 	}
+
 }
 	// This is the main function for the distributor FSM. It listens to the channels for new orders, delivered orders, new elevator states, delivered elevator states, peer updates, and messages from the network. It then updates the state of the distributor, and sends messages to the network if necessary.
 
