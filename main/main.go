@@ -25,6 +25,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+
 	var cs central.CentralState
 	if err = store.Get("cs", &cs); err != nil && err != skv.ErrNotFound {
 		panic(err)
@@ -33,7 +34,5 @@ func main() {
 
 	// Hva må skje her? Prøver å lage en liste
 	// Init - alle heisene må sende staten sin til distributor som oppdaterer commonstate
-
-	
 
 }

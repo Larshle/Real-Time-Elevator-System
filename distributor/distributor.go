@@ -3,16 +3,12 @@ package distributor
 import (
 	"fmt"
 	"root/elevator"
-	"root/network"
-	"root/network/network_modules/peers"
-	"root/driver/elevio"
 	"strconv"
 	"strings"
 	"bytes"
 	"net"
 )
 
-var Elevator_id = network.Generate_ID()
 var N_floors = 4
 
 type Ack_status int
@@ -101,7 +97,7 @@ func printCommonState(cs HRAInput) {
 	}
 }
 
-func (cs HRAInput) Update_Assingments(local_elevator_assignments localAssignments, elevatortID string) {
+func (cs HRAInput) Update_Assingments(local_elevator_assignments localAssignments, Elevator_id string) HRAInput {
 
 	for f := 0; f < N_floors; f++ {
 		for b := 0; b < 2; b++ {
@@ -116,19 +112,18 @@ func (cs HRAInput) Update_Assingments(local_elevator_assignments localAssignment
 
 	for f := 0; f < N_floors; f++ {
 		if local_elevator_assignments.localCabAssignments[f] == add {
-			cs.States[elevatortID].CabRequests[f] = true
+			cs.States[Elevator_id].CabRequests[f] = true
 		}
 		if local_elevator_assignments.localCabAssignments[f] == remove {
-			cs.States[elevatortID].CabRequests[f] = false
+			cs.States[Elevator_id].CabRequests[f] = false
 		}
 	}
 	cs.ID++
 	cs.Origin = Elevator_id
-
-	
+	return cs
 }
 
-func (cs HRAInput) Update_local_state(local_elevator_state elevator.State, elevatorID string) {
+func (cs HRAInput) Update_local_state(local_elevator_state elevator.State, Elevator_id string) {
 
 	// Create a temporary variable to hold the updated state
 	tempState := Unacked_Commonstate.States[Elevator_id]
@@ -139,7 +134,7 @@ func (cs HRAInput) Update_local_state(local_elevator_state elevator.State, eleva
 }
 
 
-func Commonstates_are_equal(new_commonstate, Commonstate assigner.HRAInput) bool {	
+func Commonstates_are_equal(new_commonstate, Commonstate HRAInput) bool {	
 
 	if new_commonstate.ID != Commonstate.ID {
 		return false
@@ -176,7 +171,7 @@ func Commonstates_are_equal(new_commonstate, Commonstate assigner.HRAInput) bool
 	return true
 }
 
-func Fully_acked(ackmap map[string]Ack_status) bool {
+func Fully_acked(ackmap map[string]Ack_status, Elevator_id string) bool {
 	for id, value := range ackmap {
 		if value == 0 && id != Elevator_id {
 			return false
@@ -185,7 +180,7 @@ func Fully_acked(ackmap map[string]Ack_status) bool {
 	return true
 }	
 
-func Higher_priority(cs1, cs2 assigner.HRAInput) bool {
+func Higher_priority(cs1, cs2 HRAInput) bool {
 
 	if cs1.ID > cs2.ID {
 		return true
@@ -210,39 +205,4 @@ func Higher_priority(cs1, cs2 assigner.HRAInput) bool {
 
     // If IP addresses are equal, compare process IDs
     return pid1 > pid2
-}
-
-
-func Recieve_commonstate(new_commonstate assigner.HRAInput, cToAssingerC chan <- HRAInput) {
-
-	if Commonstates_are_equal(new_commonstate, Unacked_Commonstate) {
-		return
-	}
-
-	if Fully_acked(new_commonstate.Ackmap) {
-		Unacked_Commonstate = new_commonstate // vet ikke om dette er nødvendig
-		Commonstate = new_commonstate
-		// broadcast (gjøres hele tiden fra main)
-		cToAssingerC <- Commonstate
-	}
-
-	// if new_commonstate har lavere prioritet
-	// return
-	if new_commonstate.ID < Unacked_Commonstate.ID || Higher_priority(new_commonstate.Origin, Unacked_Commonstate.Origin) {
-		return
-	}
-
-	// else
-	// ack, oppdater ack_commonstate og broadcast denne helt til den er acket eller det kommer en ny med høyere prioritet
-	new_commonstate.Ackmap[Elevator_id] = 1
-	Unacked_Commonstate = new_commonstate
-
-}
-
-func Create_commonstate(peerUpdateCh <-chan peers.PeerUpdate) {
-	// Create a new commonstate
-	Unacked_Commonstate.ID++
-	Unacked_Commonstate.Origin = Elevator_id
-	Unacked_Commonstate.Ackmap = make(map[string]assigner.Ack_status)
-	Unacked_Commonstate.Ackmap[Elevator_id] = 1
 }
