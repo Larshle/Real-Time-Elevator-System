@@ -76,7 +76,7 @@ var Unacked_Commonstate = HRAInput{
 	},
 }
 
-func (es HRAElevState) toHRAElevState(localElevState elevator.State) {
+func (es *HRAElevState) toHRAElevState(localElevState elevator.State) {
 	es.Behaviour = string(localElevState.Behaviour)
 	es.Floor = localElevState.Floor
 	es.Direction = string(localElevState.Direction)
@@ -98,7 +98,7 @@ func printCommonState(cs HRAInput) {
 	}
 }
 
-func (cs HRAInput) Update_Assingments(local_elevator_assignments localAssignments) HRAInput {
+func (cs *HRAInput) Update_Assingments(local_elevator_assignments localAssignments, Elevator_id string) {
 
 	for f := 0; f < N_floors; f++ {
 		for b := 0; b < 2; b++ {
@@ -120,18 +120,19 @@ func (cs HRAInput) Update_Assingments(local_elevator_assignments localAssignment
 		}
 	}
 	cs.ID++
-	cs.Origin = config.Elevator_id
-	return cs
+	cs.Origin = Elevator_id
+
 }
 
-func (cs HRAInput) Update_local_state(local_elevator_state elevator.State) {
+func (cs *HRAInput) Update_local_state(local_elevator_state elevator.State, Elevator_id string) {
+    hraElevState := cs.States[Elevator_id]
 
-	// Create a temporary variable to hold the updated state
-	tempState := Unacked_Commonstate.States[config.Elevator_id]
-	tempState.Behaviour = string(local_elevator_state.Behaviour)
+    hraElevState.toHRAElevState(local_elevator_state)
 
-	// Assign the updated state back to the map
-	Unacked_Commonstate.States[config.Elevator_id] = tempState
+    cs.States[Elevator_id] = hraElevState
+	
+    cs.ID++
+    cs.Origin = Elevator_id
 }
 
 
