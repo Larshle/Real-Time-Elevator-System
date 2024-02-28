@@ -98,7 +98,7 @@ func CalculateHRA(cs distributor.HRAInput) map[string][][3]bool {
 		},
 	}
 
-	jsonBytes, err := json.Marshal(input)
+	jsonBytes, err := json.Marshal(cs)
 	if err != nil {
 		fmt.Println("json.Marshal error: ", err)
 		panic("json.Marshal error")
