@@ -6,7 +6,7 @@ import (
 	"fmt"
 )
 const(
-	DoorOpenDuration = 3*time.Second
+	DoorOpenDuration = 1*time.Second
 )
 
 type DoorState int
@@ -20,7 +20,6 @@ const (
 
 func Door(doorClosedC chan<- bool, doorOpenC <-chan bool) {
 
-	fmt.Print("Doors_larserhomo started\n")
 
 	elevio.SetDoorOpenLamp(false)
 	obstructionC := make(chan bool)
@@ -41,6 +40,7 @@ func Door(doorClosedC chan<- bool, doorOpenC <-chan bool) {
 
 
 			case <-doorOpenC:
+				fmt.Println("Door open")
 				switch ds{
 					case InCountDown:
 						timeCounter = time.NewTimer(DoorOpenDuration)

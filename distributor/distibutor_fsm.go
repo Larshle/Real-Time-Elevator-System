@@ -30,18 +30,18 @@ func Distributor(
 	// 	HallRequests: make([][2]bool, 4), // Assuming you want 4 pairs of bools
 	// 	States:       make(map[string]HRAElevState),
 	// }
-	
+
 	commonState = HRAInput{
 		Origin:       config.Elevator_id,
 		ID:           1,
 		Ackmap:       make(map[string]Ack_status),
-		HallRequests: [][2]bool{{false, true}, {false, false}, {false, false}, {false, false}},
+		HallRequests: [][2]bool{{false, false}, {false, false}, {false, false}, {false, false}},
 		States: map[string]HRAElevState{
 			config.Elevator_id: {
 				Behaviour:   "idle",
 				Floor:       2,
 				Direction:   "up",
-				CabRequests: []bool{false, false, false, false},
+				CabRequests: []bool{false, false, false, true},
 			},
 		},
 	}
@@ -56,6 +56,7 @@ func Distributor(
 	// 	},
 	// }
 
+	fmt.Println("Første commonstate")
 	PrintCommonState(commonState)
 
 	go elevio.PollButtons(elevioOrdersC)
@@ -63,34 +64,34 @@ func Distributor(
 
 	for {
 		select {
-			case localAssignments = <-newAssingemntC:
-				fmt.Printf("Local assignments: %+v\n", localAssignments)
-				commonState.Update_Assingments(localAssignments)
+		case localAssignments = <-newAssingemntC:
+			fmt.Println("LOCAL ASSIGNMENTS:")
+			commonState.Update_Assingments(localAssignments)
+			giverToNetwork <- commonState
+
+		case newElevState := <-newElevStateC:
+			commonState.Update_local_state(newElevState)
+			giverToNetwork <- commonState
+
+		case peers := <-peerUpdateC:
+			switch {
+			case peers.New != "":
 				giverToNetwork <- commonState
+			}
 
-			case newElevState := <-newElevStateC:
-				fmt.Printf("Mottar ny ordre: %+v\n", localAssignments)
-				commonState.Update_local_state(newElevState)
-				giverToNetwork <- commonState
+		case receivedCommonState := <-receiveFromNetworkC:
+			switch {
+			case Fully_acked(receivedCommonState.Ackmap):
+				fmt.Println("Sjekke liit opp")
+				messageToAssinger <- receivedCommonState
 
-			case peers := <-peerUpdateC:
-				switch {
-				case peers.New != "":
-					giverToNetwork <- commonState
-				}
+			case Higher_priority(receivedCommonState, commonState):
+				commonState = receivedCommonState
 
-			case receivedCommonState := <-receiveFromNetworkC:
-				switch {
-				case Fully_acked(receivedCommonState.Ackmap):
-					messageToAssinger <- receivedCommonState
-
-				case Higher_priority(receivedCommonState, commonState):
-					commonState = receivedCommonState
-
-				default:
-					receivedCommonState.Ackmap[config.Elevator_id] = Acked
-					commonState = receivedCommonState
-				}
+			default:
+				receivedCommonState.Ackmap[config.Elevator_id] = Acked
+				commonState = receivedCommonState
+			}
 		}
 	}
 

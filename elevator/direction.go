@@ -7,8 +7,8 @@ import (
 type Direction int
 
 const (
-	Down Direction = iota
-	Up
+	Up Direction = iota
+	Down
 )
 
 func (d Direction) toMD() elevio.MotorDirection{

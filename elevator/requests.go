@@ -1,6 +1,7 @@
 package elevator
 
 import (
+	"fmt"
 	"root/driver/elevio"
 )
 
@@ -32,14 +33,18 @@ func (a Assingments) ReqInDirection(floor int, dir Direction) bool {
 	
 
 
-func EmptyAssingner(floor int, dir Direction, a Assingments, orderDoneC chan<- elevio.ButtonEvent) bool {
+func EmptyAssingner(floor int, dir Direction, a Assingments, orderDoneC chan<- elevio.ButtonEvent) {
+	fmt.Println("Emptying assingner")
+	fmt.Println(a)
+	fmt.Println("se oppe")
 	if a[floor][elevio.BT_Cab] {
 		orderDoneC <- elevio.ButtonEvent{Floor: floor, Button: elevio.BT_Cab}
+		fmt.Println("Cab order done")
 	}
 	if a[floor][dir] {
 		orderDoneC <- elevio.ButtonEvent{Floor: floor, Button: dir.toBT()}
+		fmt.Println("Hall order done")
 	}
-	return false
 }
 
 

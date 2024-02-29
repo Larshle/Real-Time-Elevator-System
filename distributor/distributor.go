@@ -1,16 +1,17 @@
 package distributor
 
 import (
-	"root/config"
+	"bytes"
 	"fmt"
+	"net"
+	"root/config"
 	"root/elevator"
 	"strconv"
 	"strings"
-	"bytes"
-	"net"
 )
 
 type Ack_status int
+
 const (
 	NotAcked Ack_status = iota
 	Acked
@@ -25,9 +26,9 @@ type HRAElevState struct {
 }
 
 type HRAInput struct {
-	ID int
-	Origin string
-	Ackmap map[string]Ack_status
+	ID           int
+	Origin       string
+	Ackmap       map[string]Ack_status
 	HallRequests [][2]bool               `json:"hallRequests"`
 	States       map[string]HRAElevState `json:"states"`
 }
@@ -59,9 +60,11 @@ func (cs *HRAInput) Update_Assingments(local_elevator_assignments localAssignmen
 		for b := 0; b < 2; b++ {
 			if local_elevator_assignments.localHallAssignments[f][b] == add {
 				cs.HallRequests[f][b] = true
+				fmt.Println("Hall request added")
 			}
 			if local_elevator_assignments.localHallAssignments[f][b] == remove {
 				cs.HallRequests[f][b] = false
+				fmt.Println("Hall request removed")
 			}
 		}
 	}
@@ -76,18 +79,20 @@ func (cs *HRAInput) Update_Assingments(local_elevator_assignments localAssignmen
 	}
 	cs.ID++
 	cs.Origin = config.Elevator_id
+	fmt.Println("Updated common state:")
+	PrintCommonState(*cs)
 
 }
 
 func (cs *HRAInput) Update_local_state(local_elevator_state elevator.State) {
-    hraElevState := cs.States[config.Elevator_id]
+	hraElevState := cs.States[config.Elevator_id]
 
-    hraElevState.toHRAElevState(local_elevator_state)
+	hraElevState.toHRAElevState(local_elevator_state)
 
-    cs.States[config.Elevator_id] = hraElevState
-	
-    cs.ID++
-    cs.Origin = config.Elevator_id
+	cs.States[config.Elevator_id] = hraElevState
+
+	cs.ID++
+	cs.Origin = config.Elevator_id
 }
 
 func Fully_acked(ackmap map[string]Ack_status) bool {
@@ -97,7 +102,7 @@ func Fully_acked(ackmap map[string]Ack_status) bool {
 		}
 	}
 	return true
-}	
+}
 
 func Higher_priority(cs1, cs2 HRAInput) bool {
 
@@ -107,21 +112,21 @@ func Higher_priority(cs1, cs2 HRAInput) bool {
 
 	id1 := cs1.Origin
 	id2 := cs2.Origin
-    parts1 := strings.Split(id1, "-")
-    parts2 := strings.Split(id2, "-")
-    ip1 := net.ParseIP(parts1[1])
-    ip2 := net.ParseIP(parts2[1])
-    pid1, _ := strconv.Atoi(parts1[2])
-    pid2, _ := strconv.Atoi(parts2[2])
+	parts1 := strings.Split(id1, "-")
+	parts2 := strings.Split(id2, "-")
+	ip1 := net.ParseIP(parts1[1])
+	ip2 := net.ParseIP(parts2[1])
+	pid1, _ := strconv.Atoi(parts1[2])
+	pid2, _ := strconv.Atoi(parts2[2])
 
-    // Compare IP addresses
-    cmp := bytes.Compare(ip1, ip2)
-    if cmp > 0 {
-        return true
-    } else if cmp < 0 {
-        return false
-    }
+	// Compare IP addresses
+	cmp := bytes.Compare(ip1, ip2)
+	if cmp > 0 {
+		return true
+	} else if cmp < 0 {
+		return false
+	}
 
-    // If IP addresses are equal, compare process IDs
-    return pid1 > pid2
+	// If IP addresses are equal, compare process IDs
+	return pid1 > pid2
 }
