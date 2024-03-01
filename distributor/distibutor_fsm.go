@@ -82,7 +82,7 @@ func Distributor(
 
 		case peers := <-peerUpdateC: 
 			if len(peers.Lost) != 0{
-				commonState.Update_ackmap(peers)
+				commonState.makeElevUnav(peers)
 				commonState.ID++
 				giverToNetwork <- commonState
 			}
@@ -96,14 +96,23 @@ func Distributor(
 				commonState = arrivedCommonState
 				messageToAssinger <- commonState
 
-			case Higher_priority(arrivedCommonState, commonState):
-				commonState.Ack()
-				giverToNetwork <- commonState
+			case commonStatesNotEqual(commonState, arrivedCommonState):
+				switch {
+					case ChangeOfPeers(commonState, arrivedCommonState):
+						commonState.HighestIDState(arrivedCommonState)
+						commonState.Ack()
+						giverToNetwork <- commonState
 
-			case commonState.ID < arrivedCommonState.ID:
-				commonState = HighestIDState(commonState, arrivedCommonState)
-				commonState.Ack()
-				giverToNetwork <- commonState
+					case HigherID(commonState, arrivedCommonState):
+						commonState = arrivedCommonState
+						commonState.Ack()
+						giverToNetwork <- commonState
+
+					default:
+						commonState = takePriortisedIP(commonState, arrivedCommonState)
+						commonState.Ack()
+						giverToNetwork <- commonState
+				}
 
 			default:
 				commonState = arrivedCommonState
@@ -114,7 +123,8 @@ func Distributor(
 
 			if newcommonState, ok := queue.Dequeue(); ok && Fully_acked(commonState.Ackmap) {
 				newcommonState.ID = commonState.ID + 1
-				giverToNetwork <- newcommonState
+				commonState = newcommonState
+				giverToNetwork <- commonState
 			}
 		}
 

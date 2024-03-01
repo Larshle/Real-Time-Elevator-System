@@ -128,34 +128,12 @@ func Fully_acked(ackmap map[string]Ack_status) bool {
 	return true
 }
 
-func Higher_priority(cs1, cs2 HRAInput) bool {
 
-	if cs1.ID > cs2.ID {
-		return true
-	}
-
-	id1 := cs1.Origin
-	id2 := cs2.Origin
-	parts1 := strings.Split(id1, "-")
-	parts2 := strings.Split(id2, "-")
-	ip1 := net.ParseIP(parts1[1])
-	ip2 := net.ParseIP(parts2[1])
-	pid1, _ := strconv.Atoi(parts1[2])
-	pid2, _ := strconv.Atoi(parts2[2])
-
-	// Compare IP addresses
-	cmp := bytes.Compare(ip1, ip2)
-	if cmp > 0 {
-		return true
-	} else if cmp < 0 {
-		return false
-	}
-
-	// If IP addresses are equal, compare process IDs
-	return pid1 > pid2
+func commonStatesNotEqual(oldCS, newCS HRAInput) bool {
+	return !reflect.DeepEqual(oldCS, newCS)
 }
 
-func (cs *HRAInput) Update_ackmap(p peers.PeerUpdate) {
+func (cs *HRAInput) makeElevUnav(p peers.PeerUpdate) {
 	for _, id := range p.Lost {
 		cs.Ackmap[id] = NotAvailable
 		delete(cs.States, id)
@@ -166,13 +144,50 @@ func (cs *HRAInput) Ack() {
 	cs.Ackmap[config.Elevator_id] = Acked
 }
 
-func HighestIDState(cs1, cs2 HRAInput) HRAInput {
-	if cs1.Origin == cs2.Origin && 
-	reflect.DeepEqual(cs1.States, cs2.States) &&
-	reflect.DeepEqual(cs1.HallRequests, cs2.HallRequests) {
-	 if cs1.ID > cs2.ID {
-		 return cs1
-	 } else {
-        panic("States are not equal")
-    }
+func ChangeOfPeers(oldCS, newCS HRAInput) bool {
+	if oldCS.Origin == newCS.Origin && 
+	reflect.DeepEqual(oldCS.States, newCS.States) &&
+	reflect.DeepEqual(oldCS.HallRequests, newCS.HallRequests) &&
+	oldCS.ID != newCS.ID{
+		 return true }
+	return false
+}
+
+func HigherID(oldCS, newCS HRAInput) bool {
+	return oldCS.ID < newCS.ID 
+}
+
+func (oldCS *HRAInput) HighestIDState( newCS HRAInput){
+	if oldCS.Origin == newCS.Origin && 
+	reflect.DeepEqual(oldCS.States, newCS.States) &&
+	reflect.DeepEqual(oldCS.HallRequests, newCS.HallRequests) {
+	 if oldCS.ID < newCS.ID {
+		 oldCS = &newCS
+	}
+  }
+}
+
+func takePriortisedIP(oldCS, newCS HRAInput) HRAInput{
+	id1 := oldCS.Origin
+	id2 := newCS.Origin
+	parts1 := strings.Split(id1, "-")
+	parts2 := strings.Split(id2, "-")
+	ip1 := net.ParseIP(parts1[1])
+	ip2 := net.ParseIP(parts2[1])
+	pid1, _ := strconv.Atoi(parts1[2])
+	pid2, _ := strconv.Atoi(parts2[2])
+
+	// Compare IP addresses
+	cmp := bytes.Compare(ip1, ip2)
+	if cmp > 0 {
+		return oldCS
+	} else if cmp < 0 {
+		return newCS
+	}
+
+	// If IP addresses are equal, compare process IDs
+	if pid1 > pid2 {
+		return oldCS
+	}
+	return newCS
 }
