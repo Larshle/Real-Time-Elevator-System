@@ -83,22 +83,30 @@ func Distributor(
 		case peers := <-peerUpdateC: 
 			if len(peers.Lost) != 0{
 				commonState.Update_ackmap(peers)
+				commonState.ID++
 				giverToNetwork <- commonState
 			}
 		
 
 
-		case commonState := <-receiveFromNetworkC:
+		case arrivedCommonState := <-receiveFromNetworkC:
 			switch {
-			case Fully_acked(commonState.Ackmap):
+			case Fully_acked(arrivedCommonState.Ackmap):
 				fmt.Println("Sjekke liit opp")
+				commonState = arrivedCommonState
 				messageToAssinger <- commonState
 
 			case Higher_priority(commonState, commonState):
 				commonState.Ack()
 				giverToNetwork <- commonState
 
+			case commonState.ID < arrivedCommonState.ID:
+				commonState = HighestIDState(commonState, arrivedCommonState)
+				commonState.Ack()
+				giverToNetwork <- commonState
+
 			default:
+				commonState = arrivedCommonState
 				commonState.Ack()
 				giverToNetwork <- commonState
 			}

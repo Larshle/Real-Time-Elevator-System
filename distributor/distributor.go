@@ -9,6 +9,7 @@ import (
 	"root/network/network_modules/peers"
 	"strconv"
 	"strings"
+	"reflect"
 )
 
 type Ack_status int
@@ -50,6 +51,9 @@ func (q *CommonStateQueue) Dequeue() (HRAInput, bool) {
     return item, true
 }
 
+func (q *CommonStateQueue) EnqueueFront(c HRAInput) {
+    q.items = append([]HRAInput{c}, q.items...)
+}
 
 func (es *HRAElevState) toHRAElevState(localElevState elevator.State) {
 	es.Behaviour = localElevState.Behaviour.ToString()
@@ -160,4 +164,15 @@ func (cs *HRAInput) Update_ackmap(p peers.PeerUpdate) {
 
 func (cs *HRAInput) Ack() {
 	cs.Ackmap[config.Elevator_id] = Acked
+}
+
+func HighestIDState(cs1, cs2 HRAInput) HRAInput {
+	if cs1.Origin == cs2.Origin && 
+	reflect.DeepEqual(cs1.States, cs2.States) &&
+	reflect.DeepEqual(cs1.HallRequests, cs2.HallRequests) {
+	 if cs1.ID > cs2.ID {
+		 return cs1
+	 } else {
+        panic("States are not equal")
+    }
 }
