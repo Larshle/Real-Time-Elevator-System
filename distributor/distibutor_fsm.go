@@ -22,6 +22,7 @@ func Distributor(
 	peerUpdateC := make(chan peers.PeerUpdate)
 	var localAssignments localAssignments
 	var commonState HRAInput
+	var newCommonState HRAInput
 
 	// commonState = HRAInput{
 	// 	Origin:       config.Elevator_id,
@@ -107,6 +108,9 @@ func Distributor(
 						commonState = arrivedCommonState
 						commonState.Ack()
 						giverToNetwork <- commonState
+					
+					case commonStatesNotEqual(arrivedCommonState, newCommonState):
+						queue.EnqueueFront(newCommonState)
 
 					default:
 						commonState = takePriortisedIP(commonState, arrivedCommonState)
@@ -121,9 +125,9 @@ func Distributor(
 			}
 		default:
 
-			if newcommonState, ok := queue.Dequeue(); ok && Fully_acked(commonState.Ackmap) {
-				newcommonState.ID = commonState.ID + 1
-				commonState = newcommonState
+			if newCommonState, ok := queue.Dequeue(); ok && Fully_acked(commonState.Ackmap) {
+				newCommonState.ID = commonState.ID + 1
+				commonState = newCommonState
 				giverToNetwork <- commonState
 			}
 		}

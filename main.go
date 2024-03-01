@@ -72,8 +72,8 @@ func main() {
 
 	fmt.Println("1")
 
-	go peers.Receiver(15357, chan_receiver_from_peers)
-	go peers.Transmitter(15357, config.Elevator_id, chan_giver_to_peers)
+	go peers.Receiver(15360 + idInt, chan_receiver_from_peers)
+	go peers.Transmitter(15360 + idInt, config.Elevator_id, chan_giver_to_peers)
 
 	fmt.Println("2")
 
