@@ -29,10 +29,27 @@ type HRAElevState struct {
 type HRAInput struct {
 	ID           int
 	Origin       string
-	Ackmap       map[string]Ack_status
+	Ackmap       map[string]Ack_status 
 	HallRequests [][2]bool               `json:"hallRequests"`
 	States       map[string]HRAElevState `json:"states"`
 }
+type CommonStateQueue struct {
+    items []HRAInput
+}
+
+func (q *CommonStateQueue) Enqueue(c HRAInput) {
+    q.items = append(q.items, c)
+}
+
+func (q *CommonStateQueue) Dequeue() (HRAInput, bool) {
+    if len(q.items) == 0 {
+        return HRAInput{}, false
+    }
+    item := q.items[0]
+    q.items = q.items[1:]
+    return item, true
+}
+
 
 func (es *HRAElevState) toHRAElevState(localElevState elevator.State) {
 	es.Behaviour = localElevState.Behaviour.ToString()
@@ -80,6 +97,7 @@ func (cs *HRAInput) Update_Assingments(local_elevator_assignments localAssignmen
 	}
 	cs.ID++
 	cs.Origin = config.Elevator_id
+	cs.Ack()
 	fmt.Println("Updated common state:")
 	PrintCommonState(*cs)
 
@@ -94,11 +112,12 @@ func (cs *HRAInput) Update_local_state(local_elevator_state elevator.State) {
 
 	cs.ID++
 	cs.Origin = config.Elevator_id
+	cs.Ack()
 }
 
 func Fully_acked(ackmap map[string]Ack_status) bool {
-	for id, value := range ackmap {
-		if value == 0 && id != config.Elevator_id {
+	for _, value := range ackmap {
+		if value == 0 {
 			return false
 		}
 	}
@@ -135,5 +154,10 @@ func Higher_priority(cs1, cs2 HRAInput) bool {
 func (cs *HRAInput) Update_ackmap(p peers.PeerUpdate) {
 	for _, id := range p.Lost {
 		cs.Ackmap[id] = NotAvailable
+		delete(cs.States, id)
 	}
+}
+
+func (cs *HRAInput) Ack() {
+	cs.Ackmap[config.Elevator_id] = Acked
 }

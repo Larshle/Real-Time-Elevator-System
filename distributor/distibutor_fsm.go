@@ -56,11 +56,16 @@ func Distributor(
 	// 	},
 	// }
 
+
 	fmt.Println("Første commonstate")
 	PrintCommonState(commonState)
 
 	go elevio.PollButtons(elevioOrdersC)
 	go Update_Assingments(elevioOrdersC, deliveredOrderC, newAssingemntC)
+
+	giverToNetwork <- commonState
+
+	queue := &CommonStateQueue{}
 
 	for {
 		select {
@@ -68,38 +73,43 @@ func Distributor(
 			fmt.Println("LOCAL ASSIGNMENTS:")
 			commonState.Update_Assingments(localAssignments)
 			giverToNetwork <- commonState
+			queue.Enqueue(commonState)
 
 		case newElevState := <-newElevStateC:
 			commonState.Update_local_state(newElevState)
 			giverToNetwork <- commonState
+			queue.Enqueue(commonState)
 
-		case peers := <-peerUpdateC:
-			switch {
-			case len(peers.Lost) != 0:
+		case peers := <-peerUpdateC: 
+			if len(peers.Lost) != 0{
 				commonState.Update_ackmap(peers)
 				giverToNetwork <- commonState
-			
+			}
+		
+
+
+		case commonState := <-receiveFromNetworkC:
+			switch {
+			case Fully_acked(commonState.Ackmap):
+				fmt.Println("Sjekke liit opp")
+				messageToAssinger <- commonState
+
+			case Higher_priority(commonState, commonState):
+				commonState.Ack()
+				giverToNetwork <- commonState
+
 			default:
+				commonState.Ack()
 				giverToNetwork <- commonState
 			}
+		default:
 
-
-		case receivedCommonState := <-receiveFromNetworkC:
-			switch {
-			case Fully_acked(receivedCommonState.Ackmap):
-				fmt.Println("Sjekke liit opp")
-				messageToAssinger <- receivedCommonState
-
-			case Higher_priority(receivedCommonState, commonState):
-				commonState = receivedCommonState
-				giverToNetwork <- commonState
-
-			default:
-				receivedCommonState.Ackmap[config.Elevator_id] = Acked
-				commonState = receivedCommonState
-				giverToNetwork <- commonState
+			if newcommonState, ok := queue.Dequeue(); ok && Fully_acked(commonState.Ackmap) {
+				newcommonState.ID = commonState.ID + 1
+				giverToNetwork <- newcommonState
 			}
 		}
-	}
+
+	} 
 
 }

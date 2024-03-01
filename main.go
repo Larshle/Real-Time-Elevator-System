@@ -27,7 +27,7 @@ func main() {
 	flag.StringVar(&port, "port", "", "port of this peer")
 	flag.Parse()
 
-	elevio.Init(fmt.Sprintf("127.0.0.1:%v", 15657), config.N_floors)
+	elevio.Init(fmt.Sprintf("127.0.0.1:%v", 15675), config.N_floors)
 
 	// // Storing for powerloss, hentet fra vetle sin kode kan sees på
 	// store, err := skv.Open(fmt.Sprintf("elev%v.db", Elevator_id))
