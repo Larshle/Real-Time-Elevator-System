@@ -96,7 +96,7 @@ func Distributor(
 				commonState = arrivedCommonState
 				messageToAssinger <- commonState
 
-			case Higher_priority(commonState, commonState):
+			case Higher_priority(arrivedCommonState, commonState):
 				commonState.Ack()
 				giverToNetwork <- commonState
 
