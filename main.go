@@ -40,7 +40,7 @@ func main() {
 	// elevio.Init(fmt.Sprintf("127.0.0.1:%v", port), config.N_floors)
 
 	var id string
-	flag.StringVar(&id, "id", "", "id of this peer")
+	flag.StringVar(&id, "peerID", "", "id of this peer")
 	flag.Parse()
 
 	idInt, _ := strconv.Atoi(id)

@@ -135,6 +135,6 @@ func Distributor(
 			}
 		}
 
-	} 
+	} // to do: add case when for elevator lost network connection
 
 }
