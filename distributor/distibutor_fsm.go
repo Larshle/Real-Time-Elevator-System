@@ -108,15 +108,18 @@ func Distributor(
 						commonState = arrivedCommonState
 						commonState.Ack()
 						giverToNetwork <- commonState
-					
-					case commonStatesNotEqual(arrivedCommonState, newCommonState):
-						queue.EnqueueFront(newCommonState)
-
+				
 					default:
 						commonState = takePriortisedIP(commonState, arrivedCommonState)
 						commonState.Ack()
 						giverToNetwork <- commonState
 				}
+			
+			case commonStatesNotEqual(arrivedCommonState, newCommonState):
+				queue.EnqueueFront(newCommonState)
+				commonState = arrivedCommonState
+				commonState.Ack()
+				giverToNetwork <- commonState
 
 			default:
 				commonState = arrivedCommonState
