@@ -75,9 +75,14 @@ func Distributor(
 
 		case peers := <-peerUpdateC:
 			switch {
-			case peers.New != "":
+			case len(peers.Lost) != 0:
+				commonState.Update_ackmap(peers)
+				giverToNetwork <- commonState
+			
+			default:
 				giverToNetwork <- commonState
 			}
+
 
 		case receivedCommonState := <-receiveFromNetworkC:
 			switch {
@@ -87,10 +92,12 @@ func Distributor(
 
 			case Higher_priority(receivedCommonState, commonState):
 				commonState = receivedCommonState
+				giverToNetwork <- commonState
 
 			default:
 				receivedCommonState.Ackmap[config.Elevator_id] = Acked
 				commonState = receivedCommonState
+				giverToNetwork <- commonState
 			}
 		}
 	}

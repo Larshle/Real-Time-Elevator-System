@@ -6,6 +6,7 @@ import (
 	"net"
 	"root/config"
 	"root/elevator"
+	"root/network/network_modules/peers"
 	"strconv"
 	"strings"
 )
@@ -129,4 +130,10 @@ func Higher_priority(cs1, cs2 HRAInput) bool {
 
 	// If IP addresses are equal, compare process IDs
 	return pid1 > pid2
+}
+
+func (cs *HRAInput) Update_ackmap(p peers.PeerUpdate) {
+	for _, id := range p.Lost {
+		cs.Ackmap[id] = NotAvailable
+	}
 }
