@@ -1,20 +1,20 @@
-// midlertidig main fil for å teste coden vår 
+// midlertidig main fil for å teste coden vår
 
 package main
 
 import (
-	"root/config"
+	"flag"
 	"fmt"
+	"root/assigner"
+	"root/config"
 	"root/distributor"
 	"root/driver/elevio"
 	"root/elevator"
-	"root/assigner"
 	"root/lights"
-	"root/network/network_modules/peers"
 	"root/network/network_modules/bcast"
-	"flag"
+	"root/network/network_modules/peers"
+	"strconv"
 )
-
 
 func main() {
 
@@ -23,11 +23,30 @@ func main() {
 	fmt.Println("N_floors: ", config.N_floors)
 	fmt.Println("N_elevators: ", config.N_elevators)
 
-	var port string
-	flag.StringVar(&port, "port", "", "port of this peer")
+	// var port string
+	// flag.StringVar(&port, "port", "", "port of this peer")
+	// flag.Parse()
+
+	// fmt.Println("Port: ", port)
+
+	// elevio.Init(fmt.Sprintf("127.0.0.1:%v", port), config.N_floors)
+
+	// var port string
+	// flag.StringVar(&port, "--port", "", "port of this peer")
+	// flag.Parse()
+
+	// fmt.Println("Port: ", port)
+
+	// elevio.Init(fmt.Sprintf("127.0.0.1:%v", port), config.N_floors)
+
+	var id string
+	flag.StringVar(&id, "id", "", "id of this peer")
 	flag.Parse()
 
-	elevio.Init(fmt.Sprintf("127.0.0.1:%v", 15657), config.N_floors)
+	idInt, _ := strconv.Atoi(id)
+	port := 15360 + idInt
+	addr := "localhost:" + fmt.Sprint(port)
+	elevio.Init(addr, config.N_floors)
 
 	// // Storing for powerloss, hentet fra vetle sin kode kan sees på
 	// store, err := skv.Open(fmt.Sprintf("elev%v.db", Elevator_id))
@@ -53,8 +72,8 @@ func main() {
 
 	fmt.Println("1")
 
-	go peers.Receiver(15657, chan_receiver_from_peers)
-	go peers.Transmitter(15657, config.Elevator_id, chan_giver_to_peers)
+	go peers.Receiver(15357, chan_receiver_from_peers)
+	go peers.Transmitter(15357, config.Elevator_id, chan_giver_to_peers)
 
 	fmt.Println("2")
 
@@ -71,14 +90,14 @@ func main() {
 		messageToAssinger)
 
 	fmt.Println("4")
-	
+
 	go assigner.Assigner(
 		eleveatorAssingmentC,
 		lightsAssingmentC,
 		messageToAssinger)
 
 	fmt.Println("5")
-	
+
 	go elevator.Elevator(
 		eleveatorAssingmentC,
 		newElevStateC,

@@ -39,7 +39,7 @@ func Distributor(
 		States: map[string]HRAElevState{
 			config.Elevator_id: {
 				Behaviour:   "idle",
-				Floor:       2,
+				Floor:       0,
 				Direction:   "up",
 				CabRequests: []bool{false, false, false, true},
 			},
