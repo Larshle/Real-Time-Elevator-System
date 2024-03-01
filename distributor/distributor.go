@@ -37,8 +37,8 @@ type CommonStateQueue struct {
     items []HRAInput
 }
 
-func (q *CommonStateQueue) Enqueue(c HRAInput) {
-    q.items = append(q.items, c)
+func (q *CommonStateQueue) Enqueue(cs HRAInput) {
+    q.items = append(q.items, cs)
 }
 
 func (q *CommonStateQueue) Dequeue() (HRAInput, bool) {
