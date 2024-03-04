@@ -4,12 +4,12 @@ import (
 	"bytes"
 	"fmt"
 	"net"
+	"reflect"
 	"root/config"
 	"root/elevator"
 	"root/network/network_modules/peers"
 	"strconv"
 	"strings"
-	"reflect"
 )
 
 type Ack_status int
@@ -31,7 +31,7 @@ type HRAInput struct {
 	Unavailable  int
 	ID           int
 	Origin       string
-	Ackmap       map[string]Ack_status 
+	Ackmap       map[string]Ack_status
 	HallRequests [][2]bool               `json:"hallRequests"`
 	States       map[string]HRAElevState `json:"states"`
 }
@@ -89,7 +89,6 @@ func Fully_acked(ackmap map[string]Ack_status) bool {
 	return true
 }
 
-
 func commonStatesNotEqual(oldCS, newCS HRAInput) bool {
 	oldCS.Ackmap = nil
 	newCS.Ackmap = nil
@@ -107,9 +106,8 @@ func (cs *HRAInput) Ack() {
 	cs.Ackmap[config.Elevator_id] = Acked
 }
 
-
-func takePriortisedCommonState(oldCS, newCS HRAInput) HRAInput{
-	if(oldCS.ID < newCS.ID){
+func takePriortisedCommonState(oldCS, newCS HRAInput) HRAInput {
+	if oldCS.ID < newCS.ID {
 		return newCS
 	}
 	id1 := oldCS.Origin
@@ -136,7 +134,7 @@ func takePriortisedCommonState(oldCS, newCS HRAInput) HRAInput{
 	return newCS
 }
 
-func (localCS *HRAInput)MergeCommonState(globalCS HRAInput, lc localAssignments){
+func (localCS *HRAInput) MergeCommonState(globalCS HRAInput, lc localAssignments) {
 	globalCS.States[config.Elevator_id] = localCS.States[config.Elevator_id]
 	for f := 0; f < config.N_floors; f++ {
 		if lc.localCabAssignments[f] == add {
@@ -148,7 +146,7 @@ func (localCS *HRAInput)MergeCommonState(globalCS HRAInput, lc localAssignments)
 	}
 
 	for f := 0; f < config.N_floors; f++ {
-		for b := 0; b < 3; b++ {
+		for b := 0; b < 2; b++ {
 			if lc.localHallAssignments[f][b] == add {
 				globalCS.HallRequests[f][b] = true
 			}
@@ -161,8 +159,9 @@ func (localCS *HRAInput)MergeCommonState(globalCS HRAInput, lc localAssignments)
 	localCS.States = globalCS.States
 	localCS.HallRequests = globalCS.HallRequests
 
+	fmt.Println("3")
 	localCS.Ack()
+	fmt.Println("4")
 	localCS.Origin = config.Elevator_id
 	localCS.ID = globalCS.ID + 1
-
 }
