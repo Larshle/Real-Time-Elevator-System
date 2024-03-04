@@ -18,7 +18,7 @@ func toLocalAssingment(a map[string][][3]bool) elevator.Assingments {
 	var ea elevator.Assingments
 	L, ok := a[config.Elevator_id]
 	if !ok {
-		panic("elevator not here")
+		panic("elevator not here -local")
 	}
 
 	for f := 0; f < 4; f++ {
@@ -33,7 +33,7 @@ func toLightsAssingment(cs distributor.HRAInput) elevator.Assingments {
 	var lights elevator.Assingments
 	L, ok := cs.States[config.Elevator_id]
 	if !ok {
-		panic("elevator not here")
+		panic("elevator not here -lights")
 	}
 	for f := 0; f < 4; f++ {
 		for b := 0; b < 2; b++ {

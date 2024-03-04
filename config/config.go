@@ -21,4 +21,5 @@ var Elevator_id = Generate_ID()
 const(
 	N_floors = 4
 	N_elevators = 2
+	RT_port_number = 58735
 )

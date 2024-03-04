@@ -13,6 +13,7 @@ import (
 	"root/lights"
 	"root/network/network_modules/bcast"
 	"root/network/network_modules/peers"
+	"strconv"
 )
 
 func main() {
@@ -22,10 +23,11 @@ func main() {
 	fmt.Println("N_floors: ", config.N_floors)
 	fmt.Println("N_elevators: ", config.N_elevators)
 
-	port := flag.String("port", "15360", "Default verdi er 15360, men kan overskrives som et command line argument")
+	port := flag.Int("port", 15357, "<-- Default verdi, men kan overskrives som en command line argument ved bruk av -port=xxxxx")
 	flag.Parse()
-	fmt.Printf("Port: %s\n", *port)
-	elevio.Init("localhost:" + *port, config.N_floors)
+	fmt.Printf("Port: %d\n", *port)
+
+	elevio.Init("localhost:" + strconv.Itoa(*port), config.N_floors)
 
 	deliveredOrderC := make(chan elevio.ButtonEvent)
 	newElevStateC := make(chan elevator.State)
@@ -39,13 +41,13 @@ func main() {
 
 	fmt.Println("1")
 
-	go peers.Receiver(15357, chan_receiver_from_peers)
-	go peers.Transmitter(15357, config.Elevator_id, chan_giver_to_peers)
+	go peers.Receiver(config.RT_port_number, chan_receiver_from_peers)
+	go peers.Transmitter(config.RT_port_number, config.Elevator_id, chan_giver_to_peers)
 
 	fmt.Println("2")
 
-	go bcast.Receiver(16568, receiveFromNetworkC) // må endres
-	go bcast.Transmitter(16568, giverToNetwork)
+	go bcast.Receiver(config.RT_port_number, receiveFromNetworkC) // må endres
+	go bcast.Transmitter(config.RT_port_number, giverToNetwork)
 
 	fmt.Println("3")
 
