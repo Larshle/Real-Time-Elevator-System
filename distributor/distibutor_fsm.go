@@ -15,8 +15,6 @@ func Distributor(
 	receiveFromNetworkC <-chan HRAInput,
 	messageToAssinger chan<- HRAInput) {
 
-	fmt.Print("Distributor started\n")
-
 	elevioOrdersC := make(chan elevio.ButtonEvent)
 	newAssingemntC := make(chan localAssignments)
 	peerUpdateC := make(chan peers.PeerUpdate)
@@ -56,16 +54,12 @@ func Distributor(
 	// 	},
 	// }
 
-	fmt.Println("Første commonstate")
-	PrintCommonState(commonState)
-
 	go elevio.PollButtons(elevioOrdersC)
 	go Update_Assingments(elevioOrdersC, deliveredOrderC, newAssingemntC)
 
 	for {
 		select {
 		case localAssignments = <-newAssingemntC:
-			fmt.Println("LOCAL ASSIGNMENTS:")
 			commonState.Update_Assingments(localAssignments)
 			giverToNetwork <- commonState
 
@@ -82,7 +76,6 @@ func Distributor(
 		case receivedCommonState := <-receiveFromNetworkC:
 			switch {
 			case Fully_acked(receivedCommonState.Ackmap):
-				fmt.Println("Sjekke liit opp")
 				messageToAssinger <- receivedCommonState
 
 			case Higher_priority(receivedCommonState, commonState):

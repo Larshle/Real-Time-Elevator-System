@@ -52,12 +52,10 @@ func Assigner(
 	lightsAssingmentC chan<- elevator.Assingments,
 	messageToAssinger <-chan distributor.HRAInput) {
 
-	fmt.Print("Assigner started\n")
-
 	for {
 		select {
 		case cs := <-messageToAssinger:
-			fmt.Println("Commonstate fra assigner")
+			fmt.Println("Assigner: Received commonstate")
 			distributor.PrintCommonState(cs)
 			localAssingment := toLocalAssingment(CalculateHRA(cs))
 			lightsAssingment := toLightsAssingment(cs)

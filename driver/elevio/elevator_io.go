@@ -87,8 +87,6 @@ func PollButtons(receiver chan<- ButtonEvent) {
 				v := GetButton(b, f)
 				if v != prev[f][b] && v != false {
 					receiver <- ButtonEvent{f, ButtonType(b)}
-					fmt.Println("Button pressed")
-					fmt.Println(f, b)
 				}
 				prev[f][b] = v
 			}

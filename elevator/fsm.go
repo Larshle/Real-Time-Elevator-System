@@ -1,7 +1,6 @@
 package elevator
 
 import (
-	"fmt"
 	"root/driver/elevio"
 )
 
@@ -24,9 +23,6 @@ func (b Behaviour) ToString() string {
 }
 
 func Elevator(eleveatorAssingmentC <-chan Assingments, stateC chan<- State, orderDelivered chan<- elevio.ButtonEvent) {
-
-	fmt.Print("Elevator started\n")
-
 	doorOpenC := make(chan bool, 16)
 	doorClosedC := make(chan bool, 16)
 	floorEnteredC := make(chan int)
@@ -44,7 +40,6 @@ func Elevator(eleveatorAssingmentC <-chan Assingments, stateC chan<- State, orde
 	for {
 		select {
 		case <-doorClosedC:
-			fmt.Println("DOOR CLOSED")
 			switch state.Behaviour {
 			case DoorOpen:
 				switch {
@@ -76,7 +71,6 @@ func Elevator(eleveatorAssingmentC <-chan Assingments, stateC chan<- State, orde
 			}
 
 		case f := <-floorEnteredC:
-			fmt.Println("GJORT GREIA MI")
 			state.Floor = f
 			elevio.SetFloorIndicator(state.Floor)
 			switch state.Behaviour {
@@ -116,9 +110,6 @@ func Elevator(eleveatorAssingmentC <-chan Assingments, stateC chan<- State, orde
 				default:
 					elevio.SetMotorDirection(elevio.MD_Stop)
 					state.Behaviour = Idle
-					fmt.Println(state.Behaviour.ToString())
-					fmt.Println(state.Direction.ToString())
-					fmt.Println(state.Floor)
 					stateC <- state
 
 				}
@@ -127,10 +118,8 @@ func Elevator(eleveatorAssingmentC <-chan Assingments, stateC chan<- State, orde
 			}
 
 		case assingments = <-eleveatorAssingmentC:
-			fmt.Println("Got assingments from assinger beep boop")
 			switch state.Behaviour {
 			case Idle:
-				fmt.Println("I AM IDLE")
 				switch {
 				case assingments[state.Floor][state.Direction] || assingments[state.Floor][elevio.BT_Cab]:
 					EmptyAssingner(state.Floor, state.Direction, assingments, orderDelivered)
@@ -146,12 +135,10 @@ func Elevator(eleveatorAssingmentC <-chan Assingments, stateC chan<- State, orde
 					stateC <- state
 
 				case assingments.ReqInDirection(state.Floor, state.Direction):
-					fmt.Println("\n\n\n\nI AM GOING TO MOVE 1\n\n\n\n")
 					elevio.SetMotorDirection(state.Direction.toMD())
 					state.Behaviour = Moving
 					stateC <- state
 				case assingments.ReqInDirection(state.Floor, state.Direction.toOpposite()):
-					fmt.Println("\n\n\n\nI AM GOING TO MOVE 2\n\n\n\n")
 					state.Direction = state.Direction.toOpposite()
 					elevio.SetMotorDirection(state.Direction.toMD())
 					state.Behaviour = Moving
@@ -160,7 +147,6 @@ func Elevator(eleveatorAssingmentC <-chan Assingments, stateC chan<- State, orde
 				}
 
 			case DoorOpen:
-				fmt.Println("DOOR IS OPEN")
 				switch {
 				case assingments[state.Floor][state.Direction] || assingments[state.Floor][elevio.BT_Cab]:
 					EmptyAssingner(state.Floor, state.Direction, assingments, orderDelivered)
@@ -169,7 +155,6 @@ func Elevator(eleveatorAssingmentC <-chan Assingments, stateC chan<- State, orde
 				}
 
 			case Moving:
-				fmt.Println("AM I MOVING")
 
 			default:
 				panic("Assingments in wrong state")

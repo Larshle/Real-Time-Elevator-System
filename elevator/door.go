@@ -1,7 +1,6 @@
 package elevator
 
 import (
-	"fmt"
 	"root/driver/elevio"
 	"time"
 )
@@ -38,7 +37,6 @@ func Door(doorClosedC chan<- bool, doorOpenC <-chan bool) {
 			}
 
 		case <-doorOpenC:
-			fmt.Println("Door open")
 			switch ds {
 			case InCountDown:
 				timeCounter = time.NewTimer(DoorOpenDuration)

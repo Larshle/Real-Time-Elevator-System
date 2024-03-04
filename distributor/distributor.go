@@ -60,11 +60,9 @@ func (cs *HRAInput) Update_Assingments(local_elevator_assignments localAssignmen
 		for b := 0; b < 2; b++ {
 			if local_elevator_assignments.localHallAssignments[f][b] == add {
 				cs.HallRequests[f][b] = true
-				fmt.Println("Hall request added")
 			}
 			if local_elevator_assignments.localHallAssignments[f][b] == remove {
 				cs.HallRequests[f][b] = false
-				fmt.Println("Hall request removed")
 			}
 		}
 	}
@@ -79,9 +77,6 @@ func (cs *HRAInput) Update_Assingments(local_elevator_assignments localAssignmen
 	}
 	cs.ID++
 	cs.Origin = config.Elevator_id
-	fmt.Println("Updated common state:")
-	PrintCommonState(*cs)
-
 }
 
 func (cs *HRAInput) Update_local_state(local_elevator_state elevator.State) {
