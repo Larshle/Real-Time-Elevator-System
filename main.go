@@ -13,7 +13,6 @@ import (
 	"root/lights"
 	"root/network/network_modules/bcast"
 	"root/network/network_modules/peers"
-	"strconv"
 )
 
 func main() {
@@ -23,42 +22,10 @@ func main() {
 	fmt.Println("N_floors: ", config.N_floors)
 	fmt.Println("N_elevators: ", config.N_elevators)
 
-	// var port string
-	// flag.StringVar(&port, "port", "", "port of this peer")
-	// flag.Parse()
-
-	// fmt.Println("Port: ", port)
-
-	// elevio.Init(fmt.Sprintf("127.0.0.1:%v", port), config.N_floors)
-
-	// var port string
-	// flag.StringVar(&port, "--port", "", "port of this peer")
-	// flag.Parse()
-
-	// fmt.Println("Port: ", port)
-
-	// elevio.Init(fmt.Sprintf("127.0.0.1:%v", port), config.N_floors)
-
-	var id string
-	flag.StringVar(&id, "id", "", "id of this peer")
+	port := flag.String("port", "15360", "Default verdi er 15360, men kan overskrives som et command line argument")
 	flag.Parse()
-
-	idInt, _ := strconv.Atoi(id)
-	port := 15360 + idInt
-	addr := "localhost:" + fmt.Sprint(port)
-	elevio.Init(addr, config.N_floors)
-
-	// // Storing for powerloss, hentet fra vetle sin kode kan sees på
-	// store, err := skv.Open(fmt.Sprintf("elev%v.db", Elevator_id))
-	// if err != nil {
-	// 	panic(err)
-	// }
-
-	// var cs central.CentralState
-	// if err = store.Get("cs", &cs); err != nil && err != skv.ErrNotFound {
-	// 	panic(err)
-	// }
-	// cs.Origin = Elevator_id
+	fmt.Printf("Port: %s\n", *port)
+	elevio.Init("localhost:" + *port, config.N_floors)
 
 	deliveredOrderC := make(chan elevio.ButtonEvent)
 	newElevStateC := make(chan elevator.State)
