@@ -6,8 +6,10 @@ import (
 	"net"
 	"root/config"
 	"root/elevator"
+	"root/network/network_modules/peers"
 	"strconv"
 	"strings"
+	"reflect"
 )
 
 type Ack_status int
@@ -26,9 +28,10 @@ type HRAElevState struct {
 }
 
 type HRAInput struct {
+	Unavailable  int
 	ID           int
 	Origin       string
-	Ackmap       map[string]Ack_status
+	Ackmap       map[string]Ack_status 
 	HallRequests [][2]bool               `json:"hallRequests"`
 	States       map[string]HRAElevState `json:"states"`
 }
@@ -54,29 +57,18 @@ func PrintCommonState(cs HRAInput) {
 	}
 }
 
-func (cs *HRAInput) Update_Assingments(local_elevator_assignments localAssignments) {
+func (holding localAssignments) Update_Assingments(local_elevator_assignments localAssignments) {
 
 	for f := 0; f < config.N_floors; f++ {
-		for b := 0; b < 2; b++ {
+		for b := 0; b < 3; b++ {
 			if local_elevator_assignments.localHallAssignments[f][b] == add {
-				cs.HallRequests[f][b] = true
+				holding.localHallAssignments[f][b] = add
 			}
 			if local_elevator_assignments.localHallAssignments[f][b] == remove {
-				cs.HallRequests[f][b] = false
+				holding.localHallAssignments[f][b] = remove
 			}
 		}
 	}
-
-	for f := 0; f < config.N_floors; f++ {
-		if local_elevator_assignments.localCabAssignments[f] == add {
-			cs.States[config.Elevator_id].CabRequests[f] = true
-		}
-		if local_elevator_assignments.localCabAssignments[f] == remove {
-			cs.States[config.Elevator_id].CabRequests[f] = false
-		}
-	}
-	cs.ID++
-	cs.Origin = config.Elevator_id
 }
 
 func (cs *HRAInput) Update_local_state(local_elevator_state elevator.State) {
@@ -86,27 +78,42 @@ func (cs *HRAInput) Update_local_state(local_elevator_state elevator.State) {
 
 	cs.States[config.Elevator_id] = hraElevState
 
-	cs.ID++
-	cs.Origin = config.Elevator_id
 }
 
 func Fully_acked(ackmap map[string]Ack_status) bool {
-	for id, value := range ackmap {
-		if value == 0 && id != config.Elevator_id {
+	for _, value := range ackmap {
+		if value == 0 {
 			return false
 		}
 	}
 	return true
 }
 
-func Higher_priority(cs1, cs2 HRAInput) bool {
 
-	if cs1.ID > cs2.ID {
-		return true
+func commonStatesNotEqual(oldCS, newCS HRAInput) bool {
+	oldCS.Ackmap = nil
+	newCS.Ackmap = nil
+	return !reflect.DeepEqual(oldCS, newCS)
+}
+
+func (cs *HRAInput) makeElevUnav(p peers.PeerUpdate) {
+	for _, id := range p.Lost {
+		cs.Ackmap[id] = NotAvailable
+		delete(cs.States, id)
 	}
+}
 
-	id1 := cs1.Origin
-	id2 := cs2.Origin
+func (cs *HRAInput) Ack() {
+	cs.Ackmap[config.Elevator_id] = Acked
+}
+
+
+func takePriortisedCommonState(oldCS, newCS HRAInput) HRAInput{
+	if(oldCS.ID < newCS.ID){
+		return newCS
+	}
+	id1 := oldCS.Origin
+	id2 := newCS.Origin
 	parts1 := strings.Split(id1, "-")
 	parts2 := strings.Split(id2, "-")
 	ip1 := net.ParseIP(parts1[1])
@@ -117,11 +124,45 @@ func Higher_priority(cs1, cs2 HRAInput) bool {
 	// Compare IP addresses
 	cmp := bytes.Compare(ip1, ip2)
 	if cmp > 0 {
-		return true
+		return oldCS
 	} else if cmp < 0 {
-		return false
+		return newCS
 	}
 
 	// If IP addresses are equal, compare process IDs
-	return pid1 > pid2
+	if pid1 > pid2 {
+		return oldCS
+	}
+	return newCS
+}
+
+func (localCS *HRAInput)MergeCommonState(globalCS HRAInput, lc localAssignments){
+	globalCS.States[config.Elevator_id] = localCS.States[config.Elevator_id]
+	for f := 0; f < config.N_floors; f++ {
+		if lc.localCabAssignments[f] == add {
+			localCS.States[config.Elevator_id].CabRequests[f] = true
+		}
+		if lc.localCabAssignments[f] == remove {
+			localCS.States[config.Elevator_id].CabRequests[f] = false
+		}
+	}
+
+	for f := 0; f < config.N_floors; f++ {
+		for b := 0; b < 3; b++ {
+			if lc.localHallAssignments[f][b] == add {
+				globalCS.HallRequests[f][b] = true
+			}
+			if lc.localHallAssignments[f][b] == remove {
+				globalCS.HallRequests[f][b] = false
+			}
+		}
+	}
+
+	localCS.States = globalCS.States
+	localCS.HallRequests = globalCS.HallRequests
+
+	localCS.Ack()
+	localCS.Origin = config.Elevator_id
+	localCS.ID = globalCS.ID + 1
+
 }

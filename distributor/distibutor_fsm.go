@@ -17,8 +17,10 @@ func Distributor(
 	elevioOrdersC := make(chan elevio.ButtonEvent)
 	newAssingemntC := make(chan localAssignments)
 	peerUpdateC := make(chan peers.PeerUpdate)
-	var localAssignments localAssignments
 	var commonState HRAInput
+	var localCommonState HRAInput
+	var localAssignments localAssignments
+	var P peers.PeerUpdate
 
 	// commonState = HRAInput{
 	// 	Origin:       config.Elevator_id,
@@ -56,35 +58,49 @@ func Distributor(
 	go elevio.PollButtons(elevioOrdersC)
 	go Update_Assingments(elevioOrdersC, deliveredOrderC, newAssingemntC)
 
+
+
 	for {
 		select {
-		case localAssignments = <-newAssingemntC:
-			commonState.Update_Assingments(localAssignments)
-			giverToNetwork <- commonState
+			case assingmentUpdate := <-newAssingemntC:
+				localAssignments.Update_Assingments(assingmentUpdate)
 
-		case newElevState := <-newElevStateC:
-			commonState.Update_local_state(newElevState)
-			giverToNetwork <- commonState
+			case newElevState := <-newElevStateC:
+				localCommonState.Update_local_state(newElevState)
 
-		case peers := <-peerUpdateC:
+			case peers := <-peerUpdateC:
+				P = peers
+
+
+		case arrivedCommonState := <-receiveFromNetworkC:
 			switch {
-			case peers.New != "":
-				giverToNetwork <- commonState
+				case Fully_acked(arrivedCommonState.Ackmap):
+					commonState = arrivedCommonState
+					messageToAssinger <- commonState
+					localCommonState.MergeCommonState(commonState, localAssignments)
+					giverToNetwork <- localCommonState
+
+				case commonStatesNotEqual(commonState, arrivedCommonState):
+					commonState = takePriortisedCommonState(commonState, arrivedCommonState)
+					commonState.Ack()
+					giverToNetwork <- commonState
+
+				default:
+					commonState = arrivedCommonState
+					commonState.makeElevUnav(P)
+					commonState.Ack()
+					giverToNetwork <- commonState
 			}
+		
 
-		case receivedCommonState := <-receiveFromNetworkC:
-			switch {
-			case Fully_acked(receivedCommonState.Ackmap):
-				messageToAssinger <- receivedCommonState
 
-			case Higher_priority(receivedCommonState, commonState):
-				commonState = receivedCommonState
-
-			default:
-				receivedCommonState.Ackmap[config.Elevator_id] = Acked
-				commonState = receivedCommonState
-			}
+		default:
+			if Fully_acked(commonState.Ackmap) {
+				localCommonState.MergeCommonState(commonState, localAssignments)
+				giverToNetwork <- localCommonState
+				}
 		}
-	}
+
+	} // to do: add case when for elevator lost network connection
 
 }
