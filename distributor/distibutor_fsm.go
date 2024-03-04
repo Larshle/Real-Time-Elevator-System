@@ -22,7 +22,9 @@ func Distributor(
 	peerUpdateC := make(chan peers.PeerUpdate)
 	var localAssignments localAssignments
 	var commonState HRAInput
-	var newCommonState HRAInput
+	var localCommonState HRAInput
+	var localAssignments localAssignments
+	var P peers.PeerUpdate
 
 	// commonState = HRAInput{
 	// 	Origin:       config.Elevator_id,
@@ -64,30 +66,20 @@ func Distributor(
 	go elevio.PollButtons(elevioOrdersC)
 	go Update_Assingments(elevioOrdersC, deliveredOrderC, newAssingemntC)
 
-	giverToNetwork <- commonState
 
-	queue := &CommonStateQueue{}
 
 	for {
 		select {
-		case localAssignments = <-newAssingemntC:
-			fmt.Println("LOCAL ASSIGNMENTS:")
-			commonState.Update_Assingments(localAssignments)
-			giverToNetwork <- commonState
-			queue.Enqueue(commonState)
+		case assingmentUpdate := <-newAssingemntC:
+			localAssignments.Update_Assingments(assingmentUpdate)
 
 		case newElevState := <-newElevStateC:
-			commonState.Update_local_state(newElevState)
-			giverToNetwork <- commonState
-			queue.Enqueue(commonState)
+			localCommonState.Update_local_state(newElevState)
 
-		case peers := <-peerUpdateC: 
-			if len(peers.Lost) != 0{
-				commonState.makeElevUnav(peers)
-				commonState.ID++
-				giverToNetwork <- commonState
-			}
-		
+		case peers := <-peerUpdateC:
+			switch {
+			case len(peers.Lost) != 0:
+				P = peers
 
 
 		case arrivedCommonState := <-receiveFromNetworkC:
@@ -96,45 +88,31 @@ func Distributor(
 				fmt.Println("Sjekke liit opp")
 				commonState = arrivedCommonState
 				messageToAssinger <- commonState
+				localCommonState.MergeCommonState(commonState, localAssignments)
+				giverToNetwork <- localCommonState
 
 			case commonStatesNotEqual(commonState, arrivedCommonState):
-				switch {
-					case ChangeOfPeers(commonState, arrivedCommonState):
-						commonState.HighestIDState(arrivedCommonState)
-						commonState.Ack()
-						giverToNetwork <- commonState
-
-					case HigherID(commonState, arrivedCommonState):
-						commonState = arrivedCommonState
-						commonState.Ack()
-						giverToNetwork <- commonState
-				
-					default:
-						commonState = takePriortisedIP(commonState, arrivedCommonState)
-						commonState.Ack()
-						giverToNetwork <- commonState
-				}
-			
-			case commonStatesNotEqual(arrivedCommonState, newCommonState):
-				queue.EnqueueFront(newCommonState)
-				commonState = arrivedCommonState
+				commonState = takePriortisedCommonState(commonState, arrivedCommonState)
 				commonState.Ack()
 				giverToNetwork <- commonState
 
 			default:
 				commonState = arrivedCommonState
+				commonState.makeElevUnav(P)
 				commonState.Ack()
 				giverToNetwork <- commonState
 			}
+		
+
+
 		default:
-
-			if newCommonState, ok := queue.Dequeue(); ok && Fully_acked(commonState.Ackmap) {
-				newCommonState.ID = commonState.ID + 1
-				commonState = newCommonState
-				giverToNetwork <- commonState
+			if Fully_acked(commonState.Ackmap) {
+				localCommonState.MergeCommonState(commonState, localAssignments)
+				giverToNetwork <- localCommonState
+				}
 			}
-		}
 
-	} // to do: add case when for elevator lost network connection
+		} // to do: add case when for elevator lost network connection
 
+	}
 }

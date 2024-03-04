@@ -28,31 +28,12 @@ type HRAElevState struct {
 }
 
 type HRAInput struct {
+	Unavailable  int
 	ID           int
 	Origin       string
 	Ackmap       map[string]Ack_status 
 	HallRequests [][2]bool               `json:"hallRequests"`
 	States       map[string]HRAElevState `json:"states"`
-}
-type CommonStateQueue struct {
-    items []HRAInput
-}
-
-func (q *CommonStateQueue) Enqueue(cs HRAInput) {
-    q.items = append(q.items, cs)
-}
-
-func (q *CommonStateQueue) Dequeue() (HRAInput, bool) {
-    if len(q.items) == 0 {
-        return HRAInput{}, false
-    }
-    item := q.items[0]
-    q.items = q.items[1:]
-    return item, true
-}
-
-func (q *CommonStateQueue) EnqueueFront(c HRAInput) {
-    q.items = append([]HRAInput{c}, q.items...)
 }
 
 func (es *HRAElevState) toHRAElevState(localElevState elevator.State) {
@@ -76,35 +57,19 @@ func PrintCommonState(cs HRAInput) {
 	}
 }
 
-func (cs *HRAInput) Update_Assingments(local_elevator_assignments localAssignments) {
+func (holding localAssignments) Update_Assingments(local_elevator_assignments localAssignments) {
 
 	for f := 0; f < config.N_floors; f++ {
-		for b := 0; b < 2; b++ {
+		for b := 0; b < 3; b++ {
 			if local_elevator_assignments.localHallAssignments[f][b] == add {
-				cs.HallRequests[f][b] = true
-				fmt.Println("Hall request added")
+				holding.localHallAssignments[f][b] = add
 			}
 			if local_elevator_assignments.localHallAssignments[f][b] == remove {
-				cs.HallRequests[f][b] = false
+				holding.localHallAssignments[f][b] = remove
 				fmt.Println("Hall request removed")
 			}
 		}
 	}
-
-	for f := 0; f < config.N_floors; f++ {
-		if local_elevator_assignments.localCabAssignments[f] == add {
-			cs.States[config.Elevator_id].CabRequests[f] = true
-		}
-		if local_elevator_assignments.localCabAssignments[f] == remove {
-			cs.States[config.Elevator_id].CabRequests[f] = false
-		}
-	}
-	cs.ID++
-	cs.Origin = config.Elevator_id
-	cs.Ack()
-	fmt.Println("Updated common state:")
-	PrintCommonState(*cs)
-
 }
 
 func (cs *HRAInput) Update_local_state(local_elevator_state elevator.State) {
@@ -114,9 +79,6 @@ func (cs *HRAInput) Update_local_state(local_elevator_state elevator.State) {
 
 	cs.States[config.Elevator_id] = hraElevState
 
-	cs.ID++
-	cs.Origin = config.Elevator_id
-	cs.Ack()
 }
 
 func Fully_acked(ackmap map[string]Ack_status) bool {
@@ -130,6 +92,8 @@ func Fully_acked(ackmap map[string]Ack_status) bool {
 
 
 func commonStatesNotEqual(oldCS, newCS HRAInput) bool {
+	oldCS.Ackmap = nil
+	newCS.Ackmap = nil
 	return !reflect.DeepEqual(oldCS, newCS)
 }
 
@@ -144,30 +108,11 @@ func (cs *HRAInput) Ack() {
 	cs.Ackmap[config.Elevator_id] = Acked
 }
 
-func ChangeOfPeers(oldCS, newCS HRAInput) bool {
-	if oldCS.Origin == newCS.Origin && 
-	reflect.DeepEqual(oldCS.States, newCS.States) &&
-	reflect.DeepEqual(oldCS.HallRequests, newCS.HallRequests) &&
-	oldCS.ID != newCS.ID{
-		 return true }
-	return false
-}
 
-func HigherID(oldCS, newCS HRAInput) bool {
-	return oldCS.ID < newCS.ID 
-}
-
-func (oldCS *HRAInput) HighestIDState( newCS HRAInput){
-	if oldCS.Origin == newCS.Origin && 
-	reflect.DeepEqual(oldCS.States, newCS.States) &&
-	reflect.DeepEqual(oldCS.HallRequests, newCS.HallRequests) {
-	 if oldCS.ID < newCS.ID {
-		 oldCS = &newCS
+func takePriortisedCommonState(oldCS, newCS HRAInput) HRAInput{
+	if(oldCS.ID < newCS.ID){
+		return newCS
 	}
-  }
-}
-
-func takePriortisedIP(oldCS, newCS HRAInput) HRAInput{
 	id1 := oldCS.Origin
 	id2 := newCS.Origin
 	parts1 := strings.Split(id1, "-")
@@ -190,4 +135,35 @@ func takePriortisedIP(oldCS, newCS HRAInput) HRAInput{
 		return oldCS
 	}
 	return newCS
+}
+
+func (localCS *HRAInput)MergeCommonState(globalCS HRAInput, lc localAssignments){
+	globalCS.States[config.Elevator_id] = localCS.States[config.Elevator_id]
+	for f := 0; f < config.N_floors; f++ {
+		if lc.localCabAssignments[f] == add {
+			localCS.States[config.Elevator_id].CabRequests[f] = true
+		}
+		if lc.localCabAssignments[f] == remove {
+			localCS.States[config.Elevator_id].CabRequests[f] = false
+		}
+	}
+
+	for f := 0; f < config.N_floors; f++ {
+		for b := 0; b < 3; b++ {
+			if lc.localHallAssignments[f][b] == add {
+				globalCS.HallRequests[f][b] = true
+			}
+			if lc.localHallAssignments[f][b] == remove {
+				globalCS.HallRequests[f][b] = false
+			}
+		}
+	}
+
+	localCS.States = globalCS.States
+	localCS.HallRequests = globalCS.HallRequests
+
+	localCS.Ack()
+	localCS.Origin = config.Elevator_id
+	localCS.ID = globalCS.ID + 1
+
 }
