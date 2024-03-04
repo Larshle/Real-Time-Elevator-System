@@ -1,7 +1,6 @@
 package distributor
 
 import (
-	"fmt"
 	"root/config"
 	"root/driver/elevio"
 	"root/elevator"
