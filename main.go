@@ -39,17 +39,11 @@ func main() {
 	chan_receiver_from_peers := make(chan peers.PeerUpdate)
 	chan_giver_to_peers := make(chan bool)
 
-	fmt.Println("1")
-
 	go peers.Receiver(config.RT_port_number, chan_receiver_from_peers)
 	go peers.Transmitter(config.RT_port_number, config.Elevator_id, chan_giver_to_peers)
 
-	fmt.Println("2")
-
 	go bcast.Receiver(config.RT_port_number, receiveFromNetworkC) // må endres
 	go bcast.Transmitter(config.RT_port_number, giverToNetwork)
-
-	fmt.Println("3")
 
 	go distributor.Distributor(
 		deliveredOrderC,
@@ -58,25 +52,17 @@ func main() {
 		receiveFromNetworkC,
 		messageToAssinger)
 
-	fmt.Println("4")
-
 	go assigner.Assigner(
 		eleveatorAssingmentC,
 		lightsAssingmentC,
 		messageToAssinger)
-
-	fmt.Println("5")
 
 	go elevator.Elevator(
 		eleveatorAssingmentC,
 		newElevStateC,
 		deliveredOrderC)
 
-	fmt.Println("6")
-
 	go lights.Lights(lightsAssingmentC)
-
-	fmt.Println("7")
 
 	select {} // for å kjøre alltid lol lars er gey
 }
