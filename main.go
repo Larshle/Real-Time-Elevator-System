@@ -3,8 +3,6 @@
 package main
 
 import (
-	"flag"
-	"fmt"
 	"root/assigner"
 	"root/config"
 	"root/distributor"
@@ -18,16 +16,8 @@ import (
 
 func main() {
 
-	fmt.Println("Hello, World!")
-	fmt.Println("Elevator ID: ", config.Elevator_id)
-	fmt.Println("N_floors: ", config.N_floors)
-	fmt.Println("N_elevators: ", config.N_elevators)
-
-	port := flag.Int("port", 15357, "<-- Default verdi, men kan overskrives som en command line argument ved bruk av -port=xxxxx")
-	flag.Parse()
-	fmt.Printf("Port: %d\n", *port)
-
-	elevio.Init("localhost:" + strconv.Itoa(*port), config.N_floors)
+	config.Init()
+	elevio.Init("localhost:" + strconv.Itoa(config.Port), config.N_floors)
 
 	deliveredOrderC := make(chan elevio.ButtonEvent)
 	newElevStateC := make(chan elevator.State)
@@ -51,12 +41,12 @@ func main() {
 		giverToNetwork,
 		receiveFromNetworkC,
 		messageToAssinger)
-
+	
 	go assigner.Assigner(
 		eleveatorAssingmentC,
 		lightsAssingmentC,
 		messageToAssinger)
-
+	
 	go elevator.Elevator(
 		eleveatorAssingmentC,
 		newElevStateC,
