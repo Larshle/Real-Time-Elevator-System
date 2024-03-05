@@ -18,7 +18,7 @@ func toLocalAssingment(a map[string][][3]bool) elevator.Assingments {
 	var ea elevator.Assingments
 	L, ok := a[config.Elevator_id]
 	if !ok {
-		panic("elevator not here")
+		panic("elevator not here -local")
 	}
 
 	for f := 0; f < 4; f++ {
@@ -33,7 +33,7 @@ func toLightsAssingment(cs distributor.HRAInput) elevator.Assingments {
 	var lights elevator.Assingments
 	L, ok := cs.States[config.Elevator_id]
 	if !ok {
-		panic("elevator not here")
+		panic("elevator not here -lights")
 	}
 	for f := 0; f < 4; f++ {
 		for b := 0; b < 2; b++ {
@@ -52,12 +52,10 @@ func Assigner(
 	lightsAssingmentC chan<- elevator.Assingments,
 	messageToAssinger <-chan distributor.HRAInput) {
 
-	fmt.Print("Assigner started\n")
-
 	for {
 		select {
 		case cs := <-messageToAssinger:
-			fmt.Println("Commonstate fra assigner")
+			fmt.Println("Assigner: Received commonstate")
 			distributor.PrintCommonState(cs)
 			localAssingment := toLocalAssingment(CalculateHRA(cs))
 			lightsAssingment := toLightsAssingment(cs)
@@ -99,10 +97,10 @@ func CalculateHRA(cs distributor.HRAInput) map[string][][3]bool {
 		panic("json.Unmarshal error")
 	}
 
-	fmt.Printf("output: \n")
-	for k, v := range *output {
-		fmt.Printf("%6v :  %+v\n", k, v)
-	}
+	// fmt.Printf("output: \n")
+	// for k, v := range *output {
+	// 	fmt.Printf("%6v :  %+v\n", k, v)
+	// }
 
 	return *output
 }

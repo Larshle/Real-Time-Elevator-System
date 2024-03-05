@@ -14,15 +14,19 @@ func (a Assingments) ReqInDirection(floor int, dir Direction) bool {
 	switch dir {
 		case Up:
 			for i := floor + 1; i < elevio.NumFloors; i++ {
-				if a[i][elevio.BT_HallUp] || a[i][elevio.BT_Cab] {
-					return true
+				for j := 0; j < 3; j++ {
+					if a[i][j] {
+						return true
+					}
 				}
 			}
 			return false
 		case Down:
 			for i := 0; i < floor; i++ {
-				if a[i][elevio.BT_HallDown] || a[i][elevio.BT_Cab] {
-					return true
+				for j := 0; j < 3; j++ {
+					if a[i][j] {
+						return true
+					}
 				}
 			}
 			return false

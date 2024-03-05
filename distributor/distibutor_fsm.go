@@ -21,17 +21,9 @@ func Distributor(
 	newAssingemntC := make(chan localAssignments)
 	peerUpdateC := make(chan peers.PeerUpdate)
 	var localAssignments localAssignments
-	var commonState HRAInput
+	var peers peers.PeerUpdate
 
-	// commonState = HRAInput{
-	// 	Origin:       config.Elevator_id,
-	// 	ID:           0,
-	// 	Ackmap:       make(map[string]Ack_status),
-	// 	HallRequests: make([][2]bool, 4), // Assuming you want 4 pairs of bools
-	// 	States:       make(map[string]HRAElevState),
-	// }
-
-	commonState = HRAInput{
+	commonState := HRAInput{
 		Origin:       config.Elevator_id,
 		ID:           1,
 		Ackmap:       make(map[string]Ack_status),
@@ -40,21 +32,11 @@ func Distributor(
 			config.Elevator_id: {
 				Behaviour:   "idle",
 				Floor:       2,
-				Direction:   "up",
+				Direction:   "stop",
 				CabRequests: []bool{false, false, false, true},
 			},
 		},
 	}
-
-	// commonState = HRAInput{
-	// 	Origin:       config.Elevator_id,
-	// 	ID:           1,
-	// 	Ackmap:       make(map[string]Ack_status),
-	// 	HallRequests: make([][2]bool, 4), // Assuming you want 4 pairs of bools
-	// 	States: map[string]HRAElevState{
-	// 		config.Elevator_id: {}, // Replace "initialKey" with your key
-	// 	},
-	// }
 
 	fmt.Println("Første commonstate")
 	PrintCommonState(commonState)
@@ -65,32 +47,43 @@ func Distributor(
 	for {
 		select {
 		case localAssignments = <-newAssingemntC:
-			fmt.Println("LOCAL ASSIGNMENTS:")
+			temp := commonState
+			localstate := commonState.States[config.Elevator_id]
 			commonState.Update_Assingments(localAssignments)
+			commonState = temp
+			commonState.States[config.Elevator_id] = localstate
 			giverToNetwork <- commonState
 
 		case newElevState := <-newElevStateC:
+			temp := commonState
+			localstate := commonState.States[config.Elevator_id]
 			commonState.Update_local_state(newElevState)
+			commonState = temp
+			commonState.States[config.Elevator_id] = localstate
 			giverToNetwork <- commonState
 
-		case peers := <-peerUpdateC:
-			switch {
-			case peers.New != "":
-				giverToNetwork <- commonState
-			}
+		case peers = <-peerUpdateC:
+			commonState.makeElevUnav(peers)
+			commonState.Origin = config.Elevator_id
+			giverToNetwork <- commonState
 
 		case receivedCommonState := <-receiveFromNetworkC:
 			switch {
 			case Fully_acked(receivedCommonState.Ackmap):
-				fmt.Println("Sjekke liit opp")
+				commonState = receivedCommonState
+				commonState.Origin = config.Elevator_id
 				messageToAssinger <- receivedCommonState
 
-			case Higher_priority(receivedCommonState, commonState):
-				commonState = receivedCommonState
-
 			default:
-				receivedCommonState.Ackmap[config.Elevator_id] = Acked
-				commonState = receivedCommonState
+				temp := takePriortisedCommonState(commonState, receivedCommonState)
+				localstate := commonState.States[config.Elevator_id]
+				commonState = temp
+				commonState.States[config.Elevator_id] = localstate
+				commonState.Ack()
+				commonState.ID++
+				commonState.Origin = config.Elevator_id
+				giverToNetwork <- commonState
+
 			}
 		}
 	}

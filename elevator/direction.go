@@ -9,6 +9,7 @@ type Direction int
 const (
 	Up Direction = iota
 	Down
+	Stop
 )
 
 func (d Direction) toMD() elevio.MotorDirection{
@@ -26,6 +27,6 @@ func (d Direction) toOpposite() Direction{
 
 
 func (d Direction) ToString() string{
-	return map[Direction]string{Up: "up", Down: "down"}[d]
+	return map[Direction]string{Up: "up", Down: "down", Stop: "stop"}[d]
 }
 

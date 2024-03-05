@@ -8,6 +8,7 @@ import (
 	"root/elevator"
 	"strconv"
 	"strings"
+	"root/network/network_modules/peers"
 )
 
 type Ack_status int
@@ -79,9 +80,13 @@ func (cs *HRAInput) Update_Assingments(local_elevator_assignments localAssignmen
 	}
 	cs.ID++
 	cs.Origin = config.Elevator_id
-	fmt.Println("Updated common state:")
-	PrintCommonState(*cs)
+}
 
+func (cs *HRAInput) makeElevUnav(p peers.PeerUpdate) {
+	for _, id := range p.Lost {
+		cs.Ackmap[id] = NotAvailable
+		delete(cs.States, id)
+	}
 }
 
 func (cs *HRAInput) Update_local_state(local_elevator_state elevator.State) {
@@ -96,8 +101,8 @@ func (cs *HRAInput) Update_local_state(local_elevator_state elevator.State) {
 }
 
 func Fully_acked(ackmap map[string]Ack_status) bool {
-	for id, value := range ackmap {
-		if value == 0 && id != config.Elevator_id {
+	for _, value := range ackmap {
+		if value == 0 {
 			return false
 		}
 	}
@@ -129,4 +134,36 @@ func Higher_priority(cs1, cs2 HRAInput) bool {
 
 	// If IP addresses are equal, compare process IDs
 	return pid1 > pid2
+}
+
+func (cs *HRAInput) Ack() {
+	cs.Ackmap[config.Elevator_id] = Acked
+}
+
+func takePriortisedCommonState(oldCS, newCS HRAInput) HRAInput {
+	if oldCS.ID < newCS.ID {
+		return newCS
+	}
+	id1 := oldCS.Origin
+	id2 := newCS.Origin
+	parts1 := strings.Split(id1, "-")
+	parts2 := strings.Split(id2, "-")
+	ip1 := net.ParseIP(parts1[1])
+	ip2 := net.ParseIP(parts2[1])
+	pid1, _ := strconv.Atoi(parts1[2])
+	pid2, _ := strconv.Atoi(parts2[2])
+
+	// Compare IP addresses
+	cmp := bytes.Compare(ip1, ip2)
+	if cmp > 0 {
+		return oldCS
+	} else if cmp < 0 {
+		return newCS
+	}
+
+	// If IP addresses are equal, compare process IDs
+	if pid1 > pid2 {
+		return oldCS
+	}
+	return newCS
 }

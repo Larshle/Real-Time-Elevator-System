@@ -4,7 +4,6 @@ package main
 
 import (
 	"root/config"
-	"fmt"
 	"root/distributor"
 	"root/driver/elevio"
 	"root/elevator"
@@ -12,34 +11,13 @@ import (
 	"root/lights"
 	"root/network/network_modules/peers"
 	"root/network/network_modules/bcast"
-	"flag"
+	"strconv"
 )
-
 
 func main() {
 
-	fmt.Println("Hello, World!")
-	fmt.Println("Elevator ID: ", config.Elevator_id)
-	fmt.Println("N_floors: ", config.N_floors)
-	fmt.Println("N_elevators: ", config.N_elevators)
-
-	var port string
-	flag.StringVar(&port, "port", "", "port of this peer")
-	flag.Parse()
-
-	elevio.Init(fmt.Sprintf("127.0.0.1:%v", 15657), config.N_floors)
-
-	// // Storing for powerloss, hentet fra vetle sin kode kan sees på
-	// store, err := skv.Open(fmt.Sprintf("elev%v.db", Elevator_id))
-	// if err != nil {
-	// 	panic(err)
-	// }
-
-	// var cs central.CentralState
-	// if err = store.Get("cs", &cs); err != nil && err != skv.ErrNotFound {
-	// 	panic(err)
-	// }
-	// cs.Origin = Elevator_id
+	config.Init()
+	elevio.Init("localhost:" + strconv.Itoa(config.Port), config.N_floors)
 
 	deliveredOrderC := make(chan elevio.ButtonEvent)
 	newElevStateC := make(chan elevator.State)
@@ -51,17 +29,11 @@ func main() {
 	chan_receiver_from_peers := make(chan peers.PeerUpdate)
 	chan_giver_to_peers := make(chan bool)
 
-	fmt.Println("1")
+	go peers.Receiver(config.RT_port_number, chan_receiver_from_peers)
+	go peers.Transmitter(config.RT_port_number, config.Elevator_id, chan_giver_to_peers)
 
-	go peers.Receiver(15657, chan_receiver_from_peers)
-	go peers.Transmitter(15657, config.Elevator_id, chan_giver_to_peers)
-
-	fmt.Println("2")
-
-	go bcast.Receiver(16568, receiveFromNetworkC) // må endres
-	go bcast.Transmitter(16568, giverToNetwork)
-
-	fmt.Println("3")
+	go bcast.Receiver(config.RT_port_number, receiveFromNetworkC) // må endres
+	go bcast.Transmitter(config.RT_port_number, giverToNetwork)
 
 	go distributor.Distributor(
 		deliveredOrderC,
@@ -69,26 +41,18 @@ func main() {
 		giverToNetwork,
 		receiveFromNetworkC,
 		messageToAssinger)
-
-	fmt.Println("4")
 	
 	go assigner.Assigner(
 		eleveatorAssingmentC,
 		lightsAssingmentC,
 		messageToAssinger)
-
-	fmt.Println("5")
 	
 	go elevator.Elevator(
 		eleveatorAssingmentC,
 		newElevStateC,
 		deliveredOrderC)
 
-	fmt.Println("6")
-
 	go lights.Lights(lightsAssingmentC)
-
-	fmt.Println("7")
 
 	select {} // for å kjøre alltid lol lars er gey
 }
