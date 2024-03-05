@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-func Distributor(
+func Distributor2(
 	deliveredOrderC <-chan elevio.ButtonEvent,
 	newElevStateC <-chan elevator.State,
 	giverToNetwork chan<- HRAInput,
@@ -78,58 +78,47 @@ func Distributor(
 	go elevio.PollButtons(elevioOrdersC)
 	go Update_Assingments(elevioOrdersC, deliveredOrderC, newAssingemntC)
 
-	heartbeatTimer := time.NewTicker(100 * time.Millisecond)
-
 	for {
 		select {
 			case assingmentUpdate := <-newAssingemntC:
-				localAssignments.Update_Assingments(assingmentUpdate)
+				// localAssignments.Update_Assingments(assingmentUpdate)
+
+				giverToNetwork	<- commonState
+				// 
 
 			case newElevState := <-newElevStateC:
-				localCommonState.Update_local_state(newElevState)
+				// localCommonState.Update_local_state(newElevState)
+				giverToNetwork	<- commonState
 
 			case peers := <-peerUpdateC:
-				P = peers
+				// P = peers
 
 			case arrivedCommonState := <-receiveFromNetworkC:
-				fmt.Println("receiveFromNetworkC")
-				checkNettworkTimer = time.NewTimer(500*time.Millisecond)
+				// fmt.Println("receiveFromNetworkC")
+				// checkNettworkTimer = time.NewTimer(500*time.Millisecond)
 				switch {
 					case Fully_acked(arrivedCommonState.Ackmap):
-						commonState = arrivedCommonState
-						messageToAssinger <- commonState
-						localCommonState.MergeCommonState(commonState, localAssignments)
-						giverToNetwork <- localCommonState
+						// commonState = arrivedCommonState
+						// messageToAssinger <- commonState
+						// localCommonState.MergeCommonState(commonState, localAssignments)
+						// giverToNetwork <- localCommonState
 
-					case commonStatesNotEqual(commonState, arrivedCommonState):
-						commonState = takePriortisedCommonState(commonState, arrivedCommonState)
-						commonState.Ack()
-						giverToNetwork <- commonState
+						til assigner
+						øke id på commonstate
+						tømme ackmap
+						oppdater commonstate med dine lokale endringer
+						ack
+						broadcast
 
 					default:
-						commonState = arrivedCommonState
-						commonState.makeElevUnav(P)
-						commonState.Ack()
-						giverToNetwork <- commonState
-				}
-		
-			case <-heartbeatTimer.C:
-				fmt.Println("updateC")
-				switch{
-				case Fully_acked(commonState.Ackmap):
-					fmt.Println("1")
-					localCommonState.MergeCommonState(commonState, localAssignments)
-					fmt.Println("2")
-					giverToNetwork <- localCommonState
-					
-				default:
-					giverToNetwork <- commonState
-			
-			case <-checkNettworkTimer.C:
-				localCommonState.MergeCommonState(localCommonState, localAssignments)
-				giverToNetwork <- localCommonState
-			}
+						commonState = takePriortisedCommonState(commonState, arrivedCommonState)
 
-		} // to do: add case when for elevator lost network connection
-	}
+						// commonState = arrivedCommonState
+						// commonState.makeElevUnav(P)
+						// commonState.Ack()
+						// giverToNetwork <- commonState
+				}
+		}
+
+	} // to do: add case when for elevator lost network connection
 }
