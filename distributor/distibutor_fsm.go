@@ -19,12 +19,13 @@ func Distributor(
 	elevioOrdersC := make(chan elevio.ButtonEvent)
 	newAssingemntC := make(chan localAssignments)
 	peerUpdateC := make(chan peers.PeerUpdate)
-	timeCounter := time.NewTimer(time.Hour)
+	checkNettworkTimer := time.NewTimer(time.Hour)
 
 	var commonState HRAInput
 	var localCommonState HRAInput
 	var localAssignments localAssignments
 	var P peers.PeerUpdate
+
 
 	// commonState = HRAInput{
 	// 	Origin:       config.Elevator_id,
@@ -77,25 +78,22 @@ func Distributor(
 	go elevio.PollButtons(elevioOrdersC)
 	go Update_Assingments(elevioOrdersC, deliveredOrderC, newAssingemntC)
 
-
+	heartbeatTimer := time.NewTicker(100 * time.Millisecond)
 
 	for {
 		select {
 			case assingmentUpdate := <-newAssingemntC:
 				localAssignments.Update_Assingments(assingmentUpdate)
-				fmt.Println("New assingment")
-				timeCounter = time.NewTimer(1*time.Millisecond)
 
 			case newElevState := <-newElevStateC:
 				localCommonState.Update_local_state(newElevState)
-				fmt.Println("New assingmen222t")
-				timeCounter = time.NewTimer(1*time.Millisecond)
 
 			case peers := <-peerUpdateC:
 				P = peers
 
 			case arrivedCommonState := <-receiveFromNetworkC:
 				fmt.Println("receiveFromNetworkC")
+				checkNettworkTimer = time.NewTimer(500*time.Millisecond)
 				switch {
 					case Fully_acked(arrivedCommonState.Ackmap):
 						commonState = arrivedCommonState
@@ -115,17 +113,23 @@ func Distributor(
 						giverToNetwork <- commonState
 				}
 		
-			case <-timeCounter.C:
+			case <-heartbeatTimer.C:
 				fmt.Println("updateC")
-				if Fully_acked(commonState.Ackmap) {
+				switch{
+				case Fully_acked(commonState.Ackmap):
 					fmt.Println("1")
 					localCommonState.MergeCommonState(commonState, localAssignments)
 					fmt.Println("2")
 					giverToNetwork <- localCommonState
-					}
+					
+				default:
+					giverToNetwork <- commonState
 			
-		}
+			case <-checkNettworkTimer.C:
+				localCommonState.MergeCommonState(localCommonState, localAssignments)
+				giverToNetwork <- localCommonState
+			}
 
-	} // to do: add case when for elevator lost network connection
-
+		} // to do: add case when for elevator lost network connection
+	}
 }
