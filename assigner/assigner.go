@@ -29,7 +29,7 @@ func toLocalAssingment(a map[string][][3]bool) elevator.Assingments {
 	return ea
 }
 
-func toLightsAssingment(cs distributor.HRAInput) elevator.Assingments {
+func toLightsAssingment(cs distributor.HRAInput2) elevator.Assingments {
 	var lights elevator.Assingments
 	L, ok := cs.States[config.Elevator_id]
 	if !ok {
@@ -37,8 +37,10 @@ func toLightsAssingment(cs distributor.HRAInput) elevator.Assingments {
 	}
 	for f := 0; f < 4; f++ {
 		for b := 0; b < 2; b++ {
-			lights[f][b] = cs.HallRequests[f][b]
-
+			lights[f][b] = false
+			if cs.HallRequests[f][b] == 1 {
+				lights[f][b] = true
+			}
 		}
 	}
 	for f := 0; f < 4; f++ {
@@ -50,7 +52,7 @@ func toLightsAssingment(cs distributor.HRAInput) elevator.Assingments {
 func Assigner(
 	eleveatorAssingmentC chan<- elevator.Assingments,
 	lightsAssingmentC chan<- elevator.Assingments,
-	messageToAssinger <-chan distributor.HRAInput) {
+	messageToAssinger <-chan distributor.HRAInput2) {
 
 	for {
 		select {
@@ -65,7 +67,25 @@ func Assigner(
 	}
 }
 
-func CalculateHRA(cs distributor.HRAInput) map[string][][3]bool {
+func CalculateHRA(cs distributor.HRAInput2) map[string][][3]bool {
+
+	// Create a new slice to hold [2]bool values
+	newSlice := make([][2]bool, len(cs.HallRequests))
+
+	// Iterate over the original slice and convert each [2]int to [2]bool
+	for i, pair := range cs.HallRequests {
+		var boolPair [2]bool
+		for j, val := range pair {
+			// Convert 0 to false and 1 to true, ignore other values (they'll be false by default)
+			boolPair[j] = (val == 1)
+		}
+		newSlice[i] = boolPair
+	}
+
+	cs_gammel := distributor.HRAInput{
+		HallRequests: newSlice,
+		States:       cs.States,
+	}
 
 	hraExecutable := ""
 	switch runtime.GOOS {
@@ -77,7 +97,7 @@ func CalculateHRA(cs distributor.HRAInput) map[string][][3]bool {
 		panic("OS not supported")
 	}
 
-	jsonBytes, err := json.Marshal(cs)
+	jsonBytes, err := json.Marshal(cs_gammel)
 	if err != nil {
 		fmt.Println("json.Marshal error: ", err)
 		panic("json.Marshal error")

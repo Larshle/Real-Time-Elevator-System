@@ -9,25 +9,18 @@ import (
 	"time"
 )
 
-func Distributor2(
+func Distributor(
 	deliveredOrderC <-chan elevio.ButtonEvent,
 	newElevStateC <-chan elevator.State,
-	giverToNetwork chan<- HRAInput,
-	receiveFromNetworkC <-chan HRAInput,
-	messageToAssinger chan<- HRAInput) {
+	giverToNetwork chan<- HRAInput2,
+	receiveFromNetworkC <-chan HRAInput2,
+	messageToAssinger chan<- HRAInput2) {
 
 	elevioOrdersC := make(chan elevio.ButtonEvent)
 	newAssingemntC := make(chan localAssignments)
 	peerUpdateC := make(chan peers.PeerUpdate)
-	checkNettworkTimer := time.NewTimer(time.Hour)
 
-	var commonState HRAInput
-	var localCommonState HRAInput
-	var localAssignments localAssignments
-	var P peers.PeerUpdate
-
-
-	// commonState = HRAInput{
+	// commonState = HRAInput2{
 	// 	Origin:       config.Elevator_id,
 	// 	ID:           0,
 	// 	Ackmap:       make(map[string]Ack_status),
@@ -35,11 +28,11 @@ func Distributor2(
 	// 	States:       make(map[string]HRAElevState),
 	// }
 
-	commonState = HRAInput{
+	commonState := HRAInput2{
 		Origin:       config.Elevator_id,
 		ID:           0,
 		Ackmap:       make(map[string]Ack_status),
-		HallRequests: [][2]bool{{false, false}, {false, false}, {false, false}, {false, false}},
+		HallRequests: [][2]int{{0, 0}, {0, 0}, {0, 0}, {0, 0}},
 		States: map[string]HRAElevState{
 			config.Elevator_id: {
 				Behaviour:   "idle",
@@ -50,22 +43,22 @@ func Distributor2(
 		},
 	}
 	
-	localCommonState = HRAInput{
-		Origin:       config.Elevator_id,
-		ID:           0,
-		Ackmap:       make(map[string]Ack_status),
-		HallRequests: [][2]bool{{false, false}, {false, false}, {false, false}, {false, false}},
-		States: map[string]HRAElevState{
-			config.Elevator_id: {
-				Behaviour:   "idle",
-				Floor:       0,
-				Direction:   "up",
-				CabRequests: []bool{false, false, false, true},
-			},
-		},
-	}
+	// localCommonState = HRAInput2{
+	// 	Origin:       config.Elevator_id,
+	// 	ID:           0,
+	// 	Ackmap:       make(map[string]Ack_status),
+	// 	HallRequests: [][2]int{{0, 0}, {0, 0}, {0, 0}, {0, 0}},
+	// 	States: map[string]HRAElevState{
+	// 		config.Elevator_id: {
+	// 			Behaviour:   "idle",
+	// 			Floor:       0,
+	// 			Direction:   "up",
+	// 			CabRequests: []bool{false, false, false, true},
+	// 		},
+	// 	},
+	// }
 
-	// commonState = HRAInput{
+	// commonState = HRAInput2{
 	// 	Origin:       config.Elevator_id,
 	// 	ID:           1,
 	// 	Ackmap:       make(map[string]Ack_status),
@@ -78,45 +71,60 @@ func Distributor2(
 	go elevio.PollButtons(elevioOrdersC)
 	go Update_Assingments(elevioOrdersC, deliveredOrderC, newAssingemntC)
 
+	ticker := time.Tick(15 * time.Millisecond)
+
 	for {
 		select {
-			case assingmentUpdate := <-newAssingemntC:
-				// localAssignments.Update_Assingments(assingmentUpdate)
-
+			case <-ticker:
 				giverToNetwork	<- commonState
-				// 
+				fmt.Println("Distributor: Sent commonstate")
+			case assingmentUpdate := <-newAssingemntC:
+				commonState.Update_Assingments(assingmentUpdate)
+				// giverToNetwork	<- commonState
 
 			case newElevState := <-newElevStateC:
-				// localCommonState.Update_local_state(newElevState)
-				giverToNetwork	<- commonState
+				commonState.Update_local_state(newElevState)
+				// giverToNetwork	<- commonState
 
 			case peers := <-peerUpdateC:
-				// P = peers
+				commonState.makeElevUnav(peers)
+				// giverToNetwork	<- commonState
 
 			case arrivedCommonState := <-receiveFromNetworkC:
-				// fmt.Println("receiveFromNetworkC")
-				// checkNettworkTimer = time.NewTimer(500*time.Millisecond)
 				switch {
-					case Fully_acked(arrivedCommonState.Ackmap):
-						// commonState = arrivedCommonState
-						// messageToAssinger <- commonState
-						// localCommonState.MergeCommonState(commonState, localAssignments)
-						// giverToNetwork <- localCommonState
+					case Fully_acked(arrivedCommonState.Ackmap): // ackmap må være lengre enn 1
 
-						til assigner
-						øke id på commonstate
-						tømme ackmap
-						oppdater commonstate med dine lokale endringer
-						ack
-						broadcast
+						messageToAssinger <- arrivedCommonState
+						commonState.MergeCommonState(arrivedCommonState)
+
+						for key := range commonState.Ackmap {
+							commonState.Ackmap[key] = NotAcked
+						}
+						commonState.Ack()
+						for i := range commonState.HallRequests {
+							for j := range commonState.HallRequests[i] {
+								if commonState.HallRequests[i][j] == 2 {
+									commonState.HallRequests[i][j] = 0
+								}
+							}
+						}
+						
+
+						// giverToNetwork	<- commonState
+						
+
+						// til assigner
+						// øke id på commonstate
+						// tømme ackmap
+						// oppdater commonstate med dine lokale endringer
+						// gjøre 2 i hallrequest til 0
+						// ack
+						// broadcast
 
 					default:
 						commonState = takePriortisedCommonState(commonState, arrivedCommonState)
-
-						// commonState = arrivedCommonState
-						// commonState.makeElevUnav(P)
-						// commonState.Ack()
-						// giverToNetwork <- commonState
+						commonState.MergeCommonState(arrivedCommonState)
+						// giverToNetwork	<- commonState
 				}
 		}
 
