@@ -84,12 +84,14 @@ func (cs *HRAInput2) Update_Assingments(local_elevator_assignments localAssignme
 			cs.States[config.Elevator_id].CabRequests[f] = false
 		}
 	}
+	cs.ID++
 }
 
 func (cs *HRAInput2) Update_local_state(local_elevator_state elevator.State) {
     hraElevState := cs.States[config.Elevator_id]
     hraElevState.toHRAElevState(local_elevator_state)
     cs.States[config.Elevator_id] = hraElevState
+	cs.ID++
 }
 
 func Fully_acked(ackmap map[string]Ack_status) bool {
@@ -115,6 +117,7 @@ func (cs *HRAInput2) makeElevUnav(p peers.PeerUpdate) {
 		cs.Ackmap[id] = NotAvailable
 		delete(cs.States, id)
 	}
+	cs.ID++
 }
 
 func (cs *HRAInput2) Ack() {

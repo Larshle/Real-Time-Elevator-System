@@ -42,7 +42,7 @@ func Distributor(
 			},
 		},
 	}
-	
+
 	// localCommonState = HRAInput2{
 	// 	Origin:       config.Elevator_id,
 	// 	ID:           0,
@@ -75,57 +75,55 @@ func Distributor(
 
 	for {
 		select {
-			case <-ticker:
-				giverToNetwork	<- commonState
-				fmt.Println("Distributor: Sent commonstate")
-			case assingmentUpdate := <-newAssingemntC:
-				commonState.Update_Assingments(assingmentUpdate)
-				// giverToNetwork	<- commonState
+		case <-ticker:
+			giverToNetwork <- commonState
+			fmt.Println("Distributor: Sent commonstate")
+		case assingmentUpdate := <-newAssingemntC:
+			commonState.Update_Assingments(assingmentUpdate)
+			// giverToNetwork	<- commonState
 
-			case newElevState := <-newElevStateC:
-				commonState.Update_local_state(newElevState)
-				// giverToNetwork	<- commonState
+		case newElevState := <-newElevStateC:
+			commonState.Update_local_state(newElevState)
+			// giverToNetwork	<- commonState
 
-			case peers := <-peerUpdateC:
-				commonState.makeElevUnav(peers)
-				// giverToNetwork	<- commonState
+		case peers := <-peerUpdateC:
+			commonState.makeElevUnav(peers)
+			// giverToNetwork	<- commonState
 
-			case arrivedCommonState := <-receiveFromNetworkC:
-				switch {
-					case Fully_acked(arrivedCommonState.Ackmap): // ackmap må være lengre enn 1
+		case arrivedCommonState := <-receiveFromNetworkC:
+			switch {
+			case Fully_acked(arrivedCommonState.Ackmap): // ackmap må være lengre enn 1
 
-						messageToAssinger <- arrivedCommonState
-						commonState.MergeCommonState(arrivedCommonState)
+				messageToAssinger <- arrivedCommonState
+				commonState.MergeCommonState(arrivedCommonState)
 
-						for key := range commonState.Ackmap {
-							commonState.Ackmap[key] = NotAcked
-						}
-						commonState.Ack()
-						for i := range commonState.HallRequests {
-							for j := range commonState.HallRequests[i] {
-								if commonState.HallRequests[i][j] == 2 {
-									commonState.HallRequests[i][j] = 0
-								}
-							}
-						}
-						
-
-						// giverToNetwork	<- commonState
-						
-
-						// til assigner
-						// øke id på commonstate
-						// tømme ackmap
-						// oppdater commonstate med dine lokale endringer
-						// gjøre 2 i hallrequest til 0
-						// ack
-						// broadcast
-
-					default:
-						commonState = takePriortisedCommonState(commonState, arrivedCommonState)
-						commonState.MergeCommonState(arrivedCommonState)
-						// giverToNetwork	<- commonState
+				for key := range commonState.Ackmap {
+					commonState.Ackmap[key] = NotAcked
 				}
+				commonState.Ack()
+				for i := range commonState.HallRequests {
+					for j := range commonState.HallRequests[i] {
+						if commonState.HallRequests[i][j] == 2 {
+							commonState.HallRequests[i][j] = 0
+						}
+					}
+				}
+
+				// giverToNetwork	<- commonState
+
+				// til assigner
+				// øke id på commonstate
+				// tømme ackmap
+				// oppdater commonstate med dine lokale endringer
+				// gjøre 2 i hallrequest til 0
+				// ack
+				// broadcast
+
+			default:
+				commonState = takePriortisedCommonState(commonState, arrivedCommonState)
+				commonState.MergeCommonState(arrivedCommonState)
+				// giverToNetwork	<- commonState
+			}
 		}
 
 	} // to do: add case when for elevator lost network connection
