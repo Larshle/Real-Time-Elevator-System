@@ -74,18 +74,34 @@ func PrintCommonState(cs HRAInput) {
 	}
 }
 
-func (holding localAssignments) Update_Assingments(local_elevator_assignments localAssignments) {
+func (cs *HRAInput) Update_Assingments(local_elevator_assignments localAssignments) {
 
 	for f := 0; f < config.N_floors; f++ {
-		for b := 0; b < 3; b++ {
+		for b := 0; b < 2; b++ {
 			if local_elevator_assignments.localHallAssignments[f][b] == add {
-				holding.localHallAssignments[f][b] = add
+				cs.HallRequests[f][b] = true
+				fmt.Println("Hall request added")
 			}
 			if local_elevator_assignments.localHallAssignments[f][b] == remove {
-				holding.localHallAssignments[f][b] = remove
+				cs.HallRequests[f][b] = false
+				fmt.Println("Hall request removed")
 			}
 		}
 	}
+
+	for f := 0; f < config.N_floors; f++ {
+		if local_elevator_assignments.localCabAssignments[f] == add {
+			cs.States[config.Elevator_id].CabRequests[f] = true
+		}
+		if local_elevator_assignments.localCabAssignments[f] == remove {
+			cs.States[config.Elevator_id].CabRequests[f] = false
+		}
+	}
+	cs.ID++
+	cs.Origin = config.Elevator_id
+	fmt.Println("Updated common state:")
+	PrintCommonState(*cs)
+
 }
 
 func (cs *HRAElevState) Update_local_state(local_elevator_state elevator.State) {
