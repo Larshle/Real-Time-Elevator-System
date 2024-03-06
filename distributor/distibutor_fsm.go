@@ -7,6 +7,17 @@ import (
 	"root/elevator"
 	"root/network/network_modules/peers"
 	"time"
+
+	"golang.org/x/text/cases"
+)
+
+type State int 
+
+const (
+	Idle State = iota
+	Acking 
+	SendingSelf
+	AckingOtherWhileTryingToSend
 )
 
 func Distributor(
@@ -19,12 +30,11 @@ func Distributor(
 	elevioOrdersC := make(chan elevio.ButtonEvent)
 	newAssingemntC := make(chan localAssignments)
 	peerUpdateC := make(chan peers.PeerUpdate)
-	checkNettworkTimer := time.NewTimer(time.Hour)
 
 	var commonState HRAInput
-	var localCommonState HRAInput
-	var localAssignments localAssignments
-	var P peers.PeerUpdate
+	var lastesSelfState elevator.State
+	var stash localAssignments
+	var state State = Idle
 
 
 	// commonState = HRAInput{
@@ -47,24 +57,10 @@ func Distributor(
 				Direction:   "up",
 				CabRequests: []bool{false, false, false, true},
 			},
+
 		},
 	}
 	
-	localCommonState = HRAInput{
-		Origin:       config.Elevator_id,
-		ID:           0,
-		Ackmap:       make(map[string]Ack_status),
-		HallRequests: [][2]bool{{false, false}, {false, false}, {false, false}, {false, false}},
-		States: map[string]HRAElevState{
-			config.Elevator_id: {
-				Behaviour:   "idle",
-				Floor:       0,
-				Direction:   "up",
-				CabRequests: []bool{false, false, false, true},
-			},
-		},
-	}
-
 	// commonState = HRAInput{
 	// 	Origin:       config.Elevator_id,
 	// 	ID:           1,
@@ -75,61 +71,116 @@ func Distributor(
 	// 	},
 	// }
 
-	queue := &CommonStateQueue{}
-
 	go elevio.PollButtons(elevioOrdersC)
 	go Update_Assingments(elevioOrdersC, deliveredOrderC, newAssingemntC)
 
-	heartbeatTimer := time.NewTicker(100 * time.Millisecond)
+	heartbeatTimer := time.NewTicker(15 * time.Millisecond)
 
 	for {
-		select {
-			case assingmentUpdate := <-newAssingemntC:
-				commonState.Update_Assingments(assingmentUpdate)
-				queue.Enqueue(commonState)
 
-			case newElevState := <-newElevStateC:
-				localCommonState.Update_local_state(newElevState)
-				
+		switch state {
+			case Idle: 
+				select {
+					case assingmentUpdate := <-newAssingemntC: //bufferes lage stor kanal 64 feks lage tømmefunksjon 
+						stash = assingmentUpdate
+						commonState.Update_Assingments(assingmentUpdate)
+						state = SendingSelf
 
-			case peers := <-peerUpdateC:
-				P = peers
-
-			case arrivedCommonState := <-receiveFromNetworkC:
-				fmt.Println("receiveFromNetworkC")
-				checkNettworkTimer = time.NewTimer(500*time.Millisecond)
-				switch {
-					case Fully_acked(arrivedCommonState.Ackmap):
-						commonState = arrivedCommonState
-						messageToAssinger <- commonState
+					case newElevState := <-newElevStateC: //bufferes lage stor kanal 64 feks
+						lastesSelfState = newElevState
+						commonState.toHRAElevState(newElevState)
+						state = SendingSelf
 						
 
-					case commonStatesNotEqual(commonState, arrivedCommonState):
-						commonState = takePriortisedCommonState(commonState, arrivedCommonState)
-						commonState.Ack()
-
-
+					case arrivedCommonState := <-receiveFromNetworkC: //bufferes lage stor kanal 64 feks
+						arrivedCommonState.ensureElevatorState(commonState.States[config.Elevator_id])
+						if arrivedCommonState.Origin == config.Elevator_id {
+							state = SendingSelf
+						}
+						if arrivedCommonState.Origin != config.Elevator_id {
+							arrivedCommonState.Ack()
+							commonState = arrivedCommonState
+							state = Acking
+						}
 					default:
+				}
+			case SendingSelf:
+				select {
+				case arrivedCommonState := <-receiveFromNetworkC:
+					if arrivedCommonState.Origin != config.Elevator_id && takePriortisedCommonState(commonState, arrivedCommonState).ID != config.Elevator_id{
+						arrivedCommonState.Ack()
 						commonState = arrivedCommonState
-						commonState.makeElevUnav(P)
-						commonState.Ack()
-				}
-		
-			case <-heartbeatTimer.C:
-				switch{
-				case Fully_acked(commonState.Ackmap):
-					localCommonState.MergeCommonState(commonState, localAssignments)
-					giverToNetwork <- localCommonState
-					
-				default:
-					giverToNetwork <- commonState
-				}
-			
-			// case <-checkNettworkTimer.C:
-			// 	localCommonState.MergeCommonState(localCommonState, localAssignments)
-			// 	giverToNetwork <- localCommonState
-			// }
+						state = AckingOtherWhileTryingToSend
+					}
 
-		} // to do: add case when for elevator lost network connection
-	}
+				case peers := <- peerUpdateC: //bufferes lage stor kanal 64 feks
+					commonState.makeElevUnav(peers)
+					if Fully_acked(commonState.Ackmap){
+						state = Idle
+						messageToAssinger <- commonState
+					}
+				default:
+				}
+					
+				
+			case Acking:
+				select {
+				case arrivedCommonState := <-receiveFromNetworkC:
+					if arrivedCommonState.ID >= commonState.ID{ // && takePriortisedCommonState(commonState, arrivedCommonState) priority of higher  {
+						arrivedCommonState.Ack()
+						commonState = arrivedCommonState
+					}
+					if Fully_acked(commonState.Ackmap){
+						state = Idle
+						messageToAssinger <- commonState
+					}
+
+				case peers := <- peerUpdateC:
+					commonState.makeElevUnav(peers)
+					if Fully_acked(commonState.Ackmap){
+						state = Idle
+						messageToAssinger <- commonState
+					}
+				default:
+			}
+				
+			case AckingOtherWhileTryingToSend:
+				select {
+				case arrivedCommonState := <-receiveFromNetworkC:
+					if arrivedCommonState.ID < commonState.ID{
+						break
+					} 
+					if arrivedCommonState.ID >= commonState.ID{ // && takePriortisedCommonState(commonState, arrivedCommonState) priority of higher  {
+						arrivedCommonState.Ack()
+						commonState = arrivedCommonState
+					}
+					if Fully_acked(commonState.Ackmap){
+						state = SendingSelf
+						commonState.Update_Assingments(stash)
+						commonState.toHRAElevState(lastesSelfState)
+						messageToAssinger <- commonState
+					}
+				case peers := <- peerUpdateC:
+					commonState.makeElevUnav(peers)
+					if Fully_acked(commonState.Ackmap){
+						state = SendingSelf
+						messageToAssinger <- commonState
+					}
+				default:
+			}
+
+					
+
+	
+			select {
+			case <-heartbeatTimer.C:
+				giverToNetwork <- commonState
+			default:
+				}
+				
+		}				// }
+
+	} // to do: add case when for elevator lost network connection
+			
 }
+	

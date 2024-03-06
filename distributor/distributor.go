@@ -28,7 +28,6 @@ type HRAElevState struct {
 }
 
 type HRAInput struct {
-	Unavailable  int
 	ID           int
 	Origin       string
 	Ackmap       map[string]Ack_status
@@ -36,27 +35,21 @@ type HRAInput struct {
 	States       map[string]HRAElevState `json:"states"`
 }
 
-type CommonStateQueue struct {
-    items []HRAInput
-}
-
-func (q *CommonStateQueue) Enqueue(c HRAInput) {
-    q.items = append(q.items, c)
-}
-
-func (q *CommonStateQueue) Dequeue() (HRAInput, bool) {
-    if len(q.items) == 0 {
-        return HRAInput{}, false
+func (input *HRAInput)ensureElevatorState( state HRAElevState) {
+    _, exists := input.States[config.Elevator_id]
+    if !exists {
+        input.States[config.Elevator_id] = state
     }
-    item := q.items[0]
-    q.items = q.items[1:]
-    return item, true
+	input.ID++
 }
 
-func (es *HRAElevState) toHRAElevState(localElevState elevator.State) {
-	es.Behaviour = localElevState.Behaviour.ToString()
-	es.Floor = localElevState.Floor
-	es.Direction = localElevState.Direction.ToString()
+func (es *HRAInput) toHRAElevState(localElevState elevator.State) {
+	HRA := es.States[config.Elevator_id]
+	HRA.Behaviour = localElevState.Behaviour.ToString()
+	HRA.Floor = localElevState.Floor
+	HRA.Direction = localElevState.Direction.ToString()
+	HRA.CabRequests = es.States[config.Elevator_id].CabRequests
+	es.States[config.Elevator_id] = HRA
 }
 
 func PrintCommonState(cs HRAInput) {
@@ -129,7 +122,7 @@ func commonStatesNotEqual(oldCS, newCS HRAInput) bool {
 func (cs *HRAInput) makeElevUnav(p peers.PeerUpdate) {
 	for _, id := range p.Lost {
 		cs.Ackmap[id] = NotAvailable
-		delete(cs.States, id)
+		delete(cs.States, id) //Flytte til assingner
 	}
 }
 
