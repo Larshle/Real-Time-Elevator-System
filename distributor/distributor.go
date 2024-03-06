@@ -36,6 +36,23 @@ type HRAInput struct {
 	States       map[string]HRAElevState `json:"states"`
 }
 
+type CommonStateQueue struct {
+    items []HRAInput
+}
+
+func (q *CommonStateQueue) Enqueue(c HRAInput) {
+    q.items = append(q.items, c)
+}
+
+func (q *CommonStateQueue) Dequeue() (HRAInput, bool) {
+    if len(q.items) == 0 {
+        return HRAInput{}, false
+    }
+    item := q.items[0]
+    q.items = q.items[1:]
+    return item, true
+}
+
 func (es *HRAElevState) toHRAElevState(localElevState elevator.State) {
 	es.Behaviour = localElevState.Behaviour.ToString()
 	es.Floor = localElevState.Floor
@@ -71,12 +88,10 @@ func (holding localAssignments) Update_Assingments(local_elevator_assignments lo
 	}
 }
 
-func (cs *HRAInput) Update_local_state(local_elevator_state elevator.State) {
-	hraElevState := cs.States[config.Elevator_id]
-
-	hraElevState.toHRAElevState(local_elevator_state)
-
-	cs.States[config.Elevator_id] = hraElevState
+func (cs *HRAElevState) Update_local_state(local_elevator_state elevator.State) {
+	cs.Behaviour = local_elevator_state.Behaviour.ToString()
+	cs.Floor = local_elevator_state.Floor
+	cs.Direction = local_elevator_state.Direction.ToString()
 
 }
 
@@ -134,8 +149,8 @@ func takePriortisedCommonState(oldCS, newCS HRAInput) HRAInput {
 	return newCS
 }
 
-func (localCS *HRAInput) MergeCommonState(globalCS HRAInput, lc localAssignments) {
-	globalCS.States[config.Elevator_id] = localCS.States[config.Elevator_id]
+func (oldCS *HRAInput) MergeCommonState(es elevator.State, lc localAssignments) {
+	oldCS.States[config.Elevator_id] = toHRAElevState(&es)
 	for f := 0; f < config.N_floors; f++ {
 		if lc.localCabAssignments[f] == add {
 			localCS.States[config.Elevator_id].CabRequests[f] = true

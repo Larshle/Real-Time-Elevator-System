@@ -2,13 +2,15 @@ package distributor
 
 import (
 	"root/driver/elevio"
+	"root/config"
 )
 
 type Ass int
 
 const (
-	add    Ass = 1
-	remove Ass = 2
+	untouched Ass = iota
+	add   
+	remove 
 )
 
 type localAssignments struct {
@@ -40,6 +42,7 @@ func (a localAssignments) Remove_Assingment(deliveredAssingement elevio.ButtonEv
 	}
 	return a
 }
+
 
 func Update_Assingments(newAssingemntC <-chan elevio.ButtonEvent, deliveredAssingmentC <-chan elevio.ButtonEvent, updatedAssingmentsC chan<- localAssignments) {
 	var localAssignments localAssignments

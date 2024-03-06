@@ -75,6 +75,8 @@ func Distributor(
 	// 	},
 	// }
 
+	queue := &CommonStateQueue{}
+
 	go elevio.PollButtons(elevioOrdersC)
 	go Update_Assingments(elevioOrdersC, deliveredOrderC, newAssingemntC)
 
@@ -84,9 +86,11 @@ func Distributor(
 		select {
 			case assingmentUpdate := <-newAssingemntC:
 				localAssignments.Update_Assingments(assingmentUpdate)
+				queue.Enqueue(commonState)
 
 			case newElevState := <-newElevStateC:
 				localCommonState.Update_local_state(newElevState)
+				
 
 			case peers := <-peerUpdateC:
 				P = peers
@@ -98,37 +102,33 @@ func Distributor(
 					case Fully_acked(arrivedCommonState.Ackmap):
 						commonState = arrivedCommonState
 						messageToAssinger <- commonState
-						localCommonState.MergeCommonState(commonState, localAssignments)
-						giverToNetwork <- localCommonState
+						
 
 					case commonStatesNotEqual(commonState, arrivedCommonState):
 						commonState = takePriortisedCommonState(commonState, arrivedCommonState)
 						commonState.Ack()
-						giverToNetwork <- commonState
+
 
 					default:
 						commonState = arrivedCommonState
 						commonState.makeElevUnav(P)
 						commonState.Ack()
-						giverToNetwork <- commonState
 				}
 		
 			case <-heartbeatTimer.C:
-				fmt.Println("updateC")
 				switch{
 				case Fully_acked(commonState.Ackmap):
-					fmt.Println("1")
 					localCommonState.MergeCommonState(commonState, localAssignments)
-					fmt.Println("2")
 					giverToNetwork <- localCommonState
 					
 				default:
 					giverToNetwork <- commonState
+				}
 			
-			case <-checkNettworkTimer.C:
-				localCommonState.MergeCommonState(localCommonState, localAssignments)
-				giverToNetwork <- localCommonState
-			}
+			// case <-checkNettworkTimer.C:
+			// 	localCommonState.MergeCommonState(localCommonState, localAssignments)
+			// 	giverToNetwork <- localCommonState
+			// }
 
 		} // to do: add case when for elevator lost network connection
 	}
