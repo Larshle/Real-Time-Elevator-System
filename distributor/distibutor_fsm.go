@@ -85,7 +85,7 @@ func Distributor(
 	for {
 		select {
 			case assingmentUpdate := <-newAssingemntC:
-				localAssignments.Update_Assingments(assingmentUpdate)
+				commonState.Update_Assingments(assingmentUpdate)
 				queue.Enqueue(commonState)
 
 			case newElevState := <-newElevStateC:
