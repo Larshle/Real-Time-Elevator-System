@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"net"
-	// "reflect"
+	"reflect"
 	"root/config"
 	"root/elevator"
 	"root/network/network_modules/peers"
@@ -63,6 +63,25 @@ func PrintCommonState(cs HRAInput2) {
 	}
 }
 
+func IsEqual(cs, newCs HRAInput2) bool {
+    // Save the original values
+    o1, o2 := cs.Origin, newCs.Origin
+    a1, a2 := cs.Ackmap, newCs.Ackmap
+
+    // Set Origin and Ackmap to their zero values
+    cs.Origin, newCs.Origin = "", ""
+    cs.Ackmap, newCs.Ackmap = nil, nil
+
+    // Compare cs and newCs
+    isEqual := reflect.DeepEqual(cs, newCs)
+
+    // Restore the original values
+    cs.Origin, newCs.Origin = o1, o2
+    cs.Ackmap, newCs.Ackmap = a1, a2
+
+    return isEqual
+}
+
 func (cs *HRAInput2) Update_Assingments(local_elevator_assignments localAssignments) {
 
 	for f := 0; f < config.N_floors; f++ {
@@ -84,17 +103,20 @@ func (cs *HRAInput2) Update_Assingments(local_elevator_assignments localAssignme
 			cs.States[config.Elevator_id].CabRequests[f] = false
 		}
 	}
-	cs.ID++
+	// cs.ID++
 }
 
 func (cs *HRAInput2) Update_local_state(local_elevator_state elevator.State) {
     hraElevState := cs.States[config.Elevator_id]
     hraElevState.toHRAElevState(local_elevator_state)
     cs.States[config.Elevator_id] = hraElevState
-	cs.ID++
+	// cs.ID++
 }
 
 func Fully_acked(ackmap map[string]Ack_status) bool {
+	// if len(ackmap) == 0 {
+	// 	return false
+	// }
 	// if len(ackmap) > 1 {
 	for _, value := range ackmap {
 		if value == 0 {
@@ -117,7 +139,7 @@ func (cs *HRAInput2) makeElevUnav(p peers.PeerUpdate) {
 		cs.Ackmap[id] = NotAvailable
 		delete(cs.States, id)
 	}
-	cs.ID++
+	// cs.ID++
 }
 
 func (cs *HRAInput2) Ack() {
@@ -185,9 +207,14 @@ func takePriortisedCommonState(oldCS, newCS HRAInput2) HRAInput2 {
 // }
 
 func (cs *HRAInput2) MergeCommonState(newCS HRAInput2) {
-	temp := cs.States[config.Elevator_id] 
-	cs.States = newCS.States
-	cs.States[config.Elevator_id] = temp
+	// temp := cs.States[config.Elevator_id] 
+	// cs.States = newCS.States
+	// cs.States[config.Elevator_id] = temp
+	for id, state := range newCS.States {
+		if _, exists := cs.States[id]; !exists {
+			cs.States[id] = state
+		}
+	}
 	cs.Ackmap = newCS.Ackmap
 	cs.Ack()
 	cs.Origin = config.Elevator_id
@@ -195,9 +222,12 @@ func (cs *HRAInput2) MergeCommonState(newCS HRAInput2) {
 	for f := 0; f < config.N_floors; f++ {
 		for b := 0; b < 2; b++ {
 			if newCS.HallRequests[f][b] == 2{
+
 				cs.HallRequests[f][b] = 2
+
 			}
 			if newCS.HallRequests[f][b] == 1 {
+
 				if cs.HallRequests[f][b] == 0 {
 					cs.HallRequests[f][b] = 1
 				}
@@ -207,8 +237,10 @@ func (cs *HRAInput2) MergeCommonState(newCS HRAInput2) {
 				if cs.HallRequests[f][b] == 2 {
 					cs.HallRequests[f][b] = 2
 				}
+
 			}
 			if newCS.HallRequests[f][b] == 0{
+
 				if cs.HallRequests[f][b] == 0 {
 					cs.HallRequests[f][b] = 0
 				}
@@ -218,6 +250,7 @@ func (cs *HRAInput2) MergeCommonState(newCS HRAInput2) {
 				if cs.HallRequests[f][b] == 2 {
 					cs.HallRequests[f][b] = 2
 				}
+
 			}
 		}
 	}

@@ -19,6 +19,7 @@ func Distributor(
 	elevioOrdersC := make(chan elevio.ButtonEvent)
 	newAssingemntC := make(chan localAssignments)
 	peerUpdateC := make(chan peers.PeerUpdate)
+	var peers peers.PeerUpdate
 
 	// commonState = HRAInput2{
 	// 	Origin:       config.Elevator_id,
@@ -71,31 +72,46 @@ func Distributor(
 	go elevio.PollButtons(elevioOrdersC)
 	go Update_Assingments(elevioOrdersC, deliveredOrderC, newAssingemntC)
 
-	ticker := time.Tick(15 * time.Millisecond)
+	ticker := time.Tick(100 * time.Millisecond)
 
 	for {
 		select {
 		case <-ticker:
 			giverToNetwork <- commonState
-			fmt.Println("Distributor: Sent commonstate")
+			// fmt.Println("Distributor: Sent commonstate")
 		case assingmentUpdate := <-newAssingemntC:
+			// localCs.Update_Assingments(assingmentUpdate)
+			// commonState.MergeCommonState(localCs)
 			commonState.Update_Assingments(assingmentUpdate)
+
+			// fmt.Println("Distributor: Updated assingments")
+			// PrintCommonState(commonState)
 			// giverToNetwork	<- commonState
 
 		case newElevState := <-newElevStateC:
+			// localCs.Update_local_state(newElevState)
+			// commonState.MergeCommonState(localCs)
 			commonState.Update_local_state(newElevState)
+
 			// giverToNetwork	<- commonState
 
-		case peers := <-peerUpdateC:
+		case peers = <-peerUpdateC:
+			// localCs.makeElevUnav(peers)
+			// commonState.MergeCommonState(localCs)
 			commonState.makeElevUnav(peers)
+
 			// giverToNetwork	<- commonState
 
 		case arrivedCommonState := <-receiveFromNetworkC:
 			switch {
-			case Fully_acked(arrivedCommonState.Ackmap): // ackmap må være lengre enn 1
+			case 
+			case Fully_acked(arrivedCommonState.Ackmap):
+			}
+				fmt.Println("Distributor: Fully acked")
+				PrintCommonState(arrivedCommonState)
 
 				messageToAssinger <- arrivedCommonState
-				commonState.MergeCommonState(arrivedCommonState)
+				// commonState.MergeCommonState(arrivedCommonState)
 
 				for key := range commonState.Ackmap {
 					commonState.Ackmap[key] = NotAcked
@@ -108,6 +124,8 @@ func Distributor(
 						}
 					}
 				}
+				commonState.Origin = config.Elevator_id
+				commonState.ID++
 
 				// giverToNetwork	<- commonState
 
@@ -118,6 +136,9 @@ func Distributor(
 				// gjøre 2 i hallrequest til 0
 				// ack
 				// broadcast
+
+			//case IsEqual(commonState, arrivedCommonState):
+			//	continue
 
 			default:
 				commonState = takePriortisedCommonState(commonState, arrivedCommonState)

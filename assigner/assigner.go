@@ -57,8 +57,8 @@ func Assigner(
 	for {
 		select {
 		case cs := <-messageToAssinger:
-			fmt.Println("Assigner: Received commonstate")
-			distributor.PrintCommonState(cs)
+			// fmt.Println("Assigner: Received commonstate")
+			// distributor.PrintCommonState(cs)
 			localAssingment := toLocalAssingment(CalculateHRA(cs))
 			lightsAssingment := toLightsAssingment(cs)
 			lightsAssingmentC <- lightsAssingment
