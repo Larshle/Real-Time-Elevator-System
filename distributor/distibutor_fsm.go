@@ -93,7 +93,7 @@ func Distributor(
 						
 
 					case arrivedCommonState := <-receiveFromNetworkC: //bufferes lage stor kanal 64 feks
-						arrivedCommonState.ensureElevatorState(commonState.States[config.Elevator_id])
+						arrivedCommonState.ensureElevatorState(arrivedCommonState.States[config.Elevator_id])
 						if arrivedCommonState.Origin == config.Elevator_id {
 							state = SendingSelf
 						}
