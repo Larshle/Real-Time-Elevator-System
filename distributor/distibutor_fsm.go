@@ -62,7 +62,7 @@ func Distributor(
 
 	commonState = HRAInput{
 		Origin:       config.Elevator_id,
-		seq:           0,
+		Seq:           4,
 		Ackmap:       make(map[string]Ack_status),
 		HallRequests: [][2]bool{{false, false}, {false, false}, {false, false}, {false, false}},
 		States: map[string]HRAElevState{
@@ -106,12 +106,16 @@ func Distributor(
 						AssignmentStash = assingmentUpdate
 						StashType = AssingmetChange
 						commonState.Update_Assingments(assingmentUpdate)
+						commonState.NullAckmap()
+						commonState.Ack()
 						state = SendingSelf
 
 					case newElevState := <-newElevStateC: //bufferes lage stor kanal 64 feks
 						StateStash = newElevState
 						StashType = StateChange
 						commonState.toHRAElevState(newElevState)
+						commonState.NullAckmap()
+						commonState.Ack()
 						state = SendingSelf
 						
 
@@ -223,6 +227,9 @@ func Distributor(
 
 						commonState = arrivedCommonState
 						messageToAssinger <- commonState
+						commonState.NullAckmap()
+						commonState.Ack()
+
 					}
 				case peers := <- peerUpdateC:
 					commonState.makeElevUnav(peers)
