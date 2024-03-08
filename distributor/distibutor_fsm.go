@@ -262,13 +262,16 @@ func Distributor(
 			//	default:
 			//		commonState.makeOriginElevUnav()
 	//
+			}
+		
 			select {
 			case <-heartbeatTimer.C:
 				giverToNetwork <- commonState
 			default:
-				}	
-			}
+				}
+
+
 		} // to do: add case when for elevator lost network connection			
 	}
-}
+
 	
