@@ -124,6 +124,7 @@ func Distributor(
 								fmt.Println("something fishy")
 								//if arrivedCommonState.Origin == config.Elevator_id {
 								//state = SendingSelf
+								commonState = arrivedCommonState
 							//}
 							if arrivedCommonState.Origin != config.Elevator_id {
 								fmt.Println("arrived new commonstate")
