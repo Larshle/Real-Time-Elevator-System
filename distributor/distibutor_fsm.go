@@ -1,34 +1,30 @@
 package distributor
 
 import (
+	"fmt"
 	"root/config"
 	"root/driver/elevio"
 	"root/elevator"
 	"root/network/network_modules/peers"
 	"time"
-	"fmt"
-
-	
 )
-type StatshType int 
+
+type StatshType int
 
 const (
 	AssingmetChange StatshType = iota
 	StateChange
 )
 
-
-type State int 
-
+type State int
 
 const (
 	Idle State = iota
-	Acking 
+	Acking
 	SendingSelf
 	AckingOtherWhileTryingToSendSelf
 	Isolated
 	UnableToMove
-	
 )
 
 func Distributor(
@@ -48,9 +44,7 @@ func Distributor(
 	var state State = Idle
 	var StashType StatshType
 	timeCounter := time.NewTimer(time.Hour)
-	selfLostNetworkDuratio := 1 * time.Second
-	
-
+	selfLostNetworkDuratio := 10 * time.Second
 
 	// commonState = HRAInput{
 	// 	Origin:       config.Elevator_id,
@@ -61,21 +55,29 @@ func Distributor(
 	// }
 
 	commonState = HRAInput{
-		Origin:       config.Elevator_id,
-		Seq:           4,
-		Ackmap:       make(map[string]Ack_status),
+		Origin: "peer-10.22.229.227-11111",
+		Seq:    0,
+		Ackmap: map[string]Ack_status{
+			"peer-10.22.229.227-22222": NotAcked,
+			"peer-10.22.229.227-11111": NotAcked,
+		},
 		HallRequests: [][2]bool{{false, false}, {false, false}, {false, false}, {false, false}},
 		States: map[string]HRAElevState{
-			config.Elevator_id: {
+			"peer-10.22.229.227-22222": {
 				Behaviour:   "idle",
 				Floor:       0,
 				Direction:   "up",
 				CabRequests: []bool{false, false, false, true},
 			},
-
+			"peer-10.22.229.227-11111": {
+				Behaviour:   "idle",
+				Floor:       0,
+				Direction:   "up",
+				CabRequests: []bool{false, false, false, true},
+			},
 		},
 	}
-	
+
 	// commonState = HRAInput{
 	// 	Origin:       config.Elevator_id,
 	// 	ID:           1,
@@ -93,193 +95,221 @@ func Distributor(
 
 	for {
 
-		select{
-			case <- timeCounter.C:
-				state = Isolated
-			default:
+		select {
+		case <-timeCounter.C:
+			state = Isolated
+		default:
 		}
 
 		switch state {
-			case Idle: 
-				select {
-					case assingmentUpdate := <-newAssingemntC: //bufferes lage stor kanal 64 feks lage tømmefunksjon 
-						AssignmentStash = assingmentUpdate
-						StashType = AssingmetChange
-						commonState.Update_Assingments(assingmentUpdate)
-						commonState.NullAckmap()
-						commonState.Ack()
-						state = SendingSelf
+		case Idle:
+			select {
+			case assingmentUpdate := <-newAssingemntC: //bufferes lage stor kanal 64 feks lage tømmefunksjon
+				AssignmentStash = assingmentUpdate
+				StashType = AssingmetChange
+				commonState.Update_Assingments(assingmentUpdate)
+				commonState.NullAckmap()
+				commonState.Ack()
+				state = SendingSelf
 
-					case newElevState := <-newElevStateC: //bufferes lage stor kanal 64 feks
-						StateStash = newElevState
-						StashType = StateChange
-						commonState.toHRAElevState(newElevState)
-						commonState.NullAckmap()
-						commonState.Ack()
-						state = SendingSelf
-						
+			case newElevState := <-newElevStateC: //bufferes lage stor kanal 64 feks
+				fmt.Println("newElevState")
+				StateStash = newElevState
+				StashType = StateChange
+				commonState.toHRAElevState(newElevState)
+				commonState.NullAckmap()
+				commonState.Ack()
+				state = SendingSelf
 
-					case arrivedCommonState := <-receiveFromNetworkC://bufferes lage stor kanal 64 feks
-						timeCounter = time.NewTimer(selfLostNetworkDuratio) 
-						arrivedCommonState.ensureElevatorState(arrivedCommonState.States[config.Elevator_id])
+			case arrivedCommonState := <-receiveFromNetworkC: //bufferes lage stor kanal 64 feks
+				timeCounter = time.NewTimer(selfLostNetworkDuratio)
+				//arrivedCommonState.ensureElevatorState(arrivedCommonState.States[config.Elevator_id])
 
-						switch {
-							case higherPriority(commonState, arrivedCommonState):
-								fmt.Println("something fishy")
-								//if arrivedCommonState.Origin == config.Elevator_id {
-								//state = SendingSelf
-								commonState = arrivedCommonState
-							//}
-							if arrivedCommonState.Origin != config.Elevator_id {
-								fmt.Println("arrived new commonstate")
-								arrivedCommonState.Ack()
-								commonState = arrivedCommonState
-								state = Acking
-							}
-							default:
-								break //doing jack
-						}
-					case peers := <- peerUpdateC: //bufferes lage stor kanal 64 feks
-						commonState.makeElevUnav(peers)
-					default:
-				}
-			case SendingSelf:
-				select {
-				case arrivedCommonState := <-receiveFromNetworkC:
-					timeCounter = time.NewTimer(selfLostNetworkDuratio) 
-					switch {
-						case arrivedCommonState.Origin != config.Elevator_id && higherPriority(commonState, arrivedCommonState):
-							arrivedCommonState.Ack()
-							commonState = arrivedCommonState
-							state = AckingOtherWhileTryingToSendSelf
-
-						case Fully_acked(arrivedCommonState.Ackmap):
-							state = Idle
-							commonState = arrivedCommonState
-							messageToAssinger <- commonState
-						default:
-							break //doing jack
-					}
-
-				case peers := <- peerUpdateC: //bufferes lage stor kanal 64 feks
-					commonState.makeElevUnav(peers)
-					if Fully_acked(commonState.Ackmap){
-						state = Idle
-						messageToAssinger <- commonState
-					}
-				default:
-				}
-					
-				
-			case Acking:
-				select {
-				case arrivedCommonState := <-receiveFromNetworkC:
-					timeCounter = time.NewTimer(selfLostNetworkDuratio)
-					switch {
-					
-					case Fully_acked(arrivedCommonState.Ackmap):
-						state = Idle
-						commonState = arrivedCommonState
-						messageToAssinger <- commonState
-
-					case higherPriority(commonState, arrivedCommonState):// && takePriortisedCommonState(commonState, arrivedCommonState) priority of higher  {
+				switch {
+				case higherPriority(commonState, arrivedCommonState):
+					fmt.Println("something fishy")
+					//if arrivedCommonState.Origin == config.Elevator_id {
+					//state = SendingSelf
+					commonState = arrivedCommonState
+					//}
+					if arrivedCommonState.Origin != config.Elevator_id {
+						fmt.Println("arrived new commonstate")
 						arrivedCommonState.Ack()
 						commonState = arrivedCommonState
-				
-					case !higherPriority(commonState, arrivedCommonState):
-						break //doing jack
+						state = Acking
 					}
-
-				case peers := <- peerUpdateC:
-					commonState.makeElevUnav(peers)
-					if Fully_acked(commonState.Ackmap){
-						state = Idle
-						messageToAssinger <- commonState
-					}
-					
 				default:
+					break //doing jack
+				}
+			case peers := <-peerUpdateC: //bufferes lage stor kanal 64 feks
+			fmt.Println("    ")
+			fmt.Println("peers number 1 fucked")
+			fmt.Println("    ")
+				commonState.makeElevUnav(peers)
+			default:
 			}
-				
-			case AckingOtherWhileTryingToSendSelf:
-				select {
-				case arrivedCommonState := <-receiveFromNetworkC:
-					timeCounter = time.NewTimer(selfLostNetworkDuratio)
-					switch {
-					case !higherPriority(commonState, arrivedCommonState):
-						break //doing jack
+		case SendingSelf:
+			//fmt.Println("-")
+			select {
+			case arrivedCommonState := <-receiveFromNetworkC:
+				fmt.Println("Im in SendingSelf mode")
+				timeCounter = time.NewTimer(selfLostNetworkDuratio)
+				switch {
+				case arrivedCommonState.Origin != config.Elevator_id && higherPriority(commonState, arrivedCommonState):
+					fmt.Println("I am not priority:(")
+					arrivedCommonState.Ack()
+					commonState = arrivedCommonState
+					state = AckingOtherWhileTryingToSendSelf
 
-					case higherPriority(commonState, arrivedCommonState):// && takePriortisedCommonState(commonState, arrivedCommonState) priority of higher  {
-						arrivedCommonState.Ack()
-						commonState = arrivedCommonState
-				
-					case Fully_acked(arrivedCommonState.Ackmap):
-						state = SendingSelf
-						switch StashType {
-
-							case AssingmetChange:
-								arrivedCommonState.Update_Assingments(AssignmentStash)
-								
-
-							case StateChange:
-								arrivedCommonState.toHRAElevState(StateStash)
-								
-						}
-
-						commonState = arrivedCommonState
-						messageToAssinger <- commonState
-						commonState.NullAckmap()
-						commonState.Ack()
-
-					}
-				case peers := <- peerUpdateC:
-					commonState.makeElevUnav(peers)
-					if Fully_acked(commonState.Ackmap){
-						state = SendingSelf
-						messageToAssinger <- commonState
-					}
-				
-				default:
-			}
-			case Isolated:
-				select{
-				//case <- peerUpdateC:
-				//	state = Idle
-
-				case <-receiveFromNetworkC:
+				case Fully_acked(arrivedCommonState.Ackmap):
+					fmt.Println("get in there")
 					state = Idle
-				
-				case assingmentUpdate := <-newAssingemntC: //bufferes lage stor kanal 64 feks lage tømmefunksjon 
-					commonState.makeElevUnavExceptOrigin()
-					commonState.UpdateCabAssignments(assingmentUpdate)
+					fmt.Println("Fucking get in there")
+					commonState = arrivedCommonState
 					messageToAssinger <- commonState
-
-
-				case newElevState := <-newElevStateC: //bufferes lage stor kanal 64 feks
-					commonState.toHRAElevState(newElevState)
-					commonState.makeElevUnavExceptOrigin()
-					messageToAssinger <- commonState
-
-		
 				default:
+					fmt.Println("doing jack")
+					//break //doing jack
 				}
-				
+
+			case peers := <-peerUpdateC: //bufferes lage stor kanal 64 feks
+				commonState.makeElevUnav(peers)
+				fmt.Println("    ")
+				fmt.Println("peers number 2 fucked")
+				fmt.Println("    ")
+				if Fully_acked(commonState.Ackmap) {
+					state = Idle
+					messageToAssinger <- commonState
+				}
+			default:
+			}
+
+		case Acking:
+			select {
+			case arrivedCommonState := <-receiveFromNetworkC:
+				fmt.Println("Im in acking mode")
+
+				timeCounter = time.NewTimer(selfLostNetworkDuratio)
+				switch {
+
+				case Fully_acked(arrivedCommonState.Ackmap):
+					state = Idle
+					commonState = arrivedCommonState
+					messageToAssinger <- commonState
+
+				case higherPriority(commonState, arrivedCommonState): // && takePriortisedCommonState(commonState, arrivedCommonState) priority of higher  {
+					arrivedCommonState.Ack()
+					commonState = arrivedCommonState
+
+				case !higherPriority(commonState, arrivedCommonState):
+					break //doing jack
+				}
+
+			case peers := <-peerUpdateC:
+				commonState.makeElevUnav(peers)
+				fmt.Println("    ")
+				fmt.Println("peers number 3 fucked")
+				fmt.Println("    ")
+
+				if Fully_acked(commonState.Ackmap) {
+					state = Idle
+					messageToAssinger <- commonState
+				}
+
+			default:
+			}
+
+		case AckingOtherWhileTryingToSendSelf:
+			select {
+			case arrivedCommonState := <-receiveFromNetworkC:
+				//fmt.Println("AckingOtherWhileTryingToSendSelf")
+				timeCounter = time.NewTimer(selfLostNetworkDuratio)
+				switch {
+				//case !higherPriority(commonState, arrivedCommonState):
+				//	break //doing jack
+
+				case higherPriority(commonState, arrivedCommonState): // && takePriortisedCommonState(commonState, arrivedCommonState) priority of higher  {
+					arrivedCommonState.Ack()
+					commonState = arrivedCommonState
+
+				case Fully_acked(arrivedCommonState.Ackmap):
+					state = SendingSelf
+					fmt.Println("BOOOOOOOB")
+					switch StashType {
+
+					case AssingmetChange:
+						arrivedCommonState.Update_Assingments(AssignmentStash)
+						fmt.Println("whaaaaaaaatss")
+
+					case StateChange:
+						arrivedCommonState.toHRAElevState(StateStash)
+						fmt.Println("hommmmmmmmmse")
+					}
+
+					fmt.Println("TTTTTTTTTTTT")
+					commonState = arrivedCommonState
+					fmt.Println("AAAAAAAAAAAAAA")
+					messageToAssinger <- commonState
+					fmt.Println("BBBBBBBBBBBBBB")
+					commonState.NullAckmap()
+					commonState.Ack()
+					PrintCommonState(commonState)
+				default:
+					arrivedCommonState.Ack()
+					fmt.Println("suck a big ooooooone")
+					commonState = arrivedCommonState
+
+				}
+			case peers := <-peerUpdateC:
+
+				commonState.makeElevUnav(peers)
+				fmt.Println("    ")
+				fmt.Println("peers number 4 fucked")
+				fmt.Println("    ")
+				if Fully_acked(commonState.Ackmap) {
+					state = SendingSelf
+					messageToAssinger <- commonState
+				}
+
+			default:
+			}
+		case Isolated:
+			fmt.Println("I should not be here???")
+			select {
+			//case <- peerUpdateC:
+			//	state = Idle
+
+			case <-receiveFromNetworkC:
+				state = Idle
+
+			case assingmentUpdate := <-newAssingemntC: //bufferes lage stor kanal 64 feks lage tømmefunksjon
+				commonState.makeElevUnavExceptOrigin()
+				commonState.UpdateCabAssignments(assingmentUpdate)
+				messageToAssinger <- commonState
+
+			case newElevState := <-newElevStateC: //bufferes lage stor kanal 64 feks
+				commonState.toHRAElevState(newElevState)
+				commonState.makeElevUnavExceptOrigin()
+				messageToAssinger <- commonState
+
+			default:
+			}
+
 			//case UnableToMove: // TODO: make channel for unav elevator
 			//	select{
 			//		case AbleToMove := <-newElevStateC:
-			//			state = Idle	
+			//			state = Idle
 			//	default:
 			//		commonState.makeOriginElevUnav()
-	//
-			}
-		
-			select {
-			case <-heartbeatTimer.C:
-				giverToNetwork <- commonState
-			default:
-				}
+			//
+		}
 
+		select {
+		case <-heartbeatTimer.C:
+			fmt.Println("Sending heartbeat mødderføkker")
+			giverToNetwork <- commonState
+		default:
+		}
 
-		} // to do: add case when for elevator lost network connection			
-	}
-
-	
+	} // to do: add case when for elevator lost network connection
+}

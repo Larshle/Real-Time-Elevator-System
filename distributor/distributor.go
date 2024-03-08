@@ -130,11 +130,10 @@ func (cs *HRAInput) makeElevUnav(p peers.PeerUpdate) {
 
 func (cs *HRAInput) Ack() {
 	cs.Ackmap[config.Elevator_id] = Acked
-	fmt.Println("Acked")
 }
 
 func higherPriority(oldCS, newCS HRAInput) bool {
-	return oldCS.Seq > newCS.Seq || oldCS.Origin > newCS.Origin && oldCS.Seq == newCS.Seq
+	return oldCS.Seq < newCS.Seq || oldCS.Origin < newCS.Origin && oldCS.Seq == newCS.Seq
 }
 
 func takePriortisedCommonState(oldCS, newCS HRAInput) HRAInput {
