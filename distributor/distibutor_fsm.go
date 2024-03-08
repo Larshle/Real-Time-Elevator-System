@@ -6,12 +6,9 @@ import (
 	"root/elevator"
 	"root/network/network_modules/peers"
 	"time"
-	"fmt"
-
-	
+	// "fmt"
 )
 type StatshType int 
-
 const (
 	AssingmetChange StatshType = iota
 	StateChange
@@ -19,16 +16,13 @@ const (
 
 
 type State int 
-
-
 const (
 	Idle State = iota
 	Acking 
 	SendingSelf
 	AckingOtherWhileTryingToSendSelf
 	Isolated
-	UnableToMove
-	
+	UnableToMove	
 )
 
 func Distributor(
@@ -38,31 +32,19 @@ func Distributor(
 	receiveFromNetworkC <-chan HRAInput,
 	messageToAssinger chan<- HRAInput) {
 
-	elevioOrdersC := make(chan elevio.ButtonEvent)
-	newAssingemntC := make(chan localAssignments)
-	peerUpdateC := make(chan peers.PeerUpdate)
+	elevioOrdersC := make(chan elevio.ButtonEvent, 64)
+	newAssingemntC := make(chan localAssignments, 64)
+	peerUpdateC := make(chan peers.PeerUpdate, 64)
 
 	var commonState HRAInput
 	var StateStash elevator.State
 	var AssignmentStash localAssignments
 	var state State = Idle
 	var StashType StatshType
-	timeCounter := time.NewTimer(time.Hour)
-	selfLostNetworkDuratio := 1 * time.Second
-	
-
-
-	// commonState = HRAInput{
-	// 	Origin:       config.Elevator_id,
-	// 	ID:           0,
-	// 	Ackmap:       make(map[string]Ack_status),
-	// 	HallRequests: make([][2]bool, 4), // Assuming you want 4 pairs of bools
-	// 	States:       make(map[string]HRAElevState),
-	// }
 
 	commonState = HRAInput{
 		Origin:       config.Elevator_id,
-		seq:           0,
+		Seq:           0,
 		Ackmap:       make(map[string]Ack_status),
 		HallRequests: [][2]bool{{false, false}, {false, false}, {false, false}, {false, false}},
 		States: map[string]HRAElevState{
@@ -76,20 +58,13 @@ func Distributor(
 		},
 	}
 	
-	// commonState = HRAInput{
-	// 	Origin:       config.Elevator_id,
-	// 	ID:           1,
-	// 	Ackmap:       make(map[string]Ack_status),
-	// 	HallRequests: make([][2]bool, 4), // Assuming you want 4 pairs of bools
-	// 	States: map[string]HRAElevState{
-	// 		config.Elevator_id: {}, // Replace "initialKey" with your key
-	// 	},
-	// }
 
 	go elevio.PollButtons(elevioOrdersC)
 	go Update_Assingments(elevioOrdersC, deliveredOrderC, newAssingemntC)
 
+	timeCounter := time.NewTimer(time.Hour)
 	heartbeatTimer := time.NewTicker(15 * time.Millisecond)
+	selfLostNetworkDuratio := 1 * time.Second
 
 	for {
 
@@ -117,25 +92,19 @@ func Distributor(
 
 					case arrivedCommonState := <-receiveFromNetworkC://bufferes lage stor kanal 64 feks
 						timeCounter = time.NewTimer(selfLostNetworkDuratio) 
-						arrivedCommonState.ensureElevatorState(arrivedCommonState.States[config.Elevator_id])
 
 						switch {
 							case higherPriority(commonState, arrivedCommonState):
-								fmt.Println("something fishy")
-								//if arrivedCommonState.Origin == config.Elevator_id {
-								//state = SendingSelf
 								commonState = arrivedCommonState
-							//}
 							if arrivedCommonState.Origin != config.Elevator_id {
-								fmt.Println("arrived new commonstate")
 								arrivedCommonState.Ack()
 								commonState = arrivedCommonState
 								state = Acking
 							}
 							default:
-								break //doing jack
+								break
 						}
-					case peers := <- peerUpdateC: //bufferes lage stor kanal 64 feks
+					case peers := <- peerUpdateC:
 						commonState.makeElevUnav(peers)
 					default:
 				}
@@ -144,7 +113,7 @@ func Distributor(
 				case arrivedCommonState := <-receiveFromNetworkC:
 					timeCounter = time.NewTimer(selfLostNetworkDuratio) 
 					switch {
-						case arrivedCommonState.Origin != config.Elevator_id && higherPriority(commonState, arrivedCommonState):
+						case higherPriority(commonState, arrivedCommonState):
 							arrivedCommonState.Ack()
 							commonState = arrivedCommonState
 							state = AckingOtherWhileTryingToSendSelf
@@ -154,10 +123,10 @@ func Distributor(
 							commonState = arrivedCommonState
 							messageToAssinger <- commonState
 						default:
-							break //doing jack
+							break
 					}
 
-				case peers := <- peerUpdateC: //bufferes lage stor kanal 64 feks
+				case peers := <- peerUpdateC:
 					commonState.makeElevUnav(peers)
 					if Fully_acked(commonState.Ackmap){
 						state = Idle
@@ -178,12 +147,12 @@ func Distributor(
 						commonState = arrivedCommonState
 						messageToAssinger <- commonState
 
-					case higherPriority(commonState, arrivedCommonState):// && takePriortisedCommonState(commonState, arrivedCommonState) priority of higher  {
+					case higherPriority(commonState, arrivedCommonState):
 						arrivedCommonState.Ack()
 						commonState = arrivedCommonState
 				
 					case !higherPriority(commonState, arrivedCommonState):
-						break //doing jack
+						break
 					}
 
 				case peers := <- peerUpdateC:
@@ -202,9 +171,9 @@ func Distributor(
 					timeCounter = time.NewTimer(selfLostNetworkDuratio)
 					switch {
 					case !higherPriority(commonState, arrivedCommonState):
-						break //doing jack
+						break
 
-					case higherPriority(commonState, arrivedCommonState):// && takePriortisedCommonState(commonState, arrivedCommonState) priority of higher  {
+					case higherPriority(commonState, arrivedCommonState):
 						arrivedCommonState.Ack()
 						commonState = arrivedCommonState
 				
@@ -235,19 +204,17 @@ func Distributor(
 			}
 			case Isolated:
 				select{
-				//case <- peerUpdateC:
-				//	state = Idle
 
 				case <-receiveFromNetworkC:
 					state = Idle
 				
-				case assingmentUpdate := <-newAssingemntC: //bufferes lage stor kanal 64 feks lage tømmefunksjon 
+				case assingmentUpdate := <-newAssingemntC:
 					commonState.makeElevUnavExceptOrigin()
 					commonState.UpdateCabAssignments(assingmentUpdate)
 					messageToAssinger <- commonState
 
 
-				case newElevState := <-newElevStateC: //bufferes lage stor kanal 64 feks
+				case newElevState := <-newElevStateC:
 					commonState.toHRAElevState(newElevState)
 					commonState.makeElevUnavExceptOrigin()
 					messageToAssinger <- commonState
@@ -256,13 +223,6 @@ func Distributor(
 				default:
 				}
 				
-			//case UnableToMove: // TODO: make channel for unav elevator
-			//	select{
-			//		case AbleToMove := <-newElevStateC:
-			//			state = Idle	
-			//	default:
-			//		commonState.makeOriginElevUnav()
-	//
 			}
 		
 			select {
@@ -272,7 +232,7 @@ func Distributor(
 				}
 
 
-		} // to do: add case when for elevator lost network connection			
+		}	
 	}
 
 	

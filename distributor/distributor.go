@@ -28,7 +28,7 @@ type HRAElevState struct {
 }
 
 type HRAInput struct {
-	seq           int
+	Seq           int
 	Origin       string
 	Ackmap       map[string]Ack_status
 	HallRequests [][2]bool               `json:"hallRequests"`
@@ -40,7 +40,7 @@ func (input *HRAInput)ensureElevatorState( state HRAElevState) {
     if !exists {
         input.States[config.Elevator_id] = state
     }
-	input.seq++
+	input.Seq++
 }
 
 func (es *HRAInput) toHRAElevState(localElevState elevator.State) {
@@ -50,13 +50,13 @@ func (es *HRAInput) toHRAElevState(localElevState elevator.State) {
 	HRA.Direction = localElevState.Direction.ToString()
 	HRA.CabRequests = es.States[config.Elevator_id].CabRequests
 	es.States[config.Elevator_id] = HRA
-	es.seq++	
+	es.Seq++	
 	es.Origin = config.Elevator_id
 }
 
-func PrintCommonState(cs HRAInput) {
+func (cs *HRAInput)Print() {
 	fmt.Println("\nOrigin:", cs.Origin)
-	fmt.Println("seq:", cs.seq)
+	fmt.Println("Seq:", cs.Seq)
 	fmt.Println("Ackmap:", cs.Ackmap)
 	fmt.Println("Hall Requests:", cs.HallRequests)
 
@@ -75,11 +75,9 @@ func (cs *HRAInput) Update_Assingments(local_elevator_assignments localAssignmen
 		for b := 0; b < 2; b++ {
 			if local_elevator_assignments.localHallAssignments[f][b] == add {
 				cs.HallRequests[f][b] = true
-				fmt.Println("Hall request added")
 			}
 			if local_elevator_assignments.localHallAssignments[f][b] == remove {
 				cs.HallRequests[f][b] = false
-				fmt.Println("Hall request removed")
 			}
 		}
 	}
@@ -92,11 +90,8 @@ func (cs *HRAInput) Update_Assingments(local_elevator_assignments localAssignmen
 			cs.States[config.Elevator_id].CabRequests[f] = false
 		}
 	}
-	cs.seq++
+	cs.Seq++
 	cs.Origin = config.Elevator_id
-	fmt.Println("Updated common state:")
-	PrintCommonState(*cs)
-
 }
 
 func (cs *HRAElevState) Update_local_state(local_elevator_state elevator.State) {
@@ -132,11 +127,11 @@ func (cs *HRAInput) Ack() {
 }
 
 func higherPriority(oldCS, newCS HRAInput) bool {
-	return oldCS.seq > newCS.seq || oldCS.Origin > newCS.Origin && oldCS.seq == newCS.seq
+	return oldCS.Seq < newCS.Seq || (oldCS.Origin < newCS.Origin && oldCS.Seq == newCS.Seq)
 }
 
 func takePriortisedCommonState(oldCS, newCS HRAInput) HRAInput {
-	if oldCS.seq < newCS.seq {
+	if oldCS.Seq < newCS.Seq {
 		return newCS
 	}
 	id1 := oldCS.Origin
@@ -179,8 +174,6 @@ func (cs *HRAInput) UpdateCabAssignments(local_elevator_assignments localAssignm
 			cs.States[config.Elevator_id].CabRequests[f] = false
 		}
 	}
-	fmt.Println("Updated common state:")
-	PrintCommonState(*cs)
 }
 func (cs *HRAInput) makeOriginElevUnav(){
 	cs.Ackmap[config.Elevator_id] = NotAvailable
