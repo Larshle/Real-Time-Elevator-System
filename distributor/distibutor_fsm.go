@@ -1,23 +1,32 @@
 package distributor
 
 import (
-	"fmt"
 	"root/config"
 	"root/driver/elevio"
 	"root/elevator"
 	"root/network/network_modules/peers"
 	"time"
 
-	"golang.org/x/text/cases"
+	
+)
+type StatshType int 
+
+const (
+	AssingmetChange StatshType = iota
+	StateChange
 )
 
+
 type State int 
+
 
 const (
 	Idle State = iota
 	Acking 
 	SendingSelf
 	AckingOtherWhileTryingToSend
+	Isolated
+	
 )
 
 func Distributor(
@@ -35,6 +44,8 @@ func Distributor(
 	var lastesSelfState elevator.State
 	var stash localAssignments
 	var state State = Idle
+	
+	
 
 
 	// commonState = HRAInput{
@@ -47,7 +58,7 @@ func Distributor(
 
 	commonState = HRAInput{
 		Origin:       config.Elevator_id,
-		ID:           0,
+		seq:           0,
 		Ackmap:       make(map[string]Ack_status),
 		HallRequests: [][2]bool{{false, false}, {false, false}, {false, false}, {false, false}},
 		States: map[string]HRAElevState{
@@ -102,12 +113,17 @@ func Distributor(
 							commonState = arrivedCommonState
 							state = Acking
 						}
+					case peers := <- peerUpdateC: //bufferes lage stor kanal 64 feks
+						commonState.makeElevUnav(peers)
 					default:
 				}
 			case SendingSelf:
 				select {
 				case arrivedCommonState := <-receiveFromNetworkC:
-					if arrivedCommonState.Origin != config.Elevator_id && takePriortisedCommonState(commonState, arrivedCommonState).ID != config.Elevator_id{
+					if arrivedCommonState.Origin != config.Elevator_id && arrivedCommonState.seq >= commonState.seq && 
+					
+					
+					arrivedCommonState.Origin {
 						arrivedCommonState.Ack()
 						commonState = arrivedCommonState
 						state = AckingOtherWhileTryingToSend
@@ -126,7 +142,7 @@ func Distributor(
 			case Acking:
 				select {
 				case arrivedCommonState := <-receiveFromNetworkC:
-					if arrivedCommonState.ID >= commonState.ID{ // && takePriortisedCommonState(commonState, arrivedCommonState) priority of higher  {
+					if arrivedCommonState.seq >= commonState.seq{ // && takePriortisedCommonState(commonState, arrivedCommonState) priority of higher  {
 						arrivedCommonState.Ack()
 						commonState = arrivedCommonState
 					}
@@ -147,10 +163,10 @@ func Distributor(
 			case AckingOtherWhileTryingToSend:
 				select {
 				case arrivedCommonState := <-receiveFromNetworkC:
-					if arrivedCommonState.ID < commonState.ID{
+					if arrivedCommonState.seq < commonState.seq{
 						break
 					} 
-					if arrivedCommonState.ID >= commonState.ID{ // && takePriortisedCommonState(commonState, arrivedCommonState) priority of higher  {
+					if arrivedCommonState.seq >= commonState.seq{ // && takePriortisedCommonState(commonState, arrivedCommonState) priority of higher  {
 						arrivedCommonState.Ack()
 						commonState = arrivedCommonState
 					}
@@ -168,6 +184,29 @@ func Distributor(
 					}
 				default:
 			}
+			case Isolated:
+				select{
+				case peers := <- peerUpdateC:
+					commonState.makeElevUnav(peers)
+					state = Idle
+				case arrivedCommonState := <-receiveFromNetworkC:
+					commonState = arrivedCommonState
+					arrivedCommonState.Ack()
+					state = Acking
+
+				case assingmentUpdate := <-newAssingemntC: //bufferes lage stor kanal 64 feks lage tømmefunksjon 
+						stash = assingmentUpdate
+						commonState.Update_Assingments(assingmentUpdate)
+						state = SendingSelf
+
+				case newElevState := <-newElevStateC: //bufferes lage stor kanal 64 feks
+					lastesSelfState = newElevState
+					commonState.toHRAElevState(newElevState)
+					state = SendingSelf
+
+				default:
+				}
+
 
 					
 
@@ -178,7 +217,8 @@ func Distributor(
 			default:
 				}
 				
-		}				// }
+		}
+						// }
 
 	} // to do: add case when for elevator lost network connection
 			

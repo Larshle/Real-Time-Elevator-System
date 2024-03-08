@@ -2,7 +2,7 @@ package distributor
 
 import (
 	"root/driver/elevio"
-	"root/config"
+	
 )
 
 type Ass int

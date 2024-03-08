@@ -28,7 +28,7 @@ type HRAElevState struct {
 }
 
 type HRAInput struct {
-	ID           int
+	seq           int
 	Origin       string
 	Ackmap       map[string]Ack_status
 	HallRequests [][2]bool               `json:"hallRequests"`
@@ -40,7 +40,7 @@ func (input *HRAInput)ensureElevatorState( state HRAElevState) {
     if !exists {
         input.States[config.Elevator_id] = state
     }
-	input.ID++
+	input.seq++
 }
 
 func (es *HRAInput) toHRAElevState(localElevState elevator.State) {
@@ -54,7 +54,7 @@ func (es *HRAInput) toHRAElevState(localElevState elevator.State) {
 
 func PrintCommonState(cs HRAInput) {
 	fmt.Println("\nOrigin:", cs.Origin)
-	fmt.Println("ID:", cs.ID)
+	fmt.Println("seq:", cs.seq)
 	fmt.Println("Ackmap:", cs.Ackmap)
 	fmt.Println("Hall Requests:", cs.HallRequests)
 
@@ -90,7 +90,7 @@ func (cs *HRAInput) Update_Assingments(local_elevator_assignments localAssignmen
 			cs.States[config.Elevator_id].CabRequests[f] = false
 		}
 	}
-	cs.ID++
+	cs.seq++
 	cs.Origin = config.Elevator_id
 	fmt.Println("Updated common state:")
 	PrintCommonState(*cs)
@@ -131,7 +131,7 @@ func (cs *HRAInput) Ack() {
 }
 
 func takePriortisedCommonState(oldCS, newCS HRAInput) HRAInput {
-	if oldCS.ID < newCS.ID {
+	if oldCS.seq < newCS.seq {
 		return newCS
 	}
 	id1 := oldCS.Origin
@@ -156,36 +156,4 @@ func takePriortisedCommonState(oldCS, newCS HRAInput) HRAInput {
 		return oldCS
 	}
 	return newCS
-}
-
-func (oldCS *HRAInput) MergeCommonState(es elevator.State, lc localAssignments) {
-	oldCS.States[config.Elevator_id] = toHRAElevState(&es)
-	for f := 0; f < config.N_floors; f++ {
-		if lc.localCabAssignments[f] == add {
-			localCS.States[config.Elevator_id].CabRequests[f] = true
-		}
-		if lc.localCabAssignments[f] == remove {
-			localCS.States[config.Elevator_id].CabRequests[f] = false
-		}
-	}
-
-	for f := 0; f < config.N_floors; f++ {
-		for b := 0; b < 2; b++ {
-			if lc.localHallAssignments[f][b] == add {
-				globalCS.HallRequests[f][b] = true
-			}
-			if lc.localHallAssignments[f][b] == remove {
-				globalCS.HallRequests[f][b] = false
-			}
-		}
-	}
-
-	localCS.States = globalCS.States
-	localCS.HallRequests = globalCS.HallRequests
-
-	fmt.Println("3")
-	localCS.Ack()
-	fmt.Println("4")
-	localCS.Origin = config.Elevator_id
-	localCS.ID = globalCS.ID + 1
 }
