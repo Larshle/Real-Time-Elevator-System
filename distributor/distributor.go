@@ -50,6 +50,8 @@ func (es *HRAInput) toHRAElevState(localElevState elevator.State) {
 	HRA.Direction = localElevState.Direction.ToString()
 	HRA.CabRequests = es.States[config.Elevator_id].CabRequests
 	es.States[config.Elevator_id] = HRA
+	es.seq++	
+	es.Origin = config.Elevator_id
 }
 
 func PrintCommonState(cs HRAInput) {
@@ -122,12 +124,15 @@ func commonStatesNotEqual(oldCS, newCS HRAInput) bool {
 func (cs *HRAInput) makeElevUnav(p peers.PeerUpdate) {
 	for _, id := range p.Lost {
 		cs.Ackmap[id] = NotAvailable
-		delete(cs.States, id) //Flytte til assingner
 	}
 }
 
 func (cs *HRAInput) Ack() {
 	cs.Ackmap[config.Elevator_id] = Acked
+}
+
+func higherPriority(oldCS, newCS HRAInput) bool {
+	return oldCS.seq > newCS.seq || oldCS.Origin > newCS.Origin && oldCS.seq == newCS.seq
 }
 
 func takePriortisedCommonState(oldCS, newCS HRAInput) HRAInput {
@@ -156,4 +161,27 @@ func takePriortisedCommonState(oldCS, newCS HRAInput) HRAInput {
 		return oldCS
 	}
 	return newCS
+}
+func (cs *HRAInput) makeElevUnavExceptOrigin() {
+	for id := range cs.Ackmap {
+		if id != config.Elevator_id {
+			cs.Ackmap[id] = NotAvailable
+		}
+	}
+}
+
+func (cs *HRAInput) UpdateCabAssignments(local_elevator_assignments localAssignments) {
+	for f := 0; f < config.N_floors; f++ {
+		if local_elevator_assignments.localCabAssignments[f] == add {
+			cs.States[config.Elevator_id].CabRequests[f] = true
+		}
+		if local_elevator_assignments.localCabAssignments[f] == remove {
+			cs.States[config.Elevator_id].CabRequests[f] = false
+		}
+	}
+	fmt.Println("Updated common state:")
+	PrintCommonState(*cs)
+}
+func (cs *HRAInput) makeOriginElevUnav(){
+	cs.Ackmap[config.Elevator_id] = NotAvailable
 }

@@ -47,6 +47,15 @@ func toLightsAssingment(cs distributor.HRAInput) elevator.Assingments {
 	return lights
 }
 
+func removeUnavailableElevators(cs distributor.HRAInput) (distributor.HRAInput) {
+	for k := range cs.States {
+		if k != config.Elevator_id && cs.Ackmap[k] == distributor.NotAvailable {
+			delete(cs.States, k)
+		}
+	}
+	return cs
+}
+
 func Assigner(
 	eleveatorAssingmentC chan<- elevator.Assingments,
 	lightsAssingmentC chan<- elevator.Assingments,
@@ -57,6 +66,7 @@ func Assigner(
 		case cs := <-messageToAssinger:
 			fmt.Println("Assigner: Received commonstate")
 			distributor.PrintCommonState(cs)
+			cs = removeUnavailableElevators(cs)
 			localAssingment := toLocalAssingment(CalculateHRA(cs))
 			lightsAssingment := toLightsAssingment(cs)
 			lightsAssingmentC <- lightsAssingment
