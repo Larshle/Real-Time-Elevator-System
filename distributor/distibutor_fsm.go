@@ -127,7 +127,7 @@ func Distributor(
 				fmt.Println("New order")
 				NewOrderStash = newOrder
 				StashType = AddCall
-				PrintCommonState(commonState)
+				//PrintCommonState(commonState)
 				commonState.AddCall(newOrder)
 				commonState.NullAckmap()
 				commonState.Ack()
@@ -145,14 +145,15 @@ func Distributor(
 				state = SendingSelf
 				
 			case newElevState := <-newElevStateC: //bufferes lage stor kanal 64 feks
-				//fmt.Println("newElevState")
+				fmt.Println("newElevState")
 				StateStash = newElevState
 				StashType = StateChange
 				commonState.toHRAElevState(newElevState)
-				//PrintCommonState(commonState)
 				commonState.NullAckmap()
 				commonState.Ack()
 				state = SendingSelf
+				PrintCommonState(commonState)
+
 
 			case arrivedCommonState := <-receiveFromNetworkC: //bufferes lage stor kanal 64 feks
 				timeCounter = time.NewTimer(selfLostNetworkDuratio)
@@ -232,7 +233,7 @@ func Distributor(
 		case Acking:
 			select {
 			case arrivedCommonState := <-receiveFromNetworkC:
-				fmt.Println("Im in acking mode")
+				//fmt.Println("Im in acking mode")
 				//PrintCommonState(arrivedCommonState)
 
 				timeCounter = time.NewTimer(selfLostNetworkDuratio)
@@ -248,7 +249,8 @@ func Distributor(
 					commonState = arrivedCommonState
 					
 				default: 
-					commonState.Ack()
+					arrivedCommonState.Ack()
+					commonState = arrivedCommonState
 				//
 				}
 
@@ -270,7 +272,7 @@ func Distributor(
 		case AckingOtherWhileTryingToSendSelf:
 			select {
 			case arrivedCommonState := <-receiveFromNetworkC:
-				fmt.Println("AckingOtherWhileTryingToSendSelf")
+				//fmt.Println("AckingOtherWhileTryingToSendSelf")
 				timeCounter = time.NewTimer(selfLostNetworkDuratio)
 				switch {
 				//case !higherPriority(commonState, arrivedCommonState):
@@ -279,6 +281,8 @@ func Distributor(
 				case higherPriority(commonState, arrivedCommonState): // && takePriortisedCommonState(commonState, arrivedCommonState) priority of higher  {
 					arrivedCommonState.Ack()
 					commonState = arrivedCommonState
+					fmt.Println("Esssskeetit")
+					PrintCommonState(commonState)
 
 				case Fully_acked(arrivedCommonState.Ackmap):
 					state = SendingSelf
