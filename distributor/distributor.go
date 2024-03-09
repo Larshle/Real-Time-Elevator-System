@@ -3,7 +3,7 @@ package distributor
 import (
 	
 	"fmt"
-	
+	"root/driver/elevio"
 	"reflect"
 	"root/config"
 	"root/elevator"
@@ -40,6 +40,25 @@ func (input *HRAInput)ensureElevatorState( state HRAElevState) {
         input.States[config.Elevator_id] = state
     }
 	input.Seq++
+}
+
+func (es *HRAInput) removeCall(deliveredAssingement elevio.ButtonEvent) {
+	if deliveredAssingement.Button == elevio.BT_Cab {
+		es.States[config.Elevator_id].CabRequests[deliveredAssingement.Floor] = false
+	} else {
+		es.HallRequests[deliveredAssingement.Floor][deliveredAssingement.Button] = false
+	}
+	es.Seq++
+	es.Origin = config.Elevator_id
+}
+func (es *HRAInput) AddCall(newCall elevio.ButtonEvent) {
+	if newCall.Button == elevio.BT_Cab {
+		es.States[config.Elevator_id].CabRequests[newCall.Floor] = true
+	} else {
+		es.HallRequests[newCall.Floor][newCall.Button] = true
+	}
+	es.Seq++
+	es.Origin = config.Elevator_id
 }
 
 func (es *HRAInput) toHRAElevState(localElevState elevator.State) {

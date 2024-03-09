@@ -12,7 +12,8 @@ import (
 type StatshType int
 
 const (
-	AssingmetChange StatshType = iota
+	RemoveCall StatshType = iota
+	AddCall
 	StateChange
 )
 
@@ -40,7 +41,8 @@ func Distributor(
 
 	var commonState HRAInput
 	var StateStash elevator.State
-	var AssignmentStash localAssignments
+	var NewOrderStash elevio.ButtonEvent
+	var RemoveOrderStash elevio.ButtonEvent
 	var state State = Idle
 	var StashType StatshType
 	timeCounter := time.NewTimer(time.Hour)
@@ -89,9 +91,9 @@ func Distributor(
 	// }
 
 	go elevio.PollButtons(elevioOrdersC)
-	go Update_Assingments(elevioOrdersC, deliveredOrderC, newAssingemntC)
+	//go Update_Assingments(elevioOrdersC, deliveredOrderC, newAssingemntC)
 
-	heartbeatTimer := time.NewTicker(500 * time.Millisecond)
+	heartbeatTimer := time.NewTicker(15 * time.Millisecond)
 
 	for {
 
@@ -104,15 +106,30 @@ func Distributor(
 		switch state {
 		case Idle:
 			select {
-			case assingmentUpdate := <-newAssingemntC: //bufferes lage stor kanal 64 feks lage tømmefunksjon
-				AssignmentStash = assingmentUpdate
-				StashType = AssingmetChange
-				commonState.Update_Assingments(assingmentUpdate)
+			//case assingmentUpdate := <-newAssingemntC: //bufferes lage stor kanal 64 feks lage tømmefunksjon
+			//	AssignmentStash = assingmentUpdate
+			//	StashType = AssingmetChange
+			//	commonState.Update_Assingments(assingmentUpdate)
+			//	commonState.NullAckmap()
+			//	commonState.Ack()
+			//	//PrintCommonState(commonState)
+			//	state = SendingSelf
+			case newOrder := <-elevioOrdersC:
+				NewOrderStash = newOrder
+				StashType = AddCall
+				commonState.AddCall(newOrder)
 				commonState.NullAckmap()
 				commonState.Ack()
-				//PrintCommonState(commonState)
 				state = SendingSelf
 
+			case removeOrder := <-deliveredOrderC:
+				RemoveOrderStash = removeOrder
+				StashType = RemoveCall
+				commonState.removeCall(removeOrder)
+				commonState.NullAckmap()
+				commonState.Ack()
+				state = SendingSelf
+				
 			case newElevState := <-newElevStateC: //bufferes lage stor kanal 64 feks
 				//fmt.Println("newElevState")
 				StateStash = newElevState
@@ -241,9 +258,11 @@ func Distributor(
 					//fmt.Println("BOOOOOOOB")
 					switch StashType {
 
-					case AssingmetChange:
-						arrivedCommonState.Update_Assingments(AssignmentStash)
-						//fmt.Println("whaaaaaaaatss")
+					case AddCall:
+						arrivedCommonState.AddCall(NewOrderStash)
+
+					case RemoveCall:
+						arrivedCommonState.removeCall(RemoveOrderStash)
 
 					case StateChange:
 						arrivedCommonState.toHRAElevState(StateStash)
