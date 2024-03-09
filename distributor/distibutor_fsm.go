@@ -1,16 +1,17 @@
 package distributor
 
 import (
-	"root/config"
+	// "root/config"
 	"root/driver/elevio"
 	"root/elevator"
 	"root/network/network_modules/peers"
 	"time"
-	// "fmt"
+	"fmt"
 )
 type StatshType int 
 const (
-	AssingmetChange StatshType = iota
+	RemoveCall StatshType = iota
+	AddCall
 	StateChange
 )
 
@@ -18,11 +19,11 @@ const (
 type State int 
 const (
 	Idle State = iota
-	Acking 
+	Acking
 	SendingSelf
 	AckingOtherWhileTryingToSendSelf
 	Isolated
-	UnableToMove	
+	UnableToMove
 )
 
 func Distributor(
@@ -36,31 +37,38 @@ func Distributor(
 	newAssingemntC := make(chan localAssignments, 64)
 	peerUpdateC := make(chan peers.PeerUpdate, 64)
 
-	var commonState HRAInput
+	var cs HRAInput
 	var StateStash elevator.State
-	var AssignmentStash localAssignments
+	//var AssignmentStash localAssignments
 	var state State = Idle
 	var StashType StatshType
 
-	commonState = HRAInput{
-		Origin:       config.Elevator_id,
-		Seq:           0,
-		Ackmap:       make(map[string]Ack_status),
+	var NewOrderStash elevio.ButtonEvent
+	var RemoveOrderStash elevio.ButtonEvent
+
+	cs = HRAInput{
+		Origin: "peer-10.22.229.227-22222",
+		Seq:    0,
+		Ackmap: map[string]Ack_status{},
 		HallRequests: [][2]bool{{false, false}, {false, false}, {false, false}, {false, false}},
 		States: map[string]HRAElevState{
-			config.Elevator_id: {
+			"peer-10.22.229.227-22222": {
 				Behaviour:   "idle",
 				Floor:       0,
 				Direction:   "up",
 				CabRequests: []bool{false, false, false, true},
 			},
-
+			"peer-10.22.229.227-11111": {
+				Behaviour:   "idle",
+				Floor:       0,
+				Direction:   "up",
+				CabRequests: []bool{false, false, false, true},
+			},
 		},
 	}
-	
 
 	go elevio.PollButtons(elevioOrdersC)
-	go Update_Assingments(elevioOrdersC, deliveredOrderC, newAssingemntC)
+	//go Update_Assingments(elevioOrdersC, deliveredOrderC, newAssingemntC)
 
 	timeCounter := time.NewTimer(time.Hour)
 	heartbeatTimer := time.NewTicker(15 * time.Millisecond)
@@ -75,37 +83,53 @@ func Distributor(
 		}
 
 		switch state {
-			case Idle: 
+			case Idle:
 				select {
-					case assingmentUpdate := <-newAssingemntC: //bufferes lage stor kanal 64 feks lage tømmefunksjon 
-						AssignmentStash = assingmentUpdate
-						StashType = AssingmetChange
-						commonState.Update_Assingments(assingmentUpdate)
+
+					case newOrder := <-elevioOrdersC:
+						StashType = AddCall
+						NewOrderStash = newOrder
+						cs.AddCall(newOrder)
+						cs.Ack()
+						state = SendingSelf
+		
+					case removeOrder := <-deliveredOrderC:
+						StashType = RemoveCall
+						RemoveOrderStash = removeOrder
+						cs.removeCall(removeOrder)
+						cs.Ack()
 						state = SendingSelf
 
-					case newElevState := <-newElevStateC: //bufferes lage stor kanal 64 feks
-						StateStash = newElevState
+					// case assingmentUpdate := <-newAssingemntC:
+					// 	StashType = AssingmetChange
+					// 	AssignmentStash = assingmentUpdate
+					// 	cs.Update_Assingments(assingmentUpdate)
+					// 	cs.Ack()
+					// 	state = SendingSelf
+					// 	fmt.Println("Idle: assingmentUpdate")
+
+					case newElevState := <-newElevStateC:
 						StashType = StateChange
-						commonState.toHRAElevState(newElevState)
+						StateStash = newElevState
+						cs.toHRAElevState(newElevState)
+						cs.Ack()
 						state = SendingSelf
-						
+						fmt.Println("Idle: newElevState")
 
-					case arrivedCommonState := <-receiveFromNetworkC://bufferes lage stor kanal 64 feks
+					case arrivedCommonState := <-receiveFromNetworkC:
 						timeCounter = time.NewTimer(selfLostNetworkDuratio) 
 
 						switch {
-							case higherPriority(commonState, arrivedCommonState):
-								commonState = arrivedCommonState
-							if arrivedCommonState.Origin != config.Elevator_id {
+							case higherPriority(cs, arrivedCommonState):
+								cs = arrivedCommonState
 								arrivedCommonState.Ack()
-								commonState = arrivedCommonState
+								cs = arrivedCommonState
 								state = Acking
-							}
 							default:
 								break
 						}
 					case peers := <- peerUpdateC:
-						commonState.makeElevUnav(peers)
+						cs.makeElevUnav(peers)
 					default:
 				}
 			case SendingSelf:
@@ -113,26 +137,28 @@ func Distributor(
 				case arrivedCommonState := <-receiveFromNetworkC:
 					timeCounter = time.NewTimer(selfLostNetworkDuratio) 
 					switch {
-						case higherPriority(commonState, arrivedCommonState):
-							arrivedCommonState.Ack()
-							commonState = arrivedCommonState
+						case higherPriority(cs, arrivedCommonState):
+							cs = arrivedCommonState
+							cs.Ack()
 							state = AckingOtherWhileTryingToSendSelf
+							fmt.Println("SendingSelf: higherPriority")
 
 						case Fully_acked(arrivedCommonState.Ackmap):
+							cs = arrivedCommonState
+							messageToAssinger <- cs
+							cs.NullAckmap()
 							state = Idle
-							commonState = arrivedCommonState
-							messageToAssinger <- commonState
-						default:
-							break
+							fmt.Println("SendingSelf: Fully_acked")
 					}
-
 				case peers := <- peerUpdateC:
-					commonState.makeElevUnav(peers)
-					if Fully_acked(commonState.Ackmap){
+					cs.makeElevUnav(peers)
+					if Fully_acked(cs.Ackmap){
 						state = Idle
-						messageToAssinger <- commonState
+						messageToAssinger <- cs
+						cs.NullAckmap()
 					}
 				default:
+					// sender cs på heartbeat
 				}
 					
 				
@@ -144,62 +170,71 @@ func Distributor(
 					
 					case Fully_acked(arrivedCommonState.Ackmap):
 						state = Idle
-						commonState = arrivedCommonState
-						messageToAssinger <- commonState
+						cs = arrivedCommonState
+						messageToAssinger <- cs
+						cs.NullAckmap()
 
-					case higherPriority(commonState, arrivedCommonState):
+					case higherPriority(cs, arrivedCommonState):
 						arrivedCommonState.Ack()
-						commonState = arrivedCommonState
+						cs = arrivedCommonState
 				
-					case !higherPriority(commonState, arrivedCommonState):
+					case !higherPriority(cs, arrivedCommonState):
 						break
 					}
 
 				case peers := <- peerUpdateC:
-					commonState.makeElevUnav(peers)
-					if Fully_acked(commonState.Ackmap){
+					cs.makeElevUnav(peers)
+					if Fully_acked(cs.Ackmap){
 						state = Idle
-						messageToAssinger <- commonState
+						messageToAssinger <- cs
+						cs.NullAckmap()
 					}
 					
 				default:
 			}
-				
 			case AckingOtherWhileTryingToSendSelf:
 				select {
 				case arrivedCommonState := <-receiveFromNetworkC:
+					fmt.Println("AckingOtherWhileTryingToSendSelf: receiveFromNetworkC")
 					timeCounter = time.NewTimer(selfLostNetworkDuratio)
 					switch {
-					case !higherPriority(commonState, arrivedCommonState):
+					case !higherPriority(cs, arrivedCommonState):
+						fmt.Println("AckingOtherWhileTryingToSendSelf: !higherPriority")
 						break
 
-					case higherPriority(commonState, arrivedCommonState):
-						arrivedCommonState.Ack()
-						commonState = arrivedCommonState
+					case higherPriority(cs, arrivedCommonState):
+						fmt.Println("AckingOtherWhileTryingToSendSelf: higherPriority")
+						cs = arrivedCommonState
+						cs.Ack()
 				
 					case Fully_acked(arrivedCommonState.Ackmap):
+						fmt.Println("AckingOtherWhileTryingToSendSelf: Fully_acked")
 						state = SendingSelf
 						switch StashType {
 
-							case AssingmetChange:
-								arrivedCommonState.Update_Assingments(AssignmentStash)
+							case AddCall:
+								arrivedCommonState.AddCall(NewOrderStash)
+		
+							case RemoveCall:
+								arrivedCommonState.removeCall(RemoveOrderStash)
 								
 
 							case StateChange:
 								arrivedCommonState.toHRAElevState(StateStash)
+								fmt.Println("AckingOtherWhileTryingToSendSelf: Fully_acked: StateChange")
 								
 						}
-
-						commonState = arrivedCommonState
-						messageToAssinger <- commonState
+						cs = arrivedCommonState
+						messageToAssinger <- cs
+						cs.NullAckmap()
 					}
 				case peers := <- peerUpdateC:
-					commonState.makeElevUnav(peers)
-					if Fully_acked(commonState.Ackmap){
+					cs.makeElevUnav(peers)
+					if Fully_acked(cs.Ackmap){
 						state = SendingSelf
-						messageToAssinger <- commonState
+						messageToAssinger <- cs
+						cs.NullAckmap()
 					}
-				
 				default:
 			}
 			case Isolated:
@@ -209,15 +244,15 @@ func Distributor(
 					state = Idle
 				
 				case assingmentUpdate := <-newAssingemntC:
-					commonState.makeElevUnavExceptOrigin()
-					commonState.UpdateCabAssignments(assingmentUpdate)
-					messageToAssinger <- commonState
+					cs.makeElevUnavExceptOrigin()
+					cs.UpdateCabAssignments(assingmentUpdate)
+					messageToAssinger <- cs
 
 
 				case newElevState := <-newElevStateC:
-					commonState.toHRAElevState(newElevState)
-					commonState.makeElevUnavExceptOrigin()
-					messageToAssinger <- commonState
+					cs.toHRAElevState(newElevState)
+					cs.makeElevUnavExceptOrigin()
+					messageToAssinger <- cs
 
 		
 				default:
@@ -227,7 +262,7 @@ func Distributor(
 		
 			select {
 			case <-heartbeatTimer.C:
-				giverToNetwork <- commonState
+				giverToNetwork <- cs
 			default:
 				}
 

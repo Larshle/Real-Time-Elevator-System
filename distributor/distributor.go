@@ -10,6 +10,7 @@ import (
 	"root/network/network_modules/peers"
 	"strconv"
 	"strings"
+	"root/driver/elevio"
 )
 
 type Ack_status int
@@ -98,7 +99,31 @@ func (cs *HRAElevState) Update_local_state(local_elevator_state elevator.State) 
 	cs.Behaviour = local_elevator_state.Behaviour.ToString()
 	cs.Floor = local_elevator_state.Floor
 	cs.Direction = local_elevator_state.Direction.ToString()
+}
 
+func (es *HRAInput) removeCall(deliveredAssingement elevio.ButtonEvent) {
+	if deliveredAssingement.Button == elevio.BT_Cab {
+		es.States[config.Elevator_id].CabRequests[deliveredAssingement.Floor] = false
+	} else {
+		es.HallRequests[deliveredAssingement.Floor][deliveredAssingement.Button] = false
+	}
+	es.Seq++
+	es.Origin = config.Elevator_id
+}
+func (es *HRAInput) AddCall(newCall elevio.ButtonEvent) {
+	if newCall.Button == elevio.BT_Cab {
+		es.States[config.Elevator_id].CabRequests[newCall.Floor] = true
+	} else {
+		es.HallRequests[newCall.Floor][newCall.Button] = true
+	}
+	es.Seq++
+	es.Origin = config.Elevator_id
+}
+
+func (cs *HRAInput) NullAckmap() {
+	for id := range cs.Ackmap {
+		cs.Ackmap[id] = NotAcked
+	}
 }
 
 func Fully_acked(ackmap map[string]Ack_status) bool {
