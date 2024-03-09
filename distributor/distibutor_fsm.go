@@ -117,6 +117,7 @@ func Distributor(
 				StateStash = newElevState
 				StashType = StateChange
 				commonState.toHRAElevState(newElevState)
+				PrintCommonState(commonState)
 				commonState.NullAckmap()
 				commonState.Ack()
 				state = SendingSelf
@@ -130,14 +131,16 @@ func Distributor(
 					fmt.Println("something fishy")
 					//if arrivedCommonState.Origin == config.Elevator_id {
 					//state = SendingSelf
+					arrivedCommonState.Ack()
 					commonState = arrivedCommonState
+					state = Acking
 					//}
-					if arrivedCommonState.Origin != config.Elevator_id {
-						fmt.Println("arrived new commonstate")
-						arrivedCommonState.Ack()
-						commonState = arrivedCommonState
-						state = Acking
-					}
+					//if arrivedCommonState.Origin != config.Elevator_id {
+					//	fmt.Println("arrived new commonstate")
+					//	arrivedCommonState.Ack()
+					//	commonState = arrivedCommonState
+					//	state = Acking
+					//}
 				default:
 					break //doing jack
 				}
@@ -156,15 +159,15 @@ func Distributor(
 				timeCounter = time.NewTimer(selfLostNetworkDuratio)
 				switch {
 				case arrivedCommonState.Origin != config.Elevator_id && higherPriority(commonState, arrivedCommonState):
-					fmt.Println("I am not priority:(")
+					//fmt.Println("I am not priority:(")
 					arrivedCommonState.Ack()
 					commonState = arrivedCommonState
 					state = AckingOtherWhileTryingToSendSelf
 
 				case Fully_acked(arrivedCommonState.Ackmap):
-					fmt.Println("get in there")
+					//fmt.Println("get in there")
 					state = Idle
-					fmt.Println("Fucking get in there")
+					//fmt.Println("Fucking get in there")
 					commonState = arrivedCommonState
 					messageToAssinger <- commonState
 				default:
@@ -187,7 +190,7 @@ func Distributor(
 		case Acking:
 			select {
 			case arrivedCommonState := <-receiveFromNetworkC:
-				fmt.Println("Im in acking mode")
+				//fmt.Println("Im in acking mode")
 
 				timeCounter = time.NewTimer(selfLostNetworkDuratio)
 				switch {
@@ -243,7 +246,7 @@ func Distributor(
 
 					case StateChange:
 						arrivedCommonState.toHRAElevState(StateStash)
-						fmt.Println("hommmmmmmmmse")
+						fmt.Println("statechange")
 					}
 
 					fmt.Println("TTTTTTTTTTTT")
@@ -306,7 +309,6 @@ func Distributor(
 
 		select {
 		case <-heartbeatTimer.C:
-			fmt.Println("Sending heartbeat mødderføkker")
 			giverToNetwork <- commonState
 		default:
 		}

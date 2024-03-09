@@ -51,9 +51,10 @@ func removeUnavailableElevators(cs distributor.HRAInput) distributor.HRAInput {
 	for k := range cs.States {
 		if k != config.Elevator_id && cs.Ackmap[k] == distributor.NotAvailable {
 			delete(cs.States, k)
+			fmt.Println("Assigner: Removed unavailable elevators")
 		}
 	}
-	fmt.Println("Assigner: Removed unavailable elevators")
+	
 	return cs
 }
 
@@ -66,7 +67,7 @@ func Assigner(
 		select {
 		case cs := <-messageToAssinger:
 			fmt.Println("Assigner: Received commonstate")
-			distributor.PrintCommonState(cs)
+			//distributor.PrintCommonState(cs)
 			//cs = removeUnavailableElevators(cs)
 			localAssingment := toLocalAssingment(CalculateHRA(cs))
 			lightsAssingment := toLightsAssingment(cs)
