@@ -34,9 +34,9 @@ func Distributor(
 	receiveFromNetworkC <-chan HRAInput,
 	messageToAssinger chan<- HRAInput) {
 
-	elevioOrdersC := make(chan elevio.ButtonEvent)
-	newAssingemntC := make(chan localAssignments)
-	peerUpdateC := make(chan peers.PeerUpdate)
+	elevioOrdersC := make(chan elevio.ButtonEvent, 69)
+	newAssingemntC := make(chan localAssignments, 69)
+	peerUpdateC := make(chan peers.PeerUpdate, 69)
 
 	var commonState HRAInput
 	var StateStash elevator.State
@@ -55,7 +55,7 @@ func Distributor(
 	// }
 
 	commonState = HRAInput{
-		Origin: "peer-10.22.229.227-11111",
+		Origin: "peer-10.22.229.227-22222",
 		Seq:    0,
 		Ackmap: map[string]Ack_status{
 			"peer-10.22.229.227-22222": NotAcked,
@@ -91,7 +91,7 @@ func Distributor(
 	go elevio.PollButtons(elevioOrdersC)
 	go Update_Assingments(elevioOrdersC, deliveredOrderC, newAssingemntC)
 
-	heartbeatTimer := time.NewTicker(15 * time.Millisecond)
+	heartbeatTimer := time.NewTicker(500 * time.Millisecond)
 
 	for {
 
@@ -110,14 +110,15 @@ func Distributor(
 				commonState.Update_Assingments(assingmentUpdate)
 				commonState.NullAckmap()
 				commonState.Ack()
+				//PrintCommonState(commonState)
 				state = SendingSelf
 
 			case newElevState := <-newElevStateC: //bufferes lage stor kanal 64 feks
-				fmt.Println("newElevState")
+				//fmt.Println("newElevState")
 				StateStash = newElevState
 				StashType = StateChange
 				commonState.toHRAElevState(newElevState)
-				PrintCommonState(commonState)
+				//PrintCommonState(commonState)
 				commonState.NullAckmap()
 				commonState.Ack()
 				state = SendingSelf
@@ -128,7 +129,7 @@ func Distributor(
 
 				switch {
 				case higherPriority(commonState, arrivedCommonState):
-					fmt.Println("something fishy")
+					//fmt.Println("something fishy")
 					//if arrivedCommonState.Origin == config.Elevator_id {
 					//state = SendingSelf
 					arrivedCommonState.Ack()
@@ -145,9 +146,9 @@ func Distributor(
 					break //doing jack
 				}
 			case peers := <-peerUpdateC: //bufferes lage stor kanal 64 feks
-			fmt.Println("    ")
-			fmt.Println("peers number 1 fucked")
-			fmt.Println("    ")
+				fmt.Println("    ")
+				fmt.Println("peers number 1 fucked")
+				fmt.Println("    ")
 				commonState.makeElevUnav(peers)
 			default:
 			}
@@ -155,7 +156,7 @@ func Distributor(
 			//fmt.Println("-")
 			select {
 			case arrivedCommonState := <-receiveFromNetworkC:
-				fmt.Println("Im in SendingSelf mode")
+				//fmt.Println("Im in SendingSelf mode")
 				timeCounter = time.NewTimer(selfLostNetworkDuratio)
 				switch {
 				case arrivedCommonState.Origin != config.Elevator_id && higherPriority(commonState, arrivedCommonState):
@@ -171,7 +172,7 @@ func Distributor(
 					commonState = arrivedCommonState
 					messageToAssinger <- commonState
 				default:
-					fmt.Println("doing jack")
+					//fmt.Println("doing jack")
 					//break //doing jack
 				}
 
@@ -237,29 +238,29 @@ func Distributor(
 
 				case Fully_acked(arrivedCommonState.Ackmap):
 					state = SendingSelf
-					fmt.Println("BOOOOOOOB")
+					//fmt.Println("BOOOOOOOB")
 					switch StashType {
 
 					case AssingmetChange:
 						arrivedCommonState.Update_Assingments(AssignmentStash)
-						fmt.Println("whaaaaaaaatss")
+						//fmt.Println("whaaaaaaaatss")
 
 					case StateChange:
 						arrivedCommonState.toHRAElevState(StateStash)
-						fmt.Println("statechange")
+						//fmt.Println("statechange")
 					}
 
-					fmt.Println("TTTTTTTTTTTT")
+					//fmt.Println("TTTTTTTTTTTT")
 					commonState = arrivedCommonState
-					fmt.Println("AAAAAAAAAAAAAA")
+					//fmt.Println("AAAAAAAAAAAAAA")
 					messageToAssinger <- commonState
-					fmt.Println("BBBBBBBBBBBBBB")
+					//fmt.Println("BBBBBBBBBBBBBB")
 					commonState.NullAckmap()
 					commonState.Ack()
-					PrintCommonState(commonState)
+					//PrintCommonState(commonState)
 				default:
 					arrivedCommonState.Ack()
-					fmt.Println("suck a big ooooooone")
+					//fmt.Println("suck a big ooooooone")
 					commonState = arrivedCommonState
 
 				}

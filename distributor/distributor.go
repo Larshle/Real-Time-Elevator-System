@@ -1,15 +1,14 @@
 package distributor
 
 import (
-	"bytes"
+	
 	"fmt"
-	"net"
+	
 	"reflect"
 	"root/config"
 	"root/elevator"
 	"root/network/network_modules/peers"
-	"strconv"
-	"strings"
+	
 )
 
 type Ack_status int
@@ -87,15 +86,17 @@ func (cs *HRAInput) Update_Assingments(local_elevator_assignments localAssignmen
 	for f := 0; f < config.N_floors; f++ {
 		if local_elevator_assignments.localCabAssignments[f] == add {
 			cs.States[config.Elevator_id].CabRequests[f] = true
+			fmt.Println("Cab request added")
 		}
 		if local_elevator_assignments.localCabAssignments[f] == remove {
+			fmt.Println("Cab request added")
 			cs.States[config.Elevator_id].CabRequests[f] = false
 		}
 	}
 	
 	cs.Seq++
 	cs.Origin = config.Elevator_id
-	fmt.Println("Updated common state with Update_Assignment:")
+	//fmt.Println("Updated common state with Update_Assignment:")
 	//PrintCommonState(*cs)
 
 }
@@ -136,33 +137,6 @@ func higherPriority(oldCS, newCS HRAInput) bool {
 	return oldCS.Seq < newCS.Seq || oldCS.Origin < newCS.Origin && oldCS.Seq == newCS.Seq
 }
 
-func takePriortisedCommonState(oldCS, newCS HRAInput) HRAInput {
-	if oldCS.Seq < newCS.Seq {
-		return newCS
-	}
-	id1 := oldCS.Origin
-	id2 := newCS.Origin
-	parts1 := strings.Split(id1, "-")
-	parts2 := strings.Split(id2, "-")
-	ip1 := net.ParseIP(parts1[1])
-	ip2 := net.ParseIP(parts2[1])
-	pid1, _ := strconv.Atoi(parts1[2])
-	pid2, _ := strconv.Atoi(parts2[2])
-
-	// Compare IP addresses
-	cmp := bytes.Compare(ip1, ip2)
-	if cmp > 0 {
-		return oldCS
-	} else if cmp < 0 {
-		return newCS
-	}
-
-	// If IP addresses are equal, compare process IDs
-	if pid1 > pid2 {
-		return oldCS
-	}
-	return newCS
-}
 func (cs *HRAInput) makeElevUnavExceptOrigin() {
 	for id := range cs.Ackmap {
 		if id != config.Elevator_id {
@@ -181,8 +155,8 @@ func (cs *HRAInput) UpdateCabAssignments(local_elevator_assignments localAssignm
 		}
 	}
 	cs.Seq++
-	fmt.Println("Updated common state with CabAssignment:")
-	PrintCommonState(*cs)
+	//fmt.Println("Updated common state with CabAssignment:")
+	//PrintCommonState(*cs)
 }
 func (cs *HRAInput) makeOriginElevUnav(){
 	cs.Ackmap[config.Elevator_id] = NotAvailable

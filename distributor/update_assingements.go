@@ -1,8 +1,8 @@
 package distributor
 
 import (
+	"fmt"
 	"root/driver/elevio"
-	
 )
 
 type Ass int
@@ -46,12 +46,18 @@ func (a localAssignments) Remove_Assingment(deliveredAssingement elevio.ButtonEv
 
 func Update_Assingments(newAssingemntC <-chan elevio.ButtonEvent, deliveredAssingmentC <-chan elevio.ButtonEvent, updatedAssingmentsC chan<- localAssignments) {
 	var localAssignments localAssignments
+	
 	for {
+
 		select {
+
 		case newAssingment := <-newAssingemntC:
+			fmt.Println("NewassigmentC: ", newAssingemntC)
 			localAssignments.Add_Assingment(newAssingment)
 			updatedAssingmentsC <- localAssignments
+
 		case deliveredAssingment := <-deliveredAssingmentC:
+			fmt.Println("DeloveredC: ", newAssingemntC)
 			localAssignments = localAssignments.Remove_Assingment(deliveredAssingment)
 			updatedAssingmentsC <- localAssignments
 		}

@@ -6,7 +6,7 @@ import (
 )
 
 const (
-	DoorOpenDuration = 1 * time.Second
+	DoorOpenDuration = 2 * time.Second
 )
 
 type DoorState int

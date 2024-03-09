@@ -66,7 +66,7 @@ func Assigner(
 	for {
 		select {
 		case cs := <-messageToAssinger:
-			fmt.Println("Assigner: Received commonstate")
+			//fmt.Println("Assigner: Received commonstate")
 			//distributor.PrintCommonState(cs)
 			//cs = removeUnavailableElevators(cs)
 			localAssingment := toLocalAssingment(CalculateHRA(cs))

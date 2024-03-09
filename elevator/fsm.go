@@ -110,12 +110,12 @@ func Elevator(eleveatorAssingmentC <-chan Assingments, stateC chan<- State, orde
 				default:
 					elevio.SetMotorDirection(elevio.MD_Stop)
 					state.Behaviour = Idle
-					stateC <- state
 
 				}
 			default:
 				panic("FloorEntered in wrong state")
 			}
+			stateC <- state
 
 		case assingments = <-eleveatorAssingmentC:
 			switch state.Behaviour {
