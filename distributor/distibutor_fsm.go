@@ -33,11 +33,12 @@ func Distributor(
 	newElevStateC <-chan elevator.State,
 	giverToNetwork chan<- HRAInput,
 	receiveFromNetworkC <-chan HRAInput,
-	messageToAssinger chan<- HRAInput) {
+	messageToAssinger chan<- HRAInput, 
+	recieveFromPeerC <- chan peers.PeerUpdate) {
 
 	elevioOrdersC := make(chan elevio.ButtonEvent, 69)
 	newAssingemntC := make(chan localAssignments, 69)
-	peerUpdateC := make(chan peers.PeerUpdate, 69)
+	
 
 	var commonState HRAInput
 	var StateStash elevator.State
@@ -62,6 +63,8 @@ func Distributor(
 		Ackmap: map[string]Ack_status{
 			"peer-10.22.229.227-22222": NotAcked,
 			"peer-10.22.229.227-11111": NotAcked,
+			"peer-10.22.229.227-33333": NotAcked,
+
 		},
 		HallRequests: [][2]bool{{false, false}, {false, false}, {false, false}, {false, false}},
 		States: map[string]HRAElevState{
@@ -72,6 +75,12 @@ func Distributor(
 				CabRequests: []bool{false, false, false, true},
 			},
 			"peer-10.22.229.227-11111": {
+				Behaviour:   "idle",
+				Floor:       0,
+				Direction:   "up",
+				CabRequests: []bool{false, false, false, true},
+			},
+			"peer-10.22.229.227-33333": {
 				Behaviour:   "idle",
 				Floor:       0,
 				Direction:   "up",
@@ -93,7 +102,7 @@ func Distributor(
 	go elevio.PollButtons(elevioOrdersC)
 	//go Update_Assingments(elevioOrdersC, deliveredOrderC, newAssingemntC)
 
-	heartbeatTimer := time.NewTicker(15 * time.Millisecond)
+	heartbeatTimer := time.NewTicker(500 * time.Millisecond)
 
 	for {
 
@@ -118,11 +127,13 @@ func Distributor(
 				NewOrderStash = newOrder
 				StashType = AddCall
 				commonState.AddCall(newOrder)
+				fmt.Println("we got a order FUCK ME IN THE ASS")
 				commonState.NullAckmap()
 				commonState.Ack()
 				state = SendingSelf
 
 			case removeOrder := <-deliveredOrderC:
+				fmt.Println("Delivered PULL OUT ")
 				RemoveOrderStash = removeOrder
 				StashType = RemoveCall
 				commonState.removeCall(removeOrder)
@@ -142,6 +153,11 @@ func Distributor(
 
 			case arrivedCommonState := <-receiveFromNetworkC: //bufferes lage stor kanal 64 feks
 				timeCounter = time.NewTimer(selfLostNetworkDuratio)
+				fmt.Println("Vebjøn liker tss")
+				PrintCommonState(commonState)
+				fmt.Println("Arrived")
+				PrintCommonState(arrivedCommonState)
+				
 				//arrivedCommonState.ensureElevatorState(arrivedCommonState.States[config.Elevator_id])
 
 				switch {
@@ -162,7 +178,7 @@ func Distributor(
 				default:
 					break //doing jack
 				}
-			case peers := <-peerUpdateC: //bufferes lage stor kanal 64 feks
+			case peers := <-recieveFromPeerC: //bufferes lage stor kanal 64 feks
 				fmt.Println("    ")
 				fmt.Println("peers number 1 fucked")
 				fmt.Println("    ")
@@ -177,7 +193,7 @@ func Distributor(
 				timeCounter = time.NewTimer(selfLostNetworkDuratio)
 				switch {
 				case arrivedCommonState.Origin != config.Elevator_id && higherPriority(commonState, arrivedCommonState):
-					//fmt.Println("I am not priority:(")
+					fmt.Println("I am not priority:(")
 					arrivedCommonState.Ack()
 					commonState = arrivedCommonState
 					state = AckingOtherWhileTryingToSendSelf
@@ -191,9 +207,10 @@ func Distributor(
 				default:
 					//fmt.Println("doing jack")
 					//break //doing jack
+					//fmt.Println("Priority mofo")
 				}
 
-			case peers := <-peerUpdateC: //bufferes lage stor kanal 64 feks
+			case peers := <-recieveFromPeerC: //bufferes lage stor kanal 64 feks
 				commonState.makeElevUnav(peers)
 				fmt.Println("    ")
 				fmt.Println("peers number 2 fucked")
@@ -221,12 +238,13 @@ func Distributor(
 				case higherPriority(commonState, arrivedCommonState): // && takePriortisedCommonState(commonState, arrivedCommonState) priority of higher  {
 					arrivedCommonState.Ack()
 					commonState = arrivedCommonState
+					
 
 				case !higherPriority(commonState, arrivedCommonState):
 					break //doing jack
 				}
 
-			case peers := <-peerUpdateC:
+			case peers := <-recieveFromPeerC:
 				commonState.makeElevUnav(peers)
 				fmt.Println("    ")
 				fmt.Println("peers number 3 fucked")
@@ -243,7 +261,7 @@ func Distributor(
 		case AckingOtherWhileTryingToSendSelf:
 			select {
 			case arrivedCommonState := <-receiveFromNetworkC:
-				//fmt.Println("AckingOtherWhileTryingToSendSelf")
+				fmt.Println("AckingOtherWhileTryingToSendSelf")
 				timeCounter = time.NewTimer(selfLostNetworkDuratio)
 				switch {
 				//case !higherPriority(commonState, arrivedCommonState):
@@ -283,7 +301,7 @@ func Distributor(
 					commonState = arrivedCommonState
 
 				}
-			case peers := <-peerUpdateC:
+			case peers := <-recieveFromPeerC:
 
 				commonState.makeElevUnav(peers)
 				fmt.Println("    ")
@@ -299,7 +317,7 @@ func Distributor(
 		case Isolated:
 			fmt.Println("I should not be here???")
 			select {
-			//case <- peerUpdateC:
+			//case <- recieveFromPeerC:
 			//	state = Idle
 
 			case <-receiveFromNetworkC:

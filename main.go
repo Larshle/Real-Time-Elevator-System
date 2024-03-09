@@ -30,6 +30,7 @@ func main() {
 	chan_receiver_from_peers := make(chan peers.PeerUpdate,64)
 	chan_giver_to_peers := make(chan bool,64)
 
+
 	go peers.Receiver(config.RT_port_number, chan_receiver_from_peers)
 	go peers.Transmitter(config.RT_port_number, config.Elevator_id, chan_giver_to_peers)
 
@@ -41,7 +42,8 @@ func main() {
 		newElevStateC,
 		giverToNetwork,
 		receiveFromNetworkC,
-		messageToAssinger)
+		messageToAssinger, 
+		chan_receiver_from_peers)
 
 	go assigner.Assigner(
 		eleveatorAssingmentC,
@@ -55,5 +57,5 @@ func main() {
 
 	go lights.Lights(lightsAssingmentC)
 
-	select {} // for å kjøre alltid lol lars er gey
+	select {} // for å kjøre alltid lol
 }
