@@ -139,10 +139,10 @@ func Fully_acked(ackmap map[string]Ack_status) bool {
 	return true
 }
 
-func commonStatesNotEqual(oldCS, newCS HRAInput) bool {
+func commonStatesEqual(oldCS, newCS HRAInput) bool {
 	oldCS.Ackmap = nil
 	newCS.Ackmap = nil
-	return !reflect.DeepEqual(oldCS, newCS)
+	return reflect.DeepEqual(oldCS, newCS)
 }
 
 func (cs *HRAInput) makeElevUnav(p peers.PeerUpdate) {
