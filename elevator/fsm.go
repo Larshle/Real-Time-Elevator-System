@@ -5,21 +5,21 @@ import (
 )
 
 type State struct {
-	Direction Direction
 	Behaviour Behaviour
 	Floor     int
+	Direction Direction
 }
 
 type Behaviour int
 
 const (
 	Idle Behaviour = iota
-	Moving
 	DoorOpen
+	Moving
 )
 
 func (b Behaviour) ToString() string {
-	return map[Behaviour]string{Idle: "idle", Moving: "moving", DoorOpen: "doorOpen"}[b]
+	return map[Behaviour]string{Idle: "idle", DoorOpen: "doorOpen", Moving: "moving"}[b]
 }
 
 func Elevator(eleveatorAssingmentC <-chan Assingments, stateC chan<- State, orderDelivered chan<- elevio.ButtonEvent) {
@@ -31,7 +31,6 @@ func Elevator(eleveatorAssingmentC <-chan Assingments, stateC chan<- State, orde
 	go elevio.PollFloorSensor(floorEnteredC)
 
 	// Initialize elevator
-	elevio.SetDoorOpenLamp(false)
 	elevio.SetMotorDirection(elevio.MD_Down)
 	state := State{Direction: Down, Behaviour: Moving}
 
@@ -43,7 +42,6 @@ func Elevator(eleveatorAssingmentC <-chan Assingments, stateC chan<- State, orde
 			switch state.Behaviour {
 			case DoorOpen:
 				switch {
-
 				case assingments.ReqInDirection(state.Floor, state.Direction):
 					elevio.SetMotorDirection(state.Direction.toMD())
 					state.Behaviour = Moving
@@ -57,7 +55,7 @@ func Elevator(eleveatorAssingmentC <-chan Assingments, stateC chan<- State, orde
 
 				case assingments.ReqInDirection(state.Floor, state.Direction.toOpposite()):
 					state.Direction = state.Direction.toOpposite()
-					elevio.SetMotorDirection(state.Direction.toOpposite().toMD())
+					elevio.SetMotorDirection(state.Direction.toMD())
 					state.Behaviour = Moving
 					stateC <- state
 
@@ -150,7 +148,7 @@ func Elevator(eleveatorAssingmentC <-chan Assingments, stateC chan<- State, orde
 
 			case DoorOpen:
 				switch {
-				case assingments[state.Floor][state.Direction] || assingments[state.Floor][elevio.BT_Cab]:
+				case assingments[state.Floor][elevio.BT_Cab] || assingments[state.Floor][state.Direction]:
 					doorOpenC <- true
 					EmptyAssingner(state.Floor, state.Direction, assingments, orderDelivered)
 
