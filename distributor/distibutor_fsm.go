@@ -38,7 +38,6 @@ func Distributor(
 
 	elevioOrdersC := make(chan elevio.ButtonEvent, 10000)
 	newAssingemntC := make(chan localAssignments, 10000)
-	
 
 	var commonState HRAInput
 	var StateStash elevator.State
@@ -170,13 +169,17 @@ func Distributor(
 				fmt.Println("    ")
 				fmt.Println("peers number 1 fucked")
 				fmt.Println("    ")
-				//commonState.makeElevUnav(peers)
+				commonState.makeElevUnav(peers)
+				commonState.makeElevav()
 			default:
 			}
 		case SendingSelf:
 			//fmt.Println("-")
 			select {
 			case arrivedCommonState := <-receiveFromNetworkC:
+				if arrivedCommonState.Seq < commonState.Seq{
+					break
+				}
 				//fmt.Println("Im in SendingSelf mode")
 				//PrintCommonState(arrivedCommonState)
 				timeCounter = time.NewTimer(selfLostNetworkDuratio)
@@ -199,7 +202,7 @@ func Distributor(
 					
 					commonState = arrivedCommonState
 					messageToAssinger <- commonState
-					commonState.NullAckmap()
+					//commonState.NullAckmap()
 					PrintCommonState(commonState)
 			
 				case commonStatesEqual(commonState, arrivedCommonState): 
@@ -220,6 +223,8 @@ func Distributor(
 				fmt.Println("    ")
 				fmt.Println("peers number 2 fucked")
 				fmt.Println("    ")
+				commonState.makeElevUnav(peers)
+				commonState.makeElevav()
 				if Fully_acked(commonState.Ackmap) {
 					state = Idle
 					messageToAssinger <- commonState
@@ -229,7 +234,11 @@ func Distributor(
 
 		case Acking:
 			select {
+		
 			case arrivedCommonState := <-receiveFromNetworkC:
+				if arrivedCommonState.Seq < commonState.Seq{
+					break
+				}
 				//fmt.Println("Im in acking mode")
 				//PrintCommonState(arrivedCommonState)
 
@@ -245,7 +254,7 @@ func Distributor(
 					state = Idle
 					commonState = arrivedCommonState
 					messageToAssinger <- commonState
-					commonState.NullAckmap()
+					//commonState.NullAckmap()
 					fmt.Println("GOING TO IDLE FROM ACKING")
 
 				case commonStatesEqual(commonState, arrivedCommonState): 
@@ -265,6 +274,8 @@ func Distributor(
 				fmt.Println("    ")
 				fmt.Println("peers number 3 fucked")
 				fmt.Println("    ")
+				commonState.makeElevUnav(peers)
+				commonState.makeElevav()
 
 				if Fully_acked(commonState.Ackmap) {
 					state = Idle
@@ -336,7 +347,8 @@ func Distributor(
 				}
 			case peers := <-recieveFromPeerC:
 
-				//commonState.makeElevUnav(peers)
+				commonState.makeElevUnav(peers)
+				commonState.makeElevav()
 				fmt.Println(peers)
 				fmt.Println("    ")
 				fmt.Println("peers number 4 fucked")
