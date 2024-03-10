@@ -230,17 +230,16 @@ func Distributor(
 				timeCounter = time.NewTimer(selfLostNetworkDuratio)
 				switch {
 
+				case higherPriority(commonState, arrivedCommonState): // && takePriortisedCommonState(commonState, arrivedCommonState) priority of higher  {
+						arrivedCommonState.Ack()
+						commonState = arrivedCommonState
+						fmt.Println("HIghPRIORITY IN ACKING")
+
 				case Fully_acked(arrivedCommonState.Ackmap):
 					state = Idle
 					commonState = arrivedCommonState
 					messageToAssinger <- commonState
 					fmt.Println("GOING TO IDLE FROM ACKING")
-			
-
-				case higherPriority(commonState, arrivedCommonState): // && takePriortisedCommonState(commonState, arrivedCommonState) priority of higher  {
-					arrivedCommonState.Ack()
-					commonState = arrivedCommonState
-					fmt.Println("HIghPRIORITY IN ACKING")
 
 				case commonStatesEqual(commonState, arrivedCommonState): 
 					arrivedCommonState.Ack()
@@ -279,6 +278,13 @@ func Distributor(
 				switch {
 				//case !higherPriority(commonState, arrivedCommonState):
 				//	break //doing jack
+
+				case higherPriority(commonState, arrivedCommonState): // && takePriortisedCommonState(commonState, arrivedCommonState) priority of higher  {
+					arrivedCommonState.Ack()
+					commonState = arrivedCommonState
+					fmt.Println("HIghPRIORITY IN AckingOtherWhileTryingToSendSelf")
+					//PrintCommonState(commonState)
+				
 				
 				case Fully_acked(arrivedCommonState.Ackmap):
 					state = SendingSelf
@@ -306,14 +312,7 @@ func Distributor(
 					//PrintCommonState(commonState)
 				
 				
-				
-
-				case higherPriority(commonState, arrivedCommonState): // && takePriortisedCommonState(commonState, arrivedCommonState) priority of higher  {
-					arrivedCommonState.Ack()
-					commonState = arrivedCommonState
-					fmt.Println("HIghPRIORITY IN AckingOtherWhileTryingToSendSelf")
-					//PrintCommonState(commonState)
-				
+			
 				case commonStatesEqual(commonState, arrivedCommonState): 
 					arrivedCommonState.Ack()
 					commonState = arrivedCommonState
