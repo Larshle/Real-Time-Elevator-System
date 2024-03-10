@@ -49,14 +49,6 @@ func Distributor(
 	timeCounter := time.NewTimer(time.Hour)
 	selfLostNetworkDuratio := 10 * time.Second
 
-	// commonState = HRAInput{
-	// 	Origin:       config.Elevator_id,
-	// 	ID:           0,
-	// 	Ackmap:       make(map[string]Ack_status),
-	// 	HallRequests: make([][2]bool, 4), // Assuming you want 4 pairs of bools
-	// 	States:       make(map[string]HRAElevState),
-	// }
-
 	commonState = HRAInput{
 		Origin: "peer-10.22.229.227-22222",
 		Seq:    0,
@@ -89,20 +81,10 @@ func Distributor(
 		},
 	}
 
-	// commonState = HRAInput{
-	// 	Origin:       config.Elevator_id,
-	// 	ID:           1,
-	// 	Ackmap:       make(map[string]Ack_status),
-	// 	HallRequests: make([][2]bool, 4), // Assuming you want 4 pairs of bools
-	// 	States: map[string]HRAElevState{
-	// 		config.Elevator_id: {}, // Replace "initialKey" with your key
-	// 	},
-	// }
-
 	go elevio.PollButtons(elevioOrdersC)
 	//go Update_Assingments(elevioOrdersC, deliveredOrderC, newAssingemntC)
 
-	heartbeatTimer := time.NewTicker(1000 * time.Millisecond)
+	heartbeatTimer := time.NewTicker(500 * time.Millisecond)
 
 	for {
 
@@ -181,8 +163,7 @@ func Distributor(
 					//	commonState = arrivedCommonState
 					//	state = Acking
 					//}
-				default:
-					break //doing jack
+					
 				}
 			case peers := <-recieveFromPeerC:
 				fmt.Println(peers) //bufferes lage stor kanal 64 feks
@@ -201,25 +182,24 @@ func Distributor(
 				timeCounter = time.NewTimer(selfLostNetworkDuratio)
 				switch {
 
-				
-				case Fully_acked(arrivedCommonState.Ackmap):
-					fmt.Println("Going to IDLE")
-					state = Idle
-					
-					commonState = arrivedCommonState
-					messageToAssinger <- commonState
-
 				case arrivedCommonState.Origin != config.Elevator_id && higherPriority(commonState, arrivedCommonState):
 					fmt.Println("I am not priority:(")
 					arrivedCommonState.Ack()
 					commonState = arrivedCommonState
 					state = AckingOtherWhileTryingToSendSelf
 				
+				case Fully_acked(arrivedCommonState.Ackmap):
+					fmt.Println("Going to IDLE FROM SENDINGSELF")
+					state = Idle
+					
+					commonState = arrivedCommonState
+					messageToAssinger <- commonState
+					PrintCommonState(commonState)
 			
 				case commonStatesEqual(commonState, arrivedCommonState): 
 					arrivedCommonState.Ack()
 					commonState = arrivedCommonState
-					fmt.Println("MOMAA DONT KILL THE MAN")
+					fmt.Println("ACKING IN SENDING SELF")
 
 				default:
 					//fmt.Println("doing jack")
@@ -254,15 +234,18 @@ func Distributor(
 					state = Idle
 					commonState = arrivedCommonState
 					messageToAssinger <- commonState
-				
-				case commonStatesEqual(commonState, arrivedCommonState): 
-					arrivedCommonState.Ack()
-					commonState = arrivedCommonState
-					fmt.Println("MOMAA DONT KILL THE MAN")
+					fmt.Println("GOING TO IDLE FROM ACKING")
+			
 
 				case higherPriority(commonState, arrivedCommonState): // && takePriortisedCommonState(commonState, arrivedCommonState) priority of higher  {
 					arrivedCommonState.Ack()
 					commonState = arrivedCommonState
+					fmt.Println("HIghPRIORITY IN ACKING")
+
+				case commonStatesEqual(commonState, arrivedCommonState): 
+					arrivedCommonState.Ack()
+					commonState = arrivedCommonState
+					fmt.Println("ACKING IN ACKING")
 					
 				default: 
 					//arrivedCommonState.Ack()
@@ -289,7 +272,7 @@ func Distributor(
 			select {
 
 			case arrivedCommonState := <-receiveFromNetworkC:
-				fmt.Println("Erik er GEEEEEEY")
+				
 				//PrintCommonState(arrivedCommonState)
 				timeCounter = time.NewTimer(selfLostNetworkDuratio)
 
@@ -299,7 +282,7 @@ func Distributor(
 				
 				case Fully_acked(arrivedCommonState.Ackmap):
 					state = SendingSelf
-					//fmt.Println("BOOOOOOOB")
+					fmt.Println("GOING TO SENDINGSELF FROM AckingOtherWhileTryingToSendSelf ")
 					switch StashType {
 
 					case AddCall:
@@ -323,16 +306,18 @@ func Distributor(
 					//PrintCommonState(commonState)
 				
 				
-				case commonStatesEqual(commonState, arrivedCommonState): 
-					arrivedCommonState.Ack()
-					commonState = arrivedCommonState
-					fmt.Println("MOMAA DONT KILL THE MAN")
+				
 
 				case higherPriority(commonState, arrivedCommonState): // && takePriortisedCommonState(commonState, arrivedCommonState) priority of higher  {
 					arrivedCommonState.Ack()
 					commonState = arrivedCommonState
-					fmt.Println("Esssskeetit")
+					fmt.Println("HIghPRIORITY IN AckingOtherWhileTryingToSendSelf")
 					//PrintCommonState(commonState)
+				
+				case commonStatesEqual(commonState, arrivedCommonState): 
+					arrivedCommonState.Ack()
+					commonState = arrivedCommonState
+					fmt.Println("ACKING IN AckingOtherWhileTryingToSendSelf")
 					
 
 				
