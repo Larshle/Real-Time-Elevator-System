@@ -46,7 +46,7 @@ func Distributor(
 	var RemoveOrderStash elevio.ButtonEvent
 	var state State = Idle
 	var StashType StatshType
-	timeCounter := time.NewTimer(time.Hour)
+	timeCounter := time.NewTimer(time.Second * 5)
 	selfLostNetworkDuratio := 10 * time.Second
 
 	commonState = HRAInput{
@@ -84,7 +84,7 @@ func Distributor(
 	go elevio.PollButtons(elevioOrdersC)
 	//go Update_Assingments(elevioOrdersC, deliveredOrderC, newAssingemntC)
 
-	heartbeatTimer := time.NewTicker(500 * time.Millisecond)
+	heartbeatTimer := time.NewTicker(15 * time.Millisecond)
 
 	for {
 
@@ -188,12 +188,18 @@ func Distributor(
 					commonState = arrivedCommonState
 					state = AckingOtherWhileTryingToSendSelf
 				
+
+				//case !higherPriority(commonState, arrivedCommonState):
+				//	fmt.Println("NOT HIGH ")
+				
+				
 				case Fully_acked(arrivedCommonState.Ackmap):
 					fmt.Println("Going to IDLE FROM SENDINGSELF")
 					state = Idle
 					
 					commonState = arrivedCommonState
 					messageToAssinger <- commonState
+					commonState.NullAckmap()
 					PrintCommonState(commonState)
 			
 				case commonStatesEqual(commonState, arrivedCommonState): 
@@ -230,17 +236,17 @@ func Distributor(
 				timeCounter = time.NewTimer(selfLostNetworkDuratio)
 				switch {
 
+				case higherPriority(commonState, arrivedCommonState): // && takePriortisedCommonState(commonState, arrivedCommonState) priority of higher  {
+						arrivedCommonState.Ack()
+						commonState = arrivedCommonState
+						fmt.Println("HIghPRIORITY IN ACKING")
+
 				case Fully_acked(arrivedCommonState.Ackmap):
 					state = Idle
 					commonState = arrivedCommonState
 					messageToAssinger <- commonState
+					commonState.NullAckmap()
 					fmt.Println("GOING TO IDLE FROM ACKING")
-			
-
-				case higherPriority(commonState, arrivedCommonState): // && takePriortisedCommonState(commonState, arrivedCommonState) priority of higher  {
-					arrivedCommonState.Ack()
-					commonState = arrivedCommonState
-					fmt.Println("HIghPRIORITY IN ACKING")
 
 				case commonStatesEqual(commonState, arrivedCommonState): 
 					arrivedCommonState.Ack()
@@ -279,6 +285,13 @@ func Distributor(
 				switch {
 				//case !higherPriority(commonState, arrivedCommonState):
 				//	break //doing jack
+
+				case higherPriority(commonState, arrivedCommonState): // && takePriortisedCommonState(commonState, arrivedCommonState) priority of higher  {
+					arrivedCommonState.Ack()
+					commonState = arrivedCommonState
+					fmt.Println("HIghPRIORITY IN AckingOtherWhileTryingToSendSelf")
+					//PrintCommonState(commonState)
+				
 				
 				case Fully_acked(arrivedCommonState.Ackmap):
 					state = SendingSelf
@@ -306,14 +319,7 @@ func Distributor(
 					//PrintCommonState(commonState)
 				
 				
-				
-
-				case higherPriority(commonState, arrivedCommonState): // && takePriortisedCommonState(commonState, arrivedCommonState) priority of higher  {
-					arrivedCommonState.Ack()
-					commonState = arrivedCommonState
-					fmt.Println("HIghPRIORITY IN AckingOtherWhileTryingToSendSelf")
-					//PrintCommonState(commonState)
-				
+			
 				case commonStatesEqual(commonState, arrivedCommonState): 
 					arrivedCommonState.Ack()
 					commonState = arrivedCommonState
