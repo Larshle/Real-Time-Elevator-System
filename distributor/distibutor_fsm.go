@@ -10,7 +10,6 @@ import (
 )
 
 type StatshType int
-
 const (
 	RemoveCall StatshType = iota
 	AddCall
@@ -34,39 +33,39 @@ func Distributor(
 	var NewOrderStash elevio.ButtonEvent
 	var RemoveOrderStash elevio.ButtonEvent
 	var StashType StatshType
-	timeCounter := time.NewTimer(time.Second * 5)
-	selfLostNetworkDuratio := 10 * time.Second
+	selfLostNetworkDuratio := 5 * time.Second
+	timeCounter := time.NewTimer(selfLostNetworkDuratio)
 	stashed := false
 	acking := false
 	isolated:= false
 
 	commonState = HRAInput{
-		Origin: "peer-10.22.229.227-22222",
+		Origin: "peer-10.22.229.227-11111",
 		Seq:    0,
 		Ackmap: map[string]Ack_status{
-			"peer-10.22.229.227-22222": NotAcked,
 			"peer-10.22.229.227-11111": NotAcked,
+			"peer-10.22.229.227-22222": NotAcked,
 			"peer-10.22.229.227-33333": NotAcked,
 		},
 		HallRequests: [][2]bool{{false, false}, {false, false}, {false, false}, {false, false}},
 		States: map[string]HRAElevState{
-			"peer-10.22.229.227-22222": {
-				Behaviour:   "idle",
-				Floor:       0,
-				Direction:   "up",
-				CabRequests: []bool{false, false, false, true},
-			},
 			"peer-10.22.229.227-11111": {
 				Behaviour:   "idle",
-				Floor:       0,
-				Direction:   "up",
-				CabRequests: []bool{false, false, false, true},
+				Floor:       2,
+				Direction:   "down",
+				CabRequests: []bool{false, false, false, false},
+			},
+			"peer-10.22.229.227-22222": {
+				Behaviour:   "idle",
+				Floor:       2,
+				Direction:   "down",
+				CabRequests: []bool{false, false, false, false},
 			},
 			"peer-10.22.229.227-33333": {
 				Behaviour:   "idle",
-				Floor:       0,
-				Direction:   "up",
-				CabRequests: []bool{false, false, false, true},
+				Floor:       2,
+				Direction:   "down",
+				CabRequests: []bool{false, false, false, false},
 			},
 		},
 	}
@@ -84,14 +83,13 @@ func Distributor(
 		}
 
 		switch {
-		case !stashed && !acking:
+		case !stashed && !acking: // Idle
 			select {
 
 			case newOrder := <-elevioOrdersC:
 				fmt.Println("New order")
 				NewOrderStash = newOrder
 				StashType = AddCall
-				//PrintCommonState(commonState)
 				commonState.AddCall(newOrder)
 				commonState.NullAckmap()
 				commonState.Ack()

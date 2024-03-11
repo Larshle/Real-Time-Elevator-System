@@ -97,7 +97,7 @@ func CalculateHRA(cs distributor.HRAInput) map[string][][3]bool {
 		panic("json.Marshal error")
 	}
 
-	ret, err := exec.Command("assigner/"+hraExecutable, "-i", "--includeCab", string(jsonBytes)).CombinedOutput()
+	ret, err := exec.Command("assigner/executables"+hraExecutable, "-i", "--includeCab", string(jsonBytes)).CombinedOutput()
 	if err != nil {
 		fmt.Println("exec.Command error: ", err)
 		fmt.Println(string(ret))
