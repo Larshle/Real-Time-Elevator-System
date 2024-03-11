@@ -84,7 +84,7 @@ func CalculateHRA(cs distributor.HRAInput) map[string][][3]bool {
 	case "linux":
 		hraExecutable = "hall_request_assigner_linux"
 	case "darwin":
-		hraExecutable = "hall_request_assigner"
+		hraExecutable = "hall_request_assigner_mac"
 	case "windows":
 		hraExecutable = "hall_request_assigner.exe"
 	default:
