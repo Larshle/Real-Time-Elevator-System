@@ -17,16 +17,6 @@ const (
 	StateChange
 )
 
-type State int
-
-const (
-	Idle State = iota
-	Acking
-	SendingSelf
-	AckingOtherWhileTryingToSendSelf
-	Isolated
-	UnableToMove
-)
 
 func Distributor(
 	deliveredOrderC <-chan elevio.ButtonEvent,
@@ -46,7 +36,7 @@ func Distributor(
 	var StashType StatshType
 	timeCounter := time.NewTimer(time.Second * 5)
 	selfLostNetworkDuratio := 10 * time.Second
-	stash := false
+	stashed := false
 	acking := false
 	isolated:= false
 
@@ -95,7 +85,7 @@ func Distributor(
 		}
 
 		switch {
-		case stash == false && acking == false:
+		case !stashed && !acking:
 			select {
 
 			case newOrder := <-elevioOrdersC:
@@ -107,7 +97,7 @@ func Distributor(
 				commonState.NullAckmap()
 				commonState.Ack()
 				PrintCommonState(commonState)
-				stash = true
+				stashed = true
 				acking = true
 
 			case removeOrder := <-deliveredOrderC:
@@ -117,7 +107,7 @@ func Distributor(
 				commonState.removeCall(removeOrder)
 				commonState.NullAckmap()
 				commonState.Ack()
-				stash = true
+				stashed = true
 				acking = true
 				
 			case newElevState := <-newElevStateC: //bufferes lage stor kanal 64 feks
@@ -127,7 +117,7 @@ func Distributor(
 				commonState.toHRAElevState(newElevState)
 				commonState.NullAckmap()
 				commonState.Ack()
-				stash = true
+				stashed = true
 				acking = true
 				//PrintCommonState(commonState)
 
@@ -147,7 +137,7 @@ func Distributor(
 			default:
 			}
 
-		case isolated == true:
+		case isolated:
 			fmt.Println("I should not be here???")
 			select {
 			case <-receiveFromNetworkC:
@@ -185,7 +175,7 @@ func Distributor(
 					messageToAssinger <- commonState
 					PrintCommonState(commonState)
 					switch{
-					case commonState.Origin != config.Elevator_id  && stash:
+					case commonState.Origin != config.Elevator_id  && stashed:
 						switch StashType {
 						case AddCall:
 							commonState.AddCall(NewOrderStash)
@@ -202,8 +192,8 @@ func Distributor(
 							commonState.NullAckmap()
 							commonState.Ack()
 						}	
-						case commonState.Origin == config.Elevator_id  && stash:
-							stash = false
+						case commonState.Origin == config.Elevator_id  && stashed:
+							stashed = false
 							acking = false
 						default:
 							acking = false
@@ -227,6 +217,5 @@ func Distributor(
 			giverToNetwork <- commonState
 		default:
 		}
-
-	} // to do: add case when for elevator lost network connection
+	}
 }
