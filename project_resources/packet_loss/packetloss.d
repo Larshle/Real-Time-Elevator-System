@@ -1,7 +1,7 @@
 
+// Tester packet loss
 
 import std;
-
 
 auto helpstr = `
 Oversimplified packet loss script.
