@@ -6,7 +6,6 @@ import (
 	"root/distributor"
 	"root/elevio"
 	"root/elevator"
-	"root/lights"
 	"root/network/bcast"
 	"root/network/peers"
 	"strconv"
@@ -38,7 +37,6 @@ func main() {
 	giverToNetworkC := make(chan distributor.CommonState, 10000) // Endre navn?
 	receiverFromNetworkC := make(chan distributor.CommonState, 10000) // Endre navn?
 	toAssignerC := make(chan distributor.CommonState, 10000)
-	lightsAssignmentC := make(chan elevator.Assignments, 10000)
 	receiverPeersC := make(chan peers.PeerUpdate, 10000) // Endre navn?
 	giverPeersC := make(chan bool, 10000) // Endre navn?
 
@@ -57,18 +55,21 @@ func main() {
 		receiverPeersC,
 		ElevatorID)
 
-	go assigner.Assigner(
-		newAssignmentC,
-		lightsAssignmentC,
-		toAssignerC,
-		ElevatorID)
 
 	go elevator.Elevator(
 		newAssignmentC,
 		newLocalElevStateC,
 		deliveredAssignmentC)
 
-	go lights.Lights(lightsAssignmentC)
 
-	select {}
+	select {
+	case cs := <-toAssignerC:
+		cs = assigner.removeUnavailableElevators(cs, ElevatorID)
+		localAssingment := assigner.toLocalAssingment(assigner.CalculateHRA(cs), ElevatorID)
+		elevator.SetLights(localAssingment, ElevatorID)
+		newAssignmentC <- localAssingment
+
+	default: 
+	}
+
 }

@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os/exec"
 	"root/distributor"
-	"root/elevio"
 	"root/elevator"
 	"runtime"
 )
@@ -28,52 +27,17 @@ func toLocalAssingment(a map[int][][3]bool, ElevatorID int) elevator.Assignments
 	return ea
 }
 
-func toLightsAssingment(cs distributor.CommonState, ElevatorID int) elevator.Assignments {
-	var lights elevator.Assignments
-	L, ok := cs.States[ElevatorID]
-	if !ok {
-		panic("elevator not here -lights")
-	}
-	for f := 0; f < 4; f++ {
-		for b := 0; b < 2; b++ {
-			lights[f][b] = cs.HallRequests[f][b]
-
-		}
-	}
-	for f := 0; f < 4; f++ {
-		lights[f][elevio.BT_Cab] = L.CabRequests[f]
-	}
-	return lights
-}
 
 func removeUnavailableElevators(cs distributor.CommonState, ElevatorID int) distributor.CommonState {
 	for k := range cs.States {
 		if k != ElevatorID && cs.Ackmap[k] == distributor.NotAvailable {
 			delete(cs.States, k)
-			fmt.Println("Assigner: Removed unavailable elevators")
 		}
 	}
 
 	return cs
 }
 
-func Assigner(
-	newAssignmentC chan<- elevator.Assignments,
-	lightsAssignmentC chan<- elevator.Assignments,
-	toAssignerC <-chan distributor.CommonState,
-	ElevatorID int) {
-
-	for {
-		select {
-		case cs := <-toAssignerC:
-			// veb husk å legge til removeUnavailableElevators
-			localAssingment := toLocalAssingment(CalculateHRA(cs), ElevatorID)
-			lightsAssingment := toLightsAssingment(cs, ElevatorID)
-			lightsAssignmentC <- lightsAssingment
-			newAssignmentC <- localAssingment
-		}
-	}
-}
 
 func CalculateHRA(cs distributor.CommonState) map[int][][3]bool {
 
