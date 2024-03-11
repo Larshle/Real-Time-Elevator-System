@@ -1,61 +1,74 @@
-
-// midlertidig main fil for å teste coden vår
-
 package main
 
 import (
 	"root/assigner"
 	"root/config"
 	"root/distributor"
-	"root/driver/elevio"
+	"root/elevio"
 	"root/elevator"
 	"root/lights"
-	"root/network/network_modules/bcast"
-	"root/network/network_modules/peers"
+	"root/network/bcast"
+	"root/network/peers"
 	"strconv"
+	"flag"
+	"fmt"
 )
+
+var Port int
+var ElevatorID int
 
 func main() {
 
-	config.Init()
-	elevio.Init("localhost:"+strconv.Itoa(config.Port), config.N_floors)
+	port := flag.Int("port", 15357, "<-- Default verdi, men kan overskrives som en command line argument ved bruk av -port=xxxxx")
+	id := flag.Int("id", 10000, "<-- Default verdi, men kan overskrives som en command line argument ved bruk av -id=xxxxx")
+	flag.Parse()
 
-	deliveredOrderC := make(chan elevio.ButtonEvent, 10000)
-	newElevStateC := make(chan elevator.State,10000)
-	giverToNetwork := make(chan distributor.HRAInput,10000)
-	receiveFromNetworkC := make(chan distributor.HRAInput,10000)
-	messageToAssinger := make(chan distributor.HRAInput, 10000)
-	eleveatorAssingmentC := make(chan elevator.Assingments,10000)
-	lightsAssingmentC := make(chan elevator.Assingments,10000)
-	chan_receiver_from_peers := make(chan peers.PeerUpdate,10000)
-	chan_giver_to_peers := make(chan bool,10000)
+	Port = *port
+	ElevatorID = *id
 
+	fmt.Println()
+	elevio.Init("localhost:"+strconv.Itoa(Port), config.NumFloors)
 
-	go peers.Receiver(config.RT_port_number, chan_receiver_from_peers)
-	go peers.Transmitter(config.RT_port_number, config.Elevator_id, chan_giver_to_peers)
+	fmt.Println("Elevator initialized with ID ", ElevatorID, " on port ", Port, )
+	fmt.Println("System has ", config.NumFloors, " floors and ", config.NumElevators, " elevators.")
 
-	go bcast.Receiver(config.RT_port_number+15, receiveFromNetworkC) // må endres
-	go bcast.Transmitter(config.RT_port_number+15, giverToNetwork)
+	newAssignmentC := make(chan elevator.Assignments, 10000)
+	deliveredAssignmentC := make(chan elevio.ButtonEvent, 10000)
+	newLocalElevStateC := make(chan elevator.State, 10000)
+	giverToNetworkC := make(chan distributor.CommonState, 10000) // Endre navn?
+	receiverFromNetworkC := make(chan distributor.CommonState, 10000) // Endre navn?
+	toAssignerC := make(chan distributor.CommonState, 10000)
+	lightsAssignmentC := make(chan elevator.Assignments, 10000)
+	receiverPeersC := make(chan peers.PeerUpdate, 10000) // Endre navn?
+	giverPeersC := make(chan bool, 10000) // Endre navn?
+
+	go peers.Receiver(config.PeersPortNumber, receiverPeersC)
+	go peers.Transmitter(config.PeersPortNumber, ElevatorID, giverPeersC)
+
+	go bcast.Receiver(config.BcastPortNumber, receiverFromNetworkC)
+	go bcast.Transmitter(config.BcastPortNumber, giverToNetworkC)
 
 	go distributor.Distributor(
-		deliveredOrderC,
-		newElevStateC,
-		giverToNetwork,
-		receiveFromNetworkC,
-		messageToAssinger, 
-		chan_receiver_from_peers)
+		deliveredAssignmentC,
+		newLocalElevStateC,
+		giverToNetworkC,
+		receiverFromNetworkC,
+		toAssignerC,
+		receiverPeersC,
+		ElevatorID)
 
 	go assigner.Assigner(
-		eleveatorAssingmentC,
-		lightsAssingmentC,
-		messageToAssinger)
+		newAssignmentC,
+		lightsAssignmentC,
+		toAssignerC,
+		ElevatorID)
 
 	go elevator.Elevator(
-		eleveatorAssingmentC,
-		newElevStateC,
-		deliveredOrderC)
+		newAssignmentC,
+		newLocalElevStateC,
+		deliveredAssignmentC)
 
-	go lights.Lights(lightsAssingmentC)
+	go lights.Lights(lightsAssignmentC)
 
-	select {} // for å kjøre alltid lol
+	select {}
 }

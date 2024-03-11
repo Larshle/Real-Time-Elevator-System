@@ -1,87 +1,74 @@
 package distributor
 
 import (
-	"bytes"
 	"fmt"
-	"net"
 	"reflect"
-	"root/config"
-	"root/driver/elevio"
+	"root/elevio"
 	"root/elevator"
-	"root/network/network_modules/peers"
-	"strconv"
-	"strings"
+	"root/network/peers"
 )
 
-type Ack_status int
-
+type AckStatus int
 const (
-	NotAcked Ack_status = iota
+	NotAcked AckStatus = iota
 	Acked
 	NotAvailable
 )
 
-type HRAElevState struct {
+type LocalElevState struct {
 	Behaviour   string `json:"behaviour"`
 	Floor       int    `json:"floor"`
 	Direction   string `json:"direction"`
 	CabRequests []bool `json:"cabRequests"`
 }
 
-type HRAInput struct {
+type CommonState struct {
 	Seq          int
-	Origin       string
-	Ackmap       map[string]Ack_status
+	Origin       int
+	Ackmap       map[int]AckStatus
 	HallRequests [][2]bool               `json:"hallRequests"`
-	States       map[string]HRAElevState `json:"states"`
+	States       map[int]LocalElevState `json:"states"`
 }
 
-func (input *HRAInput) ensureElevatorState(state HRAElevState) {
-	_, exists := input.States[config.Elevator_id]
-	if !exists {
-		input.States[config.Elevator_id] = state
-	}
-	input.Seq++
-}
-
-func (es *HRAInput) removeCall(deliveredAssingement elevio.ButtonEvent) {
-	if deliveredAssingement.Button == elevio.BT_Cab {
-		es.States[config.Elevator_id].CabRequests[deliveredAssingement.Floor] = false
-	} else {
-		es.HallRequests[deliveredAssingement.Floor][deliveredAssingement.Button] = false
-	}
-	es.Seq++
-	es.Origin = config.Elevator_id
-}
-func (es *HRAInput) AddCall(newCall elevio.ButtonEvent) {
+func (es *CommonState) AddCall(newCall elevio.ButtonEvent, ElevatorID int) {
 	if newCall.Button == elevio.BT_Cab {
-		es.States[config.Elevator_id].CabRequests[newCall.Floor] = true
+		es.States[ElevatorID].CabRequests[newCall.Floor] = true
 	} else {
 		es.HallRequests[newCall.Floor][newCall.Button] = true
 	}
 	es.Seq++
-	es.Origin = config.Elevator_id
+	es.Origin = ElevatorID
 }
 
-func (es *HRAInput) toHRAElevState(localElevState elevator.State) {
-	HRA := es.States[config.Elevator_id]
+func (es *CommonState) removeCall(deliveredAssingement elevio.ButtonEvent, ElevatorID int) {
+	if deliveredAssingement.Button == elevio.BT_Cab {
+		es.States[ElevatorID].CabRequests[deliveredAssingement.Floor] = false
+	} else {
+		es.HallRequests[deliveredAssingement.Floor][deliveredAssingement.Button] = false
+	}
+	es.Seq++
+	es.Origin = ElevatorID
+}
+
+func (es *CommonState) updateLocalElevState(localElevState elevator.State, ElevatorID int) {
+	HRA := es.States[ElevatorID]
 	HRA.Behaviour = localElevState.Behaviour.ToString()
 	HRA.Floor = localElevState.Floor
 	HRA.Direction = localElevState.Direction.ToString()
-	HRA.CabRequests = es.States[config.Elevator_id].CabRequests
-	es.States[config.Elevator_id] = HRA
+	HRA.CabRequests = es.States[ElevatorID].CabRequests
+	es.States[ElevatorID] = HRA
 	es.Seq++
-	es.Origin = config.Elevator_id
+	es.Origin = ElevatorID
 }
 
-func PrintCommonState(cs HRAInput) {
+func (cs *CommonState) Print() {
 	fmt.Println("\nOrigin:", cs.Origin)
 	fmt.Println("seq:", cs.Seq)
 	fmt.Println("Ackmap:", cs.Ackmap)
 	fmt.Println("Hall Requests:", cs.HallRequests)
 
 	for i, state := range cs.States {
-		fmt.Printf("Elevator %s:\n", string(i))
+		fmt.Printf("Elevator %d:\n", int(i))
 		fmt.Printf("\tBehaviour: %s\n", state.Behaviour)
 		fmt.Printf("\tFloor: %d\n", state.Floor)
 		fmt.Printf("\tDirection: %s\n", state.Direction)
@@ -89,47 +76,7 @@ func PrintCommonState(cs HRAInput) {
 	}
 }
 
-func (cs *HRAInput) Update_Assingments(local_elevator_assignments localAssignments) {
-
-	for f := 0; f < config.N_floors; f++ {
-		for b := 0; b < 2; b++ {
-			if local_elevator_assignments.localHallAssignments[f][b] == add {
-				cs.HallRequests[f][b] = true
-				fmt.Println("Hall request added")
-			}
-			if local_elevator_assignments.localHallAssignments[f][b] == remove {
-				cs.HallRequests[f][b] = false
-				fmt.Println("Hall request removed")
-			}
-		}
-	}
-
-	for f := 0; f < config.N_floors; f++ {
-		if local_elevator_assignments.localCabAssignments[f] == add {
-			cs.States[config.Elevator_id].CabRequests[f] = true
-			fmt.Println("Cab request added")
-		}
-		if local_elevator_assignments.localCabAssignments[f] == remove {
-			fmt.Println("Cab request added")
-			cs.States[config.Elevator_id].CabRequests[f] = false
-		}
-	}
-
-	cs.Seq++
-	cs.Origin = config.Elevator_id
-	//fmt.Println("Updated common state with Update_Assignment:")
-	//PrintCommonState(*cs)
-
-}
-
-func (cs *HRAElevState) Update_local_state(local_elevator_state elevator.State) {
-	cs.Behaviour = local_elevator_state.Behaviour.ToString()
-	cs.Floor = local_elevator_state.Floor
-	cs.Direction = local_elevator_state.Direction.ToString()
-
-}
-
-func Fully_acked(ackmap map[string]Ack_status) bool {
+func FullyAcked(ackmap map[int]AckStatus) bool {
 	for _, value := range ackmap {
 		if value == 0 {
 			return false
@@ -138,91 +85,37 @@ func Fully_acked(ackmap map[string]Ack_status) bool {
 	return true
 }
 
-func commonStatesEqual(oldCS, newCS HRAInput) bool {
+func commonStatesEqual(oldCS, newCS CommonState) bool {
 	oldCS.Ackmap = nil
 	newCS.Ackmap = nil
 	return reflect.DeepEqual(oldCS, newCS)
 }
 
-func (cs *HRAInput) makeElevUnav(p peers.PeerUpdate) {
+func (cs *CommonState) makeElevUnav(p peers.PeerUpdate) {
 	for _, id := range p.Lost {
 		cs.Ackmap[id] = NotAvailable
 	}
 }
 
-func (cs *HRAInput) makeElevav() {
-	if cs.Ackmap[config.Elevator_id] == NotAvailable {
-		cs.Ackmap[config.Elevator_id] = NotAcked
+func (cs *CommonState) makeElevav(ElevatorID int) {
+	if cs.Ackmap[ElevatorID] == NotAvailable {
+		cs.Ackmap[ElevatorID] = NotAcked
 	}
-	
 }
 
-func (cs *HRAInput) Ack() {
-	cs.Ackmap[config.Elevator_id] = Acked
+func (cs *CommonState) Ack(ElevatorID int) {
+	cs.Ackmap[ElevatorID] = Acked
 }
 
-func higherPriority(oldCS, newCS HRAInput) bool {
-	return oldCS.Seq < newCS.Seq || (oldCS.Origin < newCS.Origin && oldCS.Seq == newCS.Seq)
-}
-
-//func higherPriority(oldCS, newCS HRAInput) bool {
-//    return oldCS.Seq > newCS.Seq || (oldCS.Seq == newCS.Seq && oldCS.Origin < newCS.Origin)
-//}
-
-func takePriortisedCommonState(oldCS, newCS HRAInput) HRAInput {
-	if oldCS.Seq < newCS.Seq {
-		return newCS
-	}
-	id1 := oldCS.Origin
-	id2 := newCS.Origin
-	parts1 := strings.Split(id1, "-")
-	parts2 := strings.Split(id2, "-")
-	ip1 := net.ParseIP(parts1[1])
-	ip2 := net.ParseIP(parts2[1])
-	pid1, _ := strconv.Atoi(parts1[2])
-	pid2, _ := strconv.Atoi(parts2[2])
-
-	// Compare IP addresses
-	cmp := bytes.Compare(ip1, ip2)
-	if cmp > 0 {
-		return oldCS
-	} else if cmp < 0 {
-		return newCS
-	}
-
-	// If IP addresses are equal, compare process IDs
-	if pid1 > pid2 {
-		return oldCS
-	}
-	return newCS
-}
-
-func (cs *HRAInput) makeElevUnavExceptOrigin() {
+func (cs *CommonState) makeElevUnavExceptOrigin(ElevatorID int) {
 	for id := range cs.Ackmap {
-		if id != config.Elevator_id {
+		if id != ElevatorID {
 			cs.Ackmap[id] = NotAvailable
 		}
 	}
 }
 
-func (cs *HRAInput) UpdateCabAssignments(local_elevator_assignments localAssignments) {
-	for f := 0; f < config.N_floors; f++ {
-		if local_elevator_assignments.localCabAssignments[f] == add {
-			cs.States[config.Elevator_id].CabRequests[f] = true
-		}
-		if local_elevator_assignments.localCabAssignments[f] == remove {
-			cs.States[config.Elevator_id].CabRequests[f] = false
-		}
-	}
-	cs.Seq++
-	//fmt.Println("Updated common state with CabAssignment:")
-	//PrintCommonState(*cs)
-}
-func (cs *HRAInput) makeOriginElevUnav() {
-	cs.Ackmap[config.Elevator_id] = NotAvailable
-}
-
-func (cs *HRAInput) NullAckmap() {
+func (cs *CommonState) NullAckmap() {
 	for id := range cs.Ackmap {
 		if cs.Ackmap[id] == Acked {
 			cs.Ackmap[id] = NotAcked

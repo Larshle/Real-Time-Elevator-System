@@ -1,6 +1,4 @@
 
-// Tester packet loss
-
 import std;
 
 auto helpstr = `

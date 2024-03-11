@@ -4,9 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"os/exec"
-	"root/config"
 	"root/distributor"
-	"root/driver/elevio"
+	"root/elevio"
 	"root/elevator"
 	"runtime"
 )
@@ -14,9 +13,9 @@ import (
 // Struct members must be public in order to be accessible by json.Marshal/.Unmarshal
 // This means they must start with a capital letter, so we need to use field renaming struct tags to make them camelCase
 
-func toLocalAssingment(a map[string][][3]bool) elevator.Assingments {
-	var ea elevator.Assingments
-	L, ok := a[config.Elevator_id]
+func toLocalAssingment(a map[int][][3]bool, ElevatorID int) elevator.Assignments {
+	var ea elevator.Assignments
+	L, ok := a[ElevatorID]
 	if !ok {
 		panic("elevator not here -local")
 	}
@@ -29,9 +28,9 @@ func toLocalAssingment(a map[string][][3]bool) elevator.Assingments {
 	return ea
 }
 
-func toLightsAssingment(cs distributor.HRAInput) elevator.Assingments {
-	var lights elevator.Assingments
-	L, ok := cs.States[config.Elevator_id]
+func toLightsAssingment(cs distributor.CommonState, ElevatorID int) elevator.Assignments {
+	var lights elevator.Assignments
+	L, ok := cs.States[ElevatorID]
 	if !ok {
 		panic("elevator not here -lights")
 	}
@@ -47,9 +46,9 @@ func toLightsAssingment(cs distributor.HRAInput) elevator.Assingments {
 	return lights
 }
 
-func removeUnavailableElevators(cs distributor.HRAInput) distributor.HRAInput {
+func removeUnavailableElevators(cs distributor.CommonState, ElevatorID int) distributor.CommonState {
 	for k := range cs.States {
-		if k != config.Elevator_id && cs.Ackmap[k] == distributor.NotAvailable {
+		if k != ElevatorID && cs.Ackmap[k] == distributor.NotAvailable {
 			delete(cs.States, k)
 			fmt.Println("Assigner: Removed unavailable elevators")
 		}
@@ -59,25 +58,24 @@ func removeUnavailableElevators(cs distributor.HRAInput) distributor.HRAInput {
 }
 
 func Assigner(
-	eleveatorAssingmentC chan<- elevator.Assingments,
-	lightsAssingmentC chan<- elevator.Assingments,
-	messageToAssinger <-chan distributor.HRAInput) {
+	newAssignmentC chan<- elevator.Assignments,
+	lightsAssignmentC chan<- elevator.Assignments,
+	toAssignerC <-chan distributor.CommonState,
+	ElevatorID int) {
 
 	for {
 		select {
-		case cs := <-messageToAssinger:
-			//fmt.Println("Assigner: Received commonstate")
-			//distributor.PrintCommonState(cs)
-			//cs = removeUnavailableElevators(cs)
-			localAssingment := toLocalAssingment(CalculateHRA(cs))
-			lightsAssingment := toLightsAssingment(cs)
-			lightsAssingmentC <- lightsAssingment
-			eleveatorAssingmentC <- localAssingment
+		case cs := <-toAssignerC:
+			// veb husk å legge til removeUnavailableElevators
+			localAssingment := toLocalAssingment(CalculateHRA(cs), ElevatorID)
+			lightsAssingment := toLightsAssingment(cs, ElevatorID)
+			lightsAssignmentC <- lightsAssingment
+			newAssignmentC <- localAssingment
 		}
 	}
 }
 
-func CalculateHRA(cs distributor.HRAInput) map[string][][3]bool {
+func CalculateHRA(cs distributor.CommonState) map[int][][3]bool {
 
 	hraExecutable := ""
 	switch runtime.GOOS {
@@ -104,7 +102,7 @@ func CalculateHRA(cs distributor.HRAInput) map[string][][3]bool {
 		panic("exec.Command error")
 	}
 
-	output := new(map[string][][3]bool)
+	output := new(map[int][][3]bool)
 	err = json.Unmarshal(ret, &output)
 	if err != nil {
 		fmt.Println("json.Unmarshal error: ", err)

@@ -1,15 +1,15 @@
 package lights
 
 import (
-	"root/driver/elevio"
+	"root/elevio"
 	"root/elevator"
 	"root/config"
 )
 
-func SetLights(light_assignment elevator.Assingments) {
-	for floor := 0; floor < config.N_floors; floor++ {
+func SetLights(lightAssignment elevator.Assignments) {
+	for floor := 0; floor < config.NumFloors; floor++ {
 		for button := 0; button < 3; button++ {
-			if light_assignment[floor][button] {
+			if lightAssignment[floor][button] {
 				elevio.SetButtonLamp( elevio.ButtonType(button), floor, true)
 			} else {
 				elevio.SetButtonLamp( elevio.ButtonType(button), floor, false)
@@ -18,10 +18,10 @@ func SetLights(light_assignment elevator.Assingments) {
 	}
 }
 
-func Lights(lightsAssingmentChan <-chan elevator.Assingments) {
+func Lights(lightsAssignmentC <-chan elevator.Assignments) {
 	for {
 		select {
-		case a := <-lightsAssingmentChan:
+		case a := <-lightsAssignmentC:
 			SetLights(a)
 		}
 	}
