@@ -22,6 +22,7 @@ const (
 	N_floors       = 4
 	N_elevators    = 2
 	RT_port_number = 58735
+	TimeBeforeStuck = 5
 )
 
 var Port int

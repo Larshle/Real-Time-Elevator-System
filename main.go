@@ -13,6 +13,7 @@ import (
 	"root/network/network_modules/bcast"
 	"root/network/network_modules/peers"
 	"strconv"
+	"root/watchdog"
 )
 
 func main() {
@@ -29,6 +30,8 @@ func main() {
 	lightsAssingmentC := make(chan elevator.Assingments,10000)
 	chan_receiver_from_peers := make(chan peers.PeerUpdate,10000)
 	chan_giver_to_peers := make(chan bool,10000)
+	petC := make(chan bool)
+	barkC := make(chan bool)
 
 
 	go peers.Receiver(config.RT_port_number, chan_receiver_from_peers)
@@ -36,6 +39,8 @@ func main() {
 
 	go bcast.Receiver(config.RT_port_number+15, receiveFromNetworkC) // må endres
 	go bcast.Transmitter(config.RT_port_number+15, giverToNetwork)
+
+	go watchdog.Watchdog(config.TimeBeforeStuck, petC, barkC)
 
 	go distributor.Distributor(
 		deliveredOrderC,
