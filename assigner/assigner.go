@@ -75,7 +75,7 @@ func Assigner(
 	}
 }
 
-func CalculateHRA(cs distributor.CommonState) map[int][][3]bool {
+func CalculateHRA(cs distributor.CommonState) map[string][][3]bool {
 
 	hraExecutable := ""
 	switch runtime.GOOS {
@@ -102,7 +102,7 @@ func CalculateHRA(cs distributor.CommonState) map[int][][3]bool {
 		panic("exec.Command error")
 	}
 
-	output := new(map[int][][3]bool)
+	output := new(map[string][][3]bool)
 	err = json.Unmarshal(ret, &output)
 	if err != nil {
 		fmt.Println("json.Unmarshal error: ", err)
