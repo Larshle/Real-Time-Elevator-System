@@ -33,8 +33,8 @@ func Distributor(
 	newElevStateC <-chan elevator.State,
 	giverToNetwork chan<- HRAInput,
 	receiveFromNetworkC <-chan HRAInput,
-	messageToAssinger chan<- HRAInput, 
-	recieveFromPeerC <- chan peers.PeerUpdate) {
+	messageToAssinger chan<- HRAInput,
+	recieveFromPeerC <-chan peers.PeerUpdate) {
 
 	elevioOrdersC := make(chan elevio.ButtonEvent, 10000)
 	newAssingemntC := make(chan localAssignments, 10000)
@@ -45,8 +45,8 @@ func Distributor(
 	var RemoveOrderStash elevio.ButtonEvent
 	var state State = Idle
 	var StashType StatshType
-	timeCounter := time.NewTimer(time.Second * 5)
-	selfLostNetworkDuratio := 10 * time.Second
+	selfLostNetworkDuratio := 50 * time.Second
+	timeCounter := time.NewTimer(selfLostNetworkDuratio)
 
 	commonState = HRAInput{
 		Origin: "peer-10.22.229.227-22222",
@@ -55,7 +55,6 @@ func Distributor(
 			"peer-10.22.229.227-22222": NotAcked,
 			"peer-10.22.229.227-11111": NotAcked,
 			"peer-10.22.229.227-33333": NotAcked,
-
 		},
 		HallRequests: [][2]bool{{false, false}, {false, false}, {false, false}, {false, false}},
 		States: map[string]HRAElevState{
@@ -115,7 +114,6 @@ func Distributor(
 				PrintCommonState(commonState)
 				state = SendingSelf
 
-
 			case removeOrder := <-deliveredOrderC:
 				fmt.Println("Delivered PULL OUT ")
 				RemoveOrderStash = removeOrder
@@ -124,7 +122,7 @@ func Distributor(
 				commonState.NullAckmap()
 				commonState.Ack()
 				state = SendingSelf
-				
+
 			case newElevState := <-newElevStateC: //bufferes lage stor kanal 64 feks
 				fmt.Println("newElevState")
 				StateStash = newElevState
@@ -135,14 +133,13 @@ func Distributor(
 				state = SendingSelf
 				//PrintCommonState(commonState)
 
-
 			case arrivedCommonState := <-receiveFromNetworkC: //bufferes lage stor kanal 64 feks
 				timeCounter = time.NewTimer(selfLostNetworkDuratio)
 				//fmt.Println("Vebjøn liker tss")
 				//PrintCommonState(commonState)
 				//fmt.Println("Arrived")
 				//PrintCommonState(arrivedCommonState)
-				
+
 				//arrivedCommonState.ensureElevatorState(arrivedCommonState.States[config.Elevator_id])
 
 				switch {
@@ -150,7 +147,7 @@ func Distributor(
 					fmt.Println("something fishy")
 					//if arrivedCommonState.Origin == config.Elevator_id {
 					//state = SendingSelf
-				
+
 					arrivedCommonState.Ack()
 					commonState = arrivedCommonState
 					state = Acking
@@ -162,7 +159,7 @@ func Distributor(
 					//	commonState = arrivedCommonState
 					//	state = Acking
 					//}
-					
+
 				}
 			case peers := <-recieveFromPeerC:
 				fmt.Println(peers) //bufferes lage stor kanal 64 feks
@@ -177,7 +174,7 @@ func Distributor(
 			//fmt.Println("-")
 			select {
 			case arrivedCommonState := <-receiveFromNetworkC:
-				if arrivedCommonState.Seq < commonState.Seq{
+				if arrivedCommonState.Seq < commonState.Seq {
 					break
 				}
 				//fmt.Println("Im in SendingSelf mode")
@@ -190,22 +187,20 @@ func Distributor(
 					arrivedCommonState.Ack()
 					commonState = arrivedCommonState
 					state = AckingOtherWhileTryingToSendSelf
-				
 
 				//case !higherPriority(commonState, arrivedCommonState):
 				//	fmt.Println("NOT HIGH ")
-				
-				
+
 				case Fully_acked(arrivedCommonState.Ackmap):
 					fmt.Println("Going to IDLE FROM SENDINGSELF")
 					state = Idle
-					
+
 					commonState = arrivedCommonState
 					messageToAssinger <- commonState
 					//commonState.NullAckmap()
 					PrintCommonState(commonState)
-			
-				case commonStatesEqual(commonState, arrivedCommonState): 
+
+				case commonStatesEqual(commonState, arrivedCommonState):
 					arrivedCommonState.Ack()
 					commonState = arrivedCommonState
 					fmt.Println("ACKING IN SENDING SELF")
@@ -215,7 +210,6 @@ func Distributor(
 					//break //doing jack
 					//fmt.Println("Priority mofo")
 				}
-		
 
 			case peers := <-recieveFromPeerC: //bufferes lage stor kanal 64 feks
 				//commonState.makeElevUnav(peers)
@@ -234,9 +228,9 @@ func Distributor(
 
 		case Acking:
 			select {
-		
+
 			case arrivedCommonState := <-receiveFromNetworkC:
-				if arrivedCommonState.Seq < commonState.Seq{
+				if arrivedCommonState.Seq < commonState.Seq {
 					break
 				}
 				//fmt.Println("Im in acking mode")
@@ -246,9 +240,9 @@ func Distributor(
 				switch {
 
 				case higherPriority(commonState, arrivedCommonState): // && takePriortisedCommonState(commonState, arrivedCommonState) priority of higher  {
-						arrivedCommonState.Ack()
-						commonState = arrivedCommonState
-						fmt.Println("HIghPRIORITY IN ACKING")
+					arrivedCommonState.Ack()
+					commonState = arrivedCommonState
+					fmt.Println("HIghPRIORITY IN ACKING")
 
 				case Fully_acked(arrivedCommonState.Ackmap):
 					state = Idle
@@ -257,15 +251,15 @@ func Distributor(
 					//commonState.NullAckmap()
 					fmt.Println("GOING TO IDLE FROM ACKING")
 
-				case commonStatesEqual(commonState, arrivedCommonState): 
+				case commonStatesEqual(commonState, arrivedCommonState):
 					arrivedCommonState.Ack()
 					commonState = arrivedCommonState
 					fmt.Println("ACKING IN ACKING")
-					
-				default: 
+
+				default:
 					//arrivedCommonState.Ack()
 					//commonState = arrivedCommonState
-				//
+					//
 				}
 
 			case peers := <-recieveFromPeerC:
@@ -289,7 +283,7 @@ func Distributor(
 			select {
 
 			case arrivedCommonState := <-receiveFromNetworkC:
-				
+
 				//PrintCommonState(arrivedCommonState)
 				timeCounter = time.NewTimer(selfLostNetworkDuratio)
 
@@ -302,8 +296,7 @@ func Distributor(
 					commonState = arrivedCommonState
 					fmt.Println("HIghPRIORITY IN AckingOtherWhileTryingToSendSelf")
 					//PrintCommonState(commonState)
-				
-				
+
 				case Fully_acked(arrivedCommonState.Ackmap):
 					state = SendingSelf
 					fmt.Println("GOING TO SENDINGSELF FROM AckingOtherWhileTryingToSendSelf ")
@@ -328,16 +321,11 @@ func Distributor(
 					commonState.NullAckmap()
 					commonState.Ack()
 					//PrintCommonState(commonState)
-				
-				
-			
-				case commonStatesEqual(commonState, arrivedCommonState): 
+
+				case commonStatesEqual(commonState, arrivedCommonState):
 					arrivedCommonState.Ack()
 					commonState = arrivedCommonState
 					fmt.Println("ACKING IN AckingOtherWhileTryingToSendSelf")
-					
-
-				
 
 				default:
 					//arrivedCommonState.Ack()

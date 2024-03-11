@@ -54,7 +54,7 @@ func removeUnavailableElevators(cs distributor.HRAInput) distributor.HRAInput {
 			fmt.Println("Assigner: Removed unavailable elevators")
 		}
 	}
-	
+
 	return cs
 }
 
@@ -81,7 +81,9 @@ func CalculateHRA(cs distributor.HRAInput) map[string][][3]bool {
 
 	hraExecutable := ""
 	switch runtime.GOOS {
-	case "linux", "darwin":
+	case "linux":
+		hraExecutable = "hall_request_assigner_linux"
+	case "darwin":
 		hraExecutable = "hall_request_assigner"
 	case "windows":
 		hraExecutable = "hall_request_assigner.exe"
@@ -111,7 +113,7 @@ func CalculateHRA(cs distributor.HRAInput) map[string][][3]bool {
 
 	//fmt.Printf("output: \n")
 	//for k, v := range *output {
- 	//fmt.Printf("%6v :  %+v\n", k, v)
+	//fmt.Printf("%6v :  %+v\n", k, v)
 	//}
 
 	return *output
