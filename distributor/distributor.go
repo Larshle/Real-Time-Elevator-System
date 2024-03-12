@@ -154,7 +154,7 @@ func (es *CommonState) removeCabCall(deliveredAssingement elevio.ButtonEvent, El
 	}
 }
 
-func (es *CommonState) AddCabCall(newCall elevio.ButtonEvent, ElevatorID int) {
+func (es *CommonState) addCabCall(newCall elevio.ButtonEvent, ElevatorID int) {
 	if newCall.Button == elevio.BT_Cab {
 		es.States[ElevatorID].CabRequests[newCall.Floor] = true
 	}

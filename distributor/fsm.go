@@ -9,10 +9,10 @@ import (
 	"time"
 )
 
-type StatshType int
+type StashType int
 
 const (
-	RemoveCall StatshType = iota
+	RemoveCall StashType = iota
 	AddCall
 	StateChange
 )
@@ -34,7 +34,7 @@ func Distributor(
 	var StateStash elevator.State
 	var NewOrderStash elevio.ButtonEvent
 	var RemoveOrderStash elevio.ButtonEvent
-	var StashType StatshType
+	var StashType StashType
 	var peers peers.PeerUpdate
 
 	disconnectTimer := time.NewTimer(config.DisconnectTime)
@@ -110,7 +110,7 @@ func Distributor(
 
 			case newOrder := <-elevioOrdersC:
 				cs.makeElevUnavExceptOrigin(ElevatorID)
-				cs.AddCabCall(newOrder, ElevatorID)
+				cs.addCabCall(newOrder, ElevatorID)
 				fmt.Println("ISOLATED")
 				toAssignerC <- cs
 

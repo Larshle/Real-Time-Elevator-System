@@ -19,10 +19,9 @@ type CalculateOptimalAssignmentsFormat struct {
 
 func CalculateOptimalAssignments(cs distributor.CommonState, ElevatorID int) elevator.Assignments {
 
-	// Convert from []LocalElevState to map[string]LocalElevState
 	stateMap := make(map[string]distributor.LocalElevState)
 	for i, v := range cs.States {
-		if cs.Ackmap[i] == distributor.NotAvailable {
+		if cs.Ackmap[i] == distributor.NotAvailable { // Remove not-available elevators from stateMap
 			continue
 		} else {
 			stateMap[strconv.Itoa(i)] = v
@@ -63,7 +62,7 @@ func CalculateOptimalAssignments(cs distributor.CommonState, ElevatorID int) ele
 		panic("json.Unmarshal error")
 	}
 
-	outputContent:= *output
+	outputContent := *output
 
 	var elevatorAssignments elevator.Assignments
 	L, ok := outputContent[strconv.Itoa(ElevatorID)]
