@@ -80,22 +80,6 @@ func CalculateOptimalAssignments(cs distributor.CommonState, ElevatorID int) ele
 	return elevatorAssignments
 }
 
-func ToLocalAssingment(a map[string][][config.NumButtons]bool, ElevatorID int) elevator.Assignments {
-	var ea elevator.Assignments
-	L, ok := a[strconv.Itoa(ElevatorID)]
-
-	if !ok {
-		panic("elevator not here -local")
-	}
-
-	for f := 0; f < config.NumFloors; f++ {
-		for b := 0; b < 3; b++ {
-			ea[f][b] = L[f][b]
-		}
-	}
-	return ea
-}
-
 func ToLightsAssingment(cs distributor.CommonState, ElevatorID int) elevator.Assignments {
 	var lights elevator.Assignments
 	myState := cs.States[ElevatorID]
