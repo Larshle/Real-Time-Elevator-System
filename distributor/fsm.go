@@ -24,7 +24,8 @@ func Distributor(
 	receiverFromNetworkC <-chan CommonState,
 	toAssignerC chan<- CommonState,
 	receiverPeersC <-chan peers.PeerUpdate,
-	ElevatorID int) {
+	ElevatorID int,
+	barkC <-chan bool,) {
 
 	elevioOrdersC := make(chan elevio.ButtonEvent, 10000)
 
@@ -43,6 +44,7 @@ func Distributor(
 	stashed := false
 	acking := false
 	isolated := false
+	stuck := false
 
 	commonState = initCommonState()
 
@@ -72,7 +74,7 @@ func Distributor(
 	// 		},
 	// 	},
 	// }
-
+	stuckStatus := make(map[int]bool)
 	for {
 
 		select {
@@ -81,12 +83,47 @@ func Distributor(
 		case Penis := <-receiverPeersC:
 			P = Penis
 			commonState.makeElevav(ElevatorID)
-			fmt.Println("Penis", P)
+			//fmt.Println("Penis", P)
+		case stuck = <- barkC:
+			stuckStatus[ElevatorID] = stuck
+			commonState.Print()
+			if stuckStatus[ElevatorID]{
+				fmt.Println("Elevator", ElevatorID, "is stuck")
+				select{
+					
+				case arrivedCommonState := <-receiverFromNetworkC:
+							if arrivedCommonState.Seq < commonState.Seq {
+								break
+							}
+							disconnectTimer = time.NewTimer(config.DisconnectTime)
+							arrivedCommonState = commonState
+							commonState.Ackmap[ElevatorID] = NotAvailable
+							commonState.Print()
+						default:
+
+				}
+				
+			}
 
 		default:
 		}
 
 		switch {
+		//case stuckStatus[ElevatorID]:
+		//	select{
+//
+		//	case arrivedCommonState := <-receiverFromNetworkC:
+		//		if arrivedCommonState.Seq < commonState.Seq {
+		//			break
+		//		}
+		//		disconnectTimer = time.NewTimer(config.DisconnectTime)
+		//		arrivedCommonState = commonState
+		//		commonState.Ackmap[ElevatorID] = NotAvailable
+		//		//commonState.Print()
+		//	default:
+//
+//
+		//	}
 		case !acking: // Idle
 			select {
 

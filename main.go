@@ -11,6 +11,7 @@ import (
 	"root/lights"
 	"root/network/bcast"
 	"root/network/peers"
+	"root/watchdog"
 	"strconv"
 )
 
@@ -29,8 +30,8 @@ func main() {
 	fmt.Println()
 	elevio.Init("localhost:"+strconv.Itoa(Port), config.NumFloors)
 
-	fmt.Println("Elevator initialized with ID", ElevatorID, "on port", Port)
-	fmt.Println("System has", config.NumFloors, "floors and", config.NumElevators, "elevators.")
+	//fmt.Println("Elevator initialized with ID", ElevatorID, "on port", Port)
+	//fmt.Println("System has", config.NumFloors, "floors and", config.NumElevators, "elevators.")
 
 	newAssignmentC := make(chan elevator.Assignments, 10000)
 	deliveredAssignmentC := make(chan elevio.ButtonEvent, 10000)
@@ -39,13 +40,19 @@ func main() {
 	receiverFromNetworkC := make(chan distributor.CommonState, 10000) // Endre navn?
 	toAssignerC := make(chan distributor.CommonState, 10000)
 	receiverPeersC := make(chan peers.PeerUpdate, 10000) // Endre navn?
-	giverPeersC := make(chan bool, 10000)                // Endre navn?
+	giverPeersC := make(chan bool, 10000)    
+
+	barkC := make(chan bool, 10000)
+	startMovingC := make(chan bool, 10000)
+	stopMovingC := make(chan bool, 10000)         // Endre navn?
 
 	go peers.Receiver(config.PeersPortNumber, receiverPeersC)
 	go peers.Transmitter(config.PeersPortNumber, ElevatorID, giverPeersC)
 
 	go bcast.Receiver(config.BcastPortNumber, receiverFromNetworkC)
 	go bcast.Transmitter(config.BcastPortNumber, giverToNetworkC)
+
+	go watchdog.Watchdog(20, barkC, startMovingC, stopMovingC)
 
 	go distributor.Distributor(
 		deliveredAssignmentC,
@@ -54,12 +61,15 @@ func main() {
 		receiverFromNetworkC,
 		toAssignerC,
 		receiverPeersC,
-		ElevatorID)
+		ElevatorID,
+		barkC)
 
 	go elevator.Elevator(
 		newAssignmentC,
 		newLocalElevStateC,
-		deliveredAssignmentC)
+		deliveredAssignmentC,
+		startMovingC,
+		stopMovingC)
 
 	for range toAssignerC {
 		cs := <-toAssignerC
