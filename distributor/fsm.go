@@ -45,6 +45,37 @@ func Distributor(
 	commonState = initCommonState()
 	
 
+	// commonState = CommonState{
+	// 	Origin: 0,
+	// 	Seq:    0,
+	// 	Ackmap: []AckStatus{NotAcked,NotAcked,NotAcked},
+	// 	HallRequests: [][2]bool{{false, false}, {false, false}, {false, false}, {false, false}},
+	// 	States: []LocalElevState{
+	// 		{
+	// 			Behaviour:   "idle",
+	// 			Floor:       2,
+	// 			Direction:   "down",
+	// 			CabRequests: []bool{false, false, false, false},
+	// 		},
+	// 		{
+	// 			Behaviour:   "idle",
+	// 			Floor:       2,
+	// 			Direction:   "down",
+	// 			CabRequests: []bool{false, false, false, false},
+	// 		},
+	// 		{
+	// 			Behaviour:   "idle",
+	// 			Floor:       2,
+	// 			Direction:   "down",
+	// 			CabRequests: []bool{false, false, false, false},
+	// 		},
+	// 	},
+	// }
+
+	commonState = initCommonState()
+
+	
+
 	for {
 
 		select {

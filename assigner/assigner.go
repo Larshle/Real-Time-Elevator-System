@@ -6,7 +6,9 @@ import (
 	"os/exec"
 	"root/distributor"
 	"root/elevator"
+	"root/elevio"
 	"runtime"
+	"strconv"
 )
 
 // Struct members must be public in order to be accessible by json.Marshal/.Unmarshal
@@ -14,7 +16,7 @@ import (
 
 func ToLocalAssingment(a map[int][][3]bool, ElevatorID int) elevator.Assignments {
 	var ea elevator.Assignments
-	L, ok := a[ElevatorID]
+	L, ok := a[strconv.Itoa(ElevatorID)]
 	if !ok {
 		panic("elevator not here -local")
 	}
@@ -34,17 +36,34 @@ func RemoveUnavailableElevators(cs distributor.CommonState, ElevatorID int) dist
 			delete(cs.States, k)
 		}
 	}
-
+	cs.States = newSlice
 	return cs
 }
 
 
-func CalculateHRA(cs distributor.CommonState) map[int][][3]bool {
+type hra struct {
+	HallRequests [][2]bool        `json:"hallRequests"`
+	States       map[string]distributor.LocalElevState `json:"states"`
+}
+
+func CalculateHRA(cs distributor.CommonState) map[string][][3]bool {
+	
+	m := make(map[string]distributor.LocalElevState)
+	for i, v := range cs.States {
+		m[strconv.Itoa(i)] = v
+	}
+	
+	newHRA := hra{cs.HallRequests,m}
+
+
+	// fmt.Println("\n")
+	// fmt.Println(cs)
+	// fmt.Println("\n")
 
 	hraExecutable := ""
 	switch runtime.GOOS {
 	case "linux":
-		hraExecutable = "hall_request_assigner_linux"
+		hraExecutable = "hall_request_assigner"
 	case "darwin":
 		hraExecutable = "hall_request_assigner_mac"
 	case "windows":
@@ -53,7 +72,7 @@ func CalculateHRA(cs distributor.CommonState) map[int][][3]bool {
 		panic("OS not supported")
 	}
 
-	jsonBytes, err := json.Marshal(cs)
+	jsonBytes, err := json.Marshal(newHRA)
 	if err != nil {
 		fmt.Println("json.Marshal error: ", err)
 		panic("json.Marshal error")
@@ -66,7 +85,7 @@ func CalculateHRA(cs distributor.CommonState) map[int][][3]bool {
 		panic("exec.Command error")
 	}
 
-	output := new(map[int][][3]bool)
+	output := new(map[string][][3]bool)
 	err = json.Unmarshal(ret, &output)
 	if err != nil {
 		fmt.Println("json.Unmarshal error: ", err)

@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"net"
-	"root/network/conn"
 	"reflect"
+	"root/network/conn"
 )
 
 const bufSize = 1024
@@ -131,6 +131,7 @@ func checkTypeRecursive(val reflect.Type, offsets []int) {
 			"Channel element type must be supported by JSON, got '%s' instead (nested arg# %v)",
 			val.String(), offsets))
 	case reflect.Map:
+		fmt.Println("her -> ", val)
 		if val.Key().Kind() != reflect.String {
 			panic(fmt.Sprintf(
 				"Channel element type must be supported by JSON, got '%s' instead (map keys must be 'string') (nested arg# %v)",

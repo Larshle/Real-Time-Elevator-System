@@ -3,12 +3,14 @@ package distributor
 import (
 	"fmt"
 	"reflect"
-	"root/elevio"
+	"root/config"
 	"root/elevator"
+	"root/elevio"
 	"root/network/peers"
 )
 
 type AckStatus int
+
 const (
 	NotAcked AckStatus = iota
 	Acked
@@ -25,9 +27,9 @@ type LocalElevState struct {
 type CommonState struct {
 	Seq          int
 	Origin       int
-	Ackmap       map[int]AckStatus
-	HallRequests [][2]bool               `json:"hallRequests"`
-	States       map[int]LocalElevState `json:"states"`
+	Ackmap       []AckStatus
+	HallRequests [][2]bool        `json:"hallRequests"`
+	States       []LocalElevState `json:"states"`
 }
 
 func (es *CommonState) AddCall(newCall elevio.ButtonEvent, ElevatorID int) {
@@ -51,12 +53,12 @@ func (es *CommonState) removeCall(deliveredAssingement elevio.ButtonEvent, Eleva
 }
 
 func (es *CommonState) updateLocalElevState(localElevState elevator.State, ElevatorID int) {
-	HRA := es.States[ElevatorID]
-	HRA.Behaviour = localElevState.Behaviour.ToString()
-	HRA.Floor = localElevState.Floor
-	HRA.Direction = localElevState.Direction.ToString()
-	HRA.CabRequests = es.States[ElevatorID].CabRequests
-	es.States[ElevatorID] = HRA
+	localEs := es.States[ElevatorID]
+	localEs.Behaviour = localElevState.Behaviour.ToString()
+	localEs.Floor = localElevState.Floor
+	localEs.Direction = localElevState.Direction.ToString()
+	localEs.CabRequests = es.States[ElevatorID].CabRequests
+	es.States[ElevatorID] = localEs
 	es.Seq++
 	es.Origin = ElevatorID
 }
@@ -76,7 +78,7 @@ func (cs *CommonState) Print() {
 	}
 }
 
-func FullyAcked(ackmap map[int]AckStatus) bool {
+func FullyAcked(ackmap []AckStatus) bool {
 	for _, value := range ackmap {
 		if value == 0 {
 			return false
@@ -120,5 +122,34 @@ func (cs *CommonState) NullAckmap() {
 		if cs.Ackmap[id] == Acked {
 			cs.Ackmap[id] = NotAcked
 		}
+	}
+}
+
+func initCommonState() CommonState {
+	hallRequests := make([][2]bool, config.NumFloors)
+	cabRequests := make([]bool, config.NumFloors)
+	for f := range hallRequests {
+		hallRequests[f] = [2]bool{false, false}
+		cabRequests[f] = false
+	}
+
+	ackSlice := make([]AckStatus, config.NumElevators)
+	states := make([]LocalElevState, config.NumElevators)
+	for i := 0; i < config.NumElevators; i++ {
+		states[i] = LocalElevState{
+			Behaviour:   "idle",
+			Floor:       2,
+			Direction:   "down",
+			CabRequests: cabRequests,
+		}
+		ackSlice[i] = NotAcked
+	}
+
+	return CommonState{
+		Origin:       0,
+		Seq:          0,
+		Ackmap:       ackSlice,
+		HallRequests: hallRequests,
+		States:       states,
 	}
 }
