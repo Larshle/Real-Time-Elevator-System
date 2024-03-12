@@ -153,3 +153,16 @@ func initCommonState() CommonState {
 		States:       states,
 	}
 }
+
+func (es *CommonState) removeCabCall(deliveredAssingement elevio.ButtonEvent, ElevatorID int) {
+	if deliveredAssingement.Button == elevio.BT_Cab {
+		es.States[ElevatorID].CabRequests[deliveredAssingement.Floor] = false
+	} 
+}
+
+func (es *CommonState) AddCabCall(newCall elevio.ButtonEvent, ElevatorID int) {
+	if newCall.Button == elevio.BT_Cab {
+		es.States[ElevatorID].CabRequests[newCall.Floor] = true
+	}
+}
+
