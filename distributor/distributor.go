@@ -18,18 +18,47 @@ const (
 )
 
 type LocalElevState struct {
-	Behaviour   string `json:"behaviour"`
-	Floor       int    `json:"floor"`
-	Direction   string `json:"direction"`
-	CabRequests []bool `json:"cabRequests"`
+	Behaviour   string                 `json:"behaviour"`
+	Floor       int                    `json:"floor"`
+	Direction   string                 `json:"direction"`
+	CabRequests [config.NumFloors]bool `json:"cabRequests"`
 }
 
 type CommonState struct {
 	Seq          int
 	Origin       int
-	Ackmap       []AckStatus
-	HallRequests [][2]bool        `json:"hallRequests"`
-	States       []LocalElevState `json:"states"`
+	Ackmap       [config.NumElevators]AckStatus
+	HallRequests [config.NumFloors][2]bool           `json:"hallRequests"`
+	States       [config.NumElevators]LocalElevState `json:"states"`
+}
+
+func initCommonState() CommonState {
+	var hallRequests [config.NumFloors][2]bool
+	var cabRequests [config.NumFloors]bool
+	for f := range hallRequests {
+		hallRequests[f] = [2]bool{false, false}
+		cabRequests[f] = false
+	}
+
+	var ackSlice [config.NumElevators]AckStatus
+	var states [config.NumElevators]LocalElevState
+	for i := 0; i < config.NumElevators; i++ {
+		states[i] = LocalElevState{
+			Behaviour:   "idle",
+			Floor:       2,
+			Direction:   "down",
+			CabRequests: cabRequests,
+		}
+		ackSlice[i] = NotAcked
+	}
+
+	return CommonState{
+		Origin:       0,
+		Seq:          0,
+		Ackmap:       ackSlice,
+		HallRequests: hallRequests,
+		States:       states,
+	}
 }
 
 func (es *CommonState) AddCall(newCall elevio.ButtonEvent, ElevatorID int) {
@@ -78,7 +107,7 @@ func (cs *CommonState) Print() {
 	}
 }
 
-func FullyAcked(ackmap []AckStatus) bool {
+func FullyAcked(ackmap [config.NumElevators]AckStatus) bool {
 
 	for index := range ackmap {
 		if ackmap[index] == NotAcked {
@@ -89,8 +118,8 @@ func FullyAcked(ackmap []AckStatus) bool {
 }
 
 func commonStatesEqual(oldCS, newCS CommonState) bool {
-	oldCS.Ackmap = nil
-	newCS.Ackmap = nil
+	oldCS.Ackmap = [config.NumElevators]AckStatus{}
+	newCS.Ackmap = [config.NumElevators]AckStatus{}
 	return reflect.DeepEqual(oldCS, newCS)
 }
 
@@ -123,35 +152,6 @@ func (cs *CommonState) NullAckmap() {
 		if cs.Ackmap[id] == Acked {
 			cs.Ackmap[id] = NotAcked
 		}
-	}
-}
-
-func initCommonState() CommonState {
-	hallRequests := make([][2]bool, config.NumFloors)
-	cabRequests := make([]bool, config.NumFloors)
-	for f := range hallRequests {
-		hallRequests[f] = [2]bool{false, false}
-		cabRequests[f] = false
-	}
-
-	ackSlice := make([]AckStatus, config.NumElevators)
-	states := make([]LocalElevState, config.NumElevators)
-	for i := 0; i < config.NumElevators; i++ {
-		states[i] = LocalElevState{
-			Behaviour:   "idle",
-			Floor:       2,
-			Direction:   "down",
-			CabRequests: cabRequests,
-		}
-		ackSlice[i] = NotAcked
-	}
-
-	return CommonState{
-		Origin:       0,
-		Seq:          0,
-		Ackmap:       ackSlice,
-		HallRequests: hallRequests,
-		States:       states,
 	}
 }
 

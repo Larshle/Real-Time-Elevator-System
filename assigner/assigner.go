@@ -4,12 +4,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"os/exec"
+	"root/config"
 	"root/distributor"
 	"root/elevator"
 	"root/elevio"
 	"runtime"
 	"strconv"
-	"root/config"
 )
 
 func ToLocalAssingment(a map[string][][3]bool, ElevatorID int) elevator.Assignments {
@@ -46,7 +46,7 @@ func ToLightsAssingment(cs distributor.CommonState, ElevatorID int) elevator.Ass
 }
 
 type hra struct {
-	HallRequests [][2]bool                             `json:"hallRequests"`
+	HallRequests [config.NumFloors][2]bool             `json:"hallRequests"`
 	States       map[string]distributor.LocalElevState `json:"states"`
 }
 
