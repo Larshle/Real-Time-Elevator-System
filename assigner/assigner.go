@@ -11,10 +11,7 @@ import (
 	"strconv"
 )
 
-// Struct members must be public in order to be accessible by json.Marshal/.Unmarshal
-// This means they must start with a capital letter, so we need to use field renaming struct tags to make them camelCase
-
-func ToLocalAssingment(a map[int][][3]bool, ElevatorID int) elevator.Assignments {
+func ToLocalAssingment(a map[string][][3]bool, ElevatorID int) elevator.Assignments {
 	var ea elevator.Assignments
 	L, ok := a[strconv.Itoa(ElevatorID)]
 	if !ok {
@@ -30,10 +27,33 @@ func ToLocalAssingment(a map[int][][3]bool, ElevatorID int) elevator.Assignments
 }
 
 
+func ToLightsAssingment(cs distributor.CommonState, ElevatorID int) elevator.Assignments {
+    var lights elevator.Assignments
+
+	L := cs.States[ElevatorID]
+
+    for f := 0; f < 4; f++ {
+        for b := 0; b < 2; b++ {
+            lights[f][b] = cs.HallRequests[f][b]
+        }
+    }
+
+    for f := 0; f < 4; f++ {
+        lights[f][elevio.BT_Cab] = L.CabRequests[f]
+    }
+
+    return lights
+}
+
+
 func RemoveUnavailableElevators(cs distributor.CommonState, ElevatorID int) distributor.CommonState {
-	for k := range cs.States {
-		if k != ElevatorID && cs.Ackmap[k] == distributor.NotAvailable {
-			delete(cs.States, k)
+
+	var newSlice []distributor.LocalElevState
+
+	for index, _ := range cs.States {
+		if index != ElevatorID && cs.Ackmap[ElevatorID] == distributor.NotAvailable{
+			newSlice = append(cs.States[:index], cs.States[index+1:]...)
+			fmt.Println("Assigner: Removed unavailable elevators")
 		}
 	}
 	cs.States = newSlice
