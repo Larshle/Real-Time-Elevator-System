@@ -121,7 +121,7 @@ func CalculateHRA(cs distributor.CommonState) map[string][][3]bool {
 	hraExecutable := ""
 	switch runtime.GOOS {
 	case "linux":
-		hraExecutable = "hall_request_assigner_linux"
+		hraExecutable = "hall_request_assigner"
 	case "darwin":
 		hraExecutable = "hall_request_assigner_mac"
 	case "windows":
