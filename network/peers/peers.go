@@ -57,15 +57,15 @@ func Receiver(port int, peerUpdateCh chan<- PeerUpdate) {
 		}
 
 		// Adding new connection
-		p.New = 0
-		if id != 0 {
+		p.New = 1000
+		// if id != 0 {
 			if _, idExists := lastSeen[id]; !idExists {
 				p.New = id
 				updated = true
 			}
 
 			lastSeen[id] = time.Now()
-		}
+		// }
 
 		// Removing dead connection
 		p.Lost = make([]int, 0)

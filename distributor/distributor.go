@@ -79,8 +79,9 @@ func (cs *CommonState) Print() {
 }
 
 func FullyAcked(ackmap []AckStatus) bool {
-	for _, value := range ackmap {
-		if value == 0 {
+
+	for index := range ackmap {
+		if ackmap[index] == NotAcked {
 			return false
 		}
 	}
@@ -157,7 +158,7 @@ func initCommonState() CommonState {
 func (es *CommonState) removeCabCall(deliveredAssingement elevio.ButtonEvent, ElevatorID int) {
 	if deliveredAssingement.Button == elevio.BT_Cab {
 		es.States[ElevatorID].CabRequests[deliveredAssingement.Floor] = false
-	} 
+	}
 }
 
 func (es *CommonState) AddCabCall(newCall elevio.ButtonEvent, ElevatorID int) {
@@ -165,4 +166,3 @@ func (es *CommonState) AddCabCall(newCall elevio.ButtonEvent, ElevatorID int) {
 		es.States[ElevatorID].CabRequests[newCall.Floor] = true
 	}
 }
-

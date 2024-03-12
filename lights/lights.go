@@ -22,7 +22,7 @@ func SetLights(cs distributor.CommonState, ElevatorID int){
 		if cs.States[ElevatorID].CabRequests[f]{
 		elevio.SetButtonLamp( elevio.BT_Cab, f, true)
 		} else {
-			elevio.SetButtonLamp( elevio.BT_Cab, f, false)
+			elevio.SetButtonLamp(elevio.BT_Cab, f, false)
 		}
 
 	}

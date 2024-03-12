@@ -1,17 +1,17 @@
 package main
 
 import (
+	"flag"
+	"fmt"
 	"root/assigner"
 	"root/config"
 	"root/distributor"
-	"root/elevio"
 	"root/elevator"
+	"root/elevio"
+	"root/lights"
 	"root/network/bcast"
 	"root/network/peers"
-	"root/lights"
 	"strconv"
-	"flag"
-	"fmt"
 )
 
 var Port int
@@ -20,7 +20,7 @@ var ElevatorID int
 func main() {
 
 	port := flag.Int("port", 15357, "<-- Default verdi, men kan overskrives som en command line argument ved bruk av -port=xxxxx")
-	id := flag.Int("id", 10000, "<-- Default verdi, men kan overskrives som en command line argument ved bruk av -id=xxxxx")
+	id := flag.Int("id", 0, "<-- Default verdi, men kan overskrives som en command line argument ved bruk av -id=xxxxx")
 	flag.Parse()
 
 	Port = *port
@@ -35,11 +35,11 @@ func main() {
 	newAssignmentC := make(chan elevator.Assignments, 10000)
 	deliveredAssignmentC := make(chan elevio.ButtonEvent, 10000)
 	newLocalElevStateC := make(chan elevator.State, 10000)
-	giverToNetworkC := make(chan distributor.CommonState, 10000) // Endre navn?
+	giverToNetworkC := make(chan distributor.CommonState, 10000)      // Endre navn?
 	receiverFromNetworkC := make(chan distributor.CommonState, 10000) // Endre navn?
 	toAssignerC := make(chan distributor.CommonState, 10000)
 	receiverPeersC := make(chan peers.PeerUpdate, 10000) // Endre navn?
-	giverPeersC := make(chan bool, 10000) // Endre navn?
+	giverPeersC := make(chan bool, 10000)                // Endre navn?
 
 	go peers.Receiver(config.PeersPortNumber, receiverPeersC)
 	go peers.Transmitter(config.PeersPortNumber, ElevatorID, giverPeersC)
@@ -56,21 +56,21 @@ func main() {
 		receiverPeersC,
 		ElevatorID)
 
-
 	go elevator.Elevator(
 		newAssignmentC,
 		newLocalElevStateC,
 		deliveredAssignmentC)
-
-
-	select {
-	case cs := <-toAssignerC:
-		cs = assigner.RemoveUnavailableElevators(cs, ElevatorID)
-		localAssingment := assigner.ToLocalAssingment(assigner.CalculateHRA(cs), ElevatorID)
-		newAssignmentC <- localAssingment
-		lights.SetLights(cs, ElevatorID)
-
-	default: 
+	
+	for{
+		select {
+		case cs := <-toAssignerC:
+			// cs = assigner.RemoveUnavailableElevators(cs, ElevatorID)
+			// fmt.Println("\n")
+			// cs.Print()
+			// fmt.Println("\n")
+			localAssingment := assigner.ToLocalAssingment(assigner.CalculateHRA(cs), ElevatorID)
+			newAssignmentC <- localAssingment
+			lights.SetLights(cs, ElevatorID)
+		}
 	}
-
 }

@@ -1,10 +1,12 @@
 package distributor
 
 import (
-	"root/elevio"
+	"fmt"
 	"root/elevator"
+	"root/elevio"
 	"root/network/peers"
 	"time"
+	// "root/config"
 )
 
 type StatshType int
@@ -33,9 +35,10 @@ func Distributor(
 	var NewOrderStash elevio.ButtonEvent
 	var RemoveOrderStash elevio.ButtonEvent
 	var StashType StatshType
+	var P peers.PeerUpdate
 
-	selfLostNetworkDuratio := 5 * time.Second
-	timeCounter := time.NewTimer(selfLostNetworkDuratio)
+	disconnectTime := 5*time.Second
+	disconnectTimer := time.NewTimer(disconnectTime)
 	heartbeatTimer := time.NewTicker(15 * time.Millisecond)
 
 	stashed := false
@@ -43,12 +46,11 @@ func Distributor(
 	isolated := false
 
 	commonState = initCommonState()
-	
 
 	// commonState = CommonState{
 	// 	Origin: 0,
 	// 	Seq:    0,
-	// 	Ackmap: []AckStatus{NotAcked,NotAcked,NotAcked},
+	// 	Ackmap: []AckStatus{NotAcked,NotAcked,NotAck				toAssignerC <- commonStateed},
 	// 	HallRequests: [][2]bool{{false, false}, {false, false}, {false, false}, {false, false}},
 	// 	States: []LocalElevState{
 	// 		{
@@ -72,21 +74,22 @@ func Distributor(
 	// 	},
 	// }
 
-	commonState = initCommonState()
-
-	
-
 	for {
 
 		select {
-		case <-timeCounter.C:
+		case <-disconnectTimer.C:
 			isolated = true
+		case Penis := <- receiverPeersC:
+			P = Penis
+			commonState.makeElevav(ElevatorID)
+			fmt.Println("Penis",P)
+		
 		default:
 		}
 
 		switch {
 		case !acking: // Idle
-			select {
+		select {
 
 			case newOrder := <-elevioOrdersC:
 				NewOrderStash = newOrder
@@ -116,17 +119,15 @@ func Distributor(
 				acking = true
 
 			case arrivedCommonState := <-receiverFromNetworkC:
-				timeCounter = time.NewTimer(selfLostNetworkDuratio)
+				disconnectTimer = time.NewTimer(disconnectTime)
 
 				switch {
-				case (arrivedCommonState.Origin > commonState.Origin && arrivedCommonState.Seq == commonState.Seq) || arrivedCommonState.Seq > commonState.Seq:
-					commonState = arrivedCommonState
-					commonState.Ack(ElevatorID)
-					acking = true
+					case (arrivedCommonState.Origin > commonState.Origin && arrivedCommonState.Seq == commonState.Seq) || arrivedCommonState.Seq > commonState.Seq:
+						commonState = arrivedCommonState
+						commonState.Ack(ElevatorID)
+						acking = true
+						commonState.makeElevUnav(P)
 				}
-			case peers := <-receiverPeersC:
-				commonState.makeElevUnav(peers)
-				commonState.makeElevav(ElevatorID)
 			default:
 			}
 
@@ -138,16 +139,19 @@ func Distributor(
 			case newOrder := <-elevioOrdersC:
 				commonState.makeElevUnavExceptOrigin(ElevatorID)
 				commonState.AddCabCall(newOrder, ElevatorID)
+				fmt.Println("ISOLATED")
 				toAssignerC <- commonState
-			
+
 			case removeOrder := <-deliveredAssignmentC:
 				commonState.makeElevUnavExceptOrigin(ElevatorID)
 				commonState.removeCabCall(removeOrder, ElevatorID)
+				fmt.Println("ISOLATED")
 				toAssignerC <- commonState
 
 			case newElevState := <-newLocalElevStateC:
 				commonState.updateLocalElevState(newElevState, ElevatorID)
 				commonState.makeElevUnavExceptOrigin(ElevatorID)
+				fmt.Println("ISOLATED")
 				toAssignerC <- commonState
 
 			default:
@@ -159,12 +163,13 @@ func Distributor(
 				if arrivedCommonState.Seq < commonState.Seq {
 					break
 				}
-				timeCounter = time.NewTimer(selfLostNetworkDuratio)
+				disconnectTimer = time.NewTimer(disconnectTime)
 
 				switch {
 				case (arrivedCommonState.Origin > commonState.Origin && arrivedCommonState.Seq == commonState.Seq) || arrivedCommonState.Seq > commonState.Seq:
 					commonState = arrivedCommonState
 					commonState.Ack(ElevatorID)
+					commonState.makeElevUnav(P)
 
 				case FullyAcked(arrivedCommonState.Ackmap):
 					commonState = arrivedCommonState
@@ -197,12 +202,10 @@ func Distributor(
 				case commonStatesEqual(commonState, arrivedCommonState):
 					commonState = arrivedCommonState
 					commonState.Ack(ElevatorID)
+					commonState.makeElevUnav(P)
 
 				default:
 				}
-			case peers := <-receiverPeersC:
-				commonState.makeElevUnav(peers)
-				commonState.makeElevav(ElevatorID)
 			default:
 			}
 		}
