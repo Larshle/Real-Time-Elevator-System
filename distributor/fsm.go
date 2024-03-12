@@ -43,36 +43,36 @@ func Distributor(
 	isolated := false
 
 
-	commonState = CommonState{
-		Origin: 0,
-		Seq:    0,
-		Ackmap: map[int]AckStatus{
-			0: NotAcked,
-			1: NotAcked,
-			2: NotAcked,
-		},
-		HallRequests: [][2]bool{{false, false}, {false, false}, {false, false}, {false, false}},
-		States: map[int]LocalElevState{
-			0: {
-				Behaviour:   "idle",
-				Floor:       2,
-				Direction:   "down",
-				CabRequests: []bool{false, false, false, false},
-			},
-			1: {
-				Behaviour:   "idle",
-				Floor:       2,
-				Direction:   "down",
-				CabRequests: []bool{false, false, false, false},
-			},
-			2: {
-				Behaviour:   "idle",
-				Floor:       2,
-				Direction:   "down",
-				CabRequests: []bool{false, false, false, false},
-			},
-		},
-	}
+	// commonState = CommonState{
+	// 	Origin: 0,
+	// 	Seq:    0,
+	// 	Ackmap: []AckStatus{NotAcked,NotAcked,NotAcked},
+	// 	HallRequests: [][2]bool{{false, false}, {false, false}, {false, false}, {false, false}},
+	// 	States: []LocalElevState{
+	// 		{
+	// 			Behaviour:   "idle",
+	// 			Floor:       2,
+	// 			Direction:   "down",
+	// 			CabRequests: []bool{false, false, false, false},
+	// 		},
+	// 		{
+	// 			Behaviour:   "idle",
+	// 			Floor:       2,
+	// 			Direction:   "down",
+	// 			CabRequests: []bool{false, false, false, false},
+	// 		},
+	// 		{
+	// 			Behaviour:   "idle",
+	// 			Floor:       2,
+	// 			Direction:   "down",
+	// 			CabRequests: []bool{false, false, false, false},
+	// 		},
+	// 	},
+	// }
+
+	commonState = initCommonState()
+
+	
 
 	for {
 

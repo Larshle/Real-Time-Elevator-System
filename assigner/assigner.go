@@ -5,17 +5,18 @@ import (
 	"fmt"
 	"os/exec"
 	"root/distributor"
-	"root/elevio"
 	"root/elevator"
+	"root/elevio"
 	"runtime"
+	"strconv"
 )
 
 // Struct members must be public in order to be accessible by json.Marshal/.Unmarshal
 // This means they must start with a capital letter, so we need to use field renaming struct tags to make them camelCase
 
-func toLocalAssingment(a map[int][][3]bool, ElevatorID int) elevator.Assignments {
+func toLocalAssingment(a map[string][][3]bool, ElevatorID int) elevator.Assignments {
 	var ea elevator.Assignments
-	L, ok := a[ElevatorID]
+	L, ok := a[strconv.Itoa(ElevatorID)]
 	if !ok {
 		panic("elevator not here -local")
 	}
@@ -28,32 +29,54 @@ func toLocalAssingment(a map[int][][3]bool, ElevatorID int) elevator.Assignments
 	return ea
 }
 
-func toLightsAssingment(cs distributor.CommonState, ElevatorID int) elevator.Assignments {
-	var lights elevator.Assignments
-	L, ok := cs.States[ElevatorID]
-	if !ok {
-		panic("elevator not here -lights")
-	}
-	for f := 0; f < 4; f++ {
-		for b := 0; b < 2; b++ {
-			lights[f][b] = cs.HallRequests[f][b]
+// func toLightsAssingment_GAMMEL(cs distributor.CommonState, ElevatorID int) elevator.Assignments {
+// 	var lights elevator.Assignments
+// 	L, ok := cs.States[ElevatorID]
+// 	if !ok {
+// 		panic("elevator not here -lights")
+// 	}
+// 	for f := 0; f < 4; f++ {
+// 		for b := 0; b < 2; b++ {
+// 			lights[f][b] = cs.HallRequests[f][b]
 
-		}
-	}
-	for f := 0; f < 4; f++ {
-		lights[f][elevio.BT_Cab] = L.CabRequests[f]
-	}
-	return lights
+// 		}
+// 	}
+// 	for f := 0; f < 4; f++ {
+// 		lights[f][elevio.BT_Cab] = L.CabRequests[f]
+// 	}
+// 	return lights
+// }
+
+func toLightsAssingment(cs distributor.CommonState, ElevatorID int) elevator.Assignments {
+    var lights elevator.Assignments
+
+	L := cs.States[ElevatorID]
+
+    for f := 0; f < 4; f++ {
+        for b := 0; b < 2; b++ {
+            lights[f][b] = cs.HallRequests[f][b]
+        }
+    }
+
+    for f := 0; f < 4; f++ {
+        lights[f][elevio.BT_Cab] = L.CabRequests[f]
+    }
+
+    return lights
 }
 
+
 func removeUnavailableElevators(cs distributor.CommonState, ElevatorID int) distributor.CommonState {
-	for k := range cs.States {
-		if k != ElevatorID && cs.Ackmap[k] == distributor.NotAvailable {
-			delete(cs.States, k)
+
+	var newSlice []distributor.LocalElevState
+
+	for index, _ := range cs.States {
+		if index != ElevatorID && cs.Ackmap[ElevatorID] == distributor.NotAvailable{
+			newSlice = append(cs.States[:index], cs.States[index+1:]...)
 			fmt.Println("Assigner: Removed unavailable elevators")
 		}
 	}
-
+	cs.States = newSlice
 	return cs
 }
 
@@ -71,11 +94,29 @@ func Assigner(
 			lightsAssingment := toLightsAssingment(cs, ElevatorID)
 			lightsAssignmentC <- lightsAssingment
 			newAssignmentC <- localAssingment
+			
 		}
 	}
 }
 
+type hra struct {
+	HallRequests [][2]bool        `json:"hallRequests"`
+	States       map[string]distributor.LocalElevState `json:"states"`
+}
+
 func CalculateHRA(cs distributor.CommonState) map[string][][3]bool {
+	
+	m := make(map[string]distributor.LocalElevState)
+	for i, v := range cs.States {
+		m[strconv.Itoa(i)] = v
+	}
+	
+	newHRA := hra{cs.HallRequests,m}
+
+
+	// fmt.Println("\n")
+	// fmt.Println(cs)
+	// fmt.Println("\n")
 
 	hraExecutable := ""
 	switch runtime.GOOS {
@@ -89,7 +130,7 @@ func CalculateHRA(cs distributor.CommonState) map[string][][3]bool {
 		panic("OS not supported")
 	}
 
-	jsonBytes, err := json.Marshal(cs)
+	jsonBytes, err := json.Marshal(newHRA)
 	if err != nil {
 		fmt.Println("json.Marshal error: ", err)
 		panic("json.Marshal error")

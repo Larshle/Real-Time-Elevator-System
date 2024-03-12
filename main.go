@@ -29,8 +29,8 @@ func main() {
 	fmt.Println()
 	elevio.Init("localhost:"+strconv.Itoa(Port), config.NumFloors)
 
-	fmt.Println("Elevator initialized with ID ", ElevatorID, " on port ", Port, )
-	fmt.Println("System has ", config.NumFloors, " floors and ", config.NumElevators, " elevators.")
+	fmt.Println("Elevator initialized with ID", ElevatorID, "on port", Port)
+	fmt.Println("System has", config.NumFloors, "floors and", config.NumElevators, "elevators.")
 
 	newAssignmentC := make(chan elevator.Assignments, 10000)
 	deliveredAssignmentC := make(chan elevio.ButtonEvent, 10000)
