@@ -35,7 +35,7 @@ func Distributor(
 	var NewOrderStash elevio.ButtonEvent
 	var RemoveOrderStash elevio.ButtonEvent
 	var StashType StatshType
-	var P peers.PeerUpdate
+	var peers peers.PeerUpdate
 
 	disconnectTimer := time.NewTimer(config.DisconnectTime)
 	heartbeatTimer := time.NewTicker(15 * time.Millisecond)
@@ -51,10 +51,10 @@ func Distributor(
 		select {
 		case <-disconnectTimer.C:
 			isolated = true
-		case Penis := <-receiverPeersC:
-			P = Penis
+		case P := <-receiverPeersC:
+			peers = P
 			commonState.makeElevav(ElevatorID)
-			fmt.Println("Peers", P)
+			fmt.Println("Peers", peers)
 
 		default:
 		}
@@ -98,7 +98,7 @@ func Distributor(
 					commonState = arrivedCommonState
 					commonState.Ack(ElevatorID)
 					acking = true
-					commonState.makeElevUnav(P)
+					commonState.makeElevUnav(peers)
 				}
 			default:
 			}
@@ -141,7 +141,7 @@ func Distributor(
 				case (arrivedCommonState.Origin > commonState.Origin && arrivedCommonState.Seq == commonState.Seq) || arrivedCommonState.Seq > commonState.Seq:
 					commonState = arrivedCommonState
 					commonState.Ack(ElevatorID)
-					commonState.makeElevUnav(P)
+					commonState.makeElevUnav(peers)
 
 				case arrivedCommonState.FullyAcked():
 					commonState = arrivedCommonState
@@ -174,7 +174,7 @@ func Distributor(
 				case commonStatesEqual(commonState, arrivedCommonState):
 					commonState = arrivedCommonState
 					commonState.Ack(ElevatorID)
-					commonState.makeElevUnav(P)
+					commonState.makeElevUnav(peers)
 
 				default:
 				}
