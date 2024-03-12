@@ -30,12 +30,14 @@ func Distributor(
 
 	go elevio.PollButtons(elevioOrdersC)
 
-	var cs CommonState
 	var StateStash elevator.State
 	var NewOrderStash elevio.ButtonEvent
 	var RemoveOrderStash elevio.ButtonEvent
 	var StashType StashType
 	var peers peers.PeerUpdate
+	var cs CommonState
+
+	cs.initCommonState()
 
 	disconnectTimer := time.NewTimer(config.DisconnectTime)
 	heartbeatTimer := time.NewTicker(15 * time.Millisecond)
@@ -44,17 +46,14 @@ func Distributor(
 	acking := false
 	isolated := false
 
-	cs.initCommonState()
-
 	for {
 
 		select {
 		case <-disconnectTimer.C:
 			isolated = true
+
 		case P := <-receiverPeersC:
 			peers = P
-			cs.makeElevav(ElevatorID)
-			fmt.Println("Peers", peers)
 
 		default:
 		}
@@ -66,8 +65,8 @@ func Distributor(
 			case newOrder := <-elevioOrdersC:
 				NewOrderStash = newOrder
 				StashType = AddCall
-				cs.AddCall(newOrder, ElevatorID)
-				cs.NullAckmap()
+				cs.addAssignments(newOrder, ElevatorID)
+				cs.nullAckmap()
 				cs.Ackmap[ElevatorID] = Acked
 				stashed = true
 				acking = true
@@ -75,8 +74,8 @@ func Distributor(
 			case removeOrder := <-deliveredAssignmentC:
 				RemoveOrderStash = removeOrder
 				StashType = RemoveCall
-				cs.removeCall(removeOrder, ElevatorID)
-				cs.NullAckmap()
+				cs.removeAssignments(removeOrder, ElevatorID)
+				cs.nullAckmap()
 				cs.Ackmap[ElevatorID] = Acked
 				stashed = true
 				acking = true
@@ -85,17 +84,17 @@ func Distributor(
 				StateStash = newElevState
 				StashType = StateChange
 				cs.updateLocalElevState(newElevState, ElevatorID)
-				cs.NullAckmap()
+				cs.nullAckmap()
 				cs.Ackmap[ElevatorID] = Acked
 				stashed = true
 				acking = true
 
-			case arrivedCommonState := <-receiverFromNetworkC:
+			case arrivedCs := <-receiverFromNetworkC:
 				disconnectTimer = time.NewTimer(config.DisconnectTime)
 
 				switch {
-				case (arrivedCommonState.Origin > cs.Origin && arrivedCommonState.Seq == cs.Seq) || arrivedCommonState.Seq > cs.Seq:
-					cs = arrivedCommonState
+				case (arrivedCs.Origin > cs.Origin && arrivedCs.Seq == cs.Seq) || arrivedCs.Seq > cs.Seq:
+					cs = arrivedCs
 					cs.Ackmap[ElevatorID] = Acked
 					acking = true
 					cs.makeElevUnav(peers)
@@ -131,37 +130,37 @@ func Distributor(
 
 		default:
 			select {
-			case arrivedCommonState := <-receiverFromNetworkC:
-				if arrivedCommonState.Seq < cs.Seq {
+			case arrivedCs := <-receiverFromNetworkC:
+				if arrivedCs.Seq < cs.Seq {
 					break
 				}
 				disconnectTimer = time.NewTimer(config.DisconnectTime)
 
 				switch {
-				case (arrivedCommonState.Origin > cs.Origin && arrivedCommonState.Seq == cs.Seq) || arrivedCommonState.Seq > cs.Seq:
-					cs = arrivedCommonState
+				case (arrivedCs.Origin > cs.Origin && arrivedCs.Seq == cs.Seq) || arrivedCs.Seq > cs.Seq:
+					cs = arrivedCs
 					cs.Ackmap[ElevatorID] = Acked
 					cs.makeElevUnav(peers)
 
-				case arrivedCommonState.FullyAcked():
-					cs = arrivedCommonState
+				case arrivedCs.fullyAcked():
+					cs = arrivedCs
 					toAssignerC <- cs
 					switch {
 					case cs.Origin != ElevatorID && stashed:
 						switch StashType {
 						case AddCall:
-							cs.AddCall(NewOrderStash, ElevatorID)
-							cs.NullAckmap()
+							cs.addAssignments(NewOrderStash, ElevatorID)
+							cs.nullAckmap()
 							cs.Ackmap[ElevatorID] = Acked
 
 						case RemoveCall:
-							cs.removeCall(RemoveOrderStash, ElevatorID)
-							cs.NullAckmap()
+							cs.removeAssignments(RemoveOrderStash, ElevatorID)
+							cs.nullAckmap()
 							cs.Ackmap[ElevatorID] = Acked
 
 						case StateChange:
 							cs.updateLocalElevState(StateStash, ElevatorID)
-							cs.NullAckmap()
+							cs.nullAckmap()
 							cs.Ackmap[ElevatorID] = Acked
 						}
 					case cs.Origin == ElevatorID && stashed:
@@ -171,8 +170,8 @@ func Distributor(
 						acking = false
 					}
 
-				case commonStatesEqual(cs, arrivedCommonState):
-					cs = arrivedCommonState
+				case commonStatesEqual(cs, arrivedCs):
+					cs = arrivedCs
 					cs.Ackmap[ElevatorID] = Acked
 					cs.makeElevUnav(peers)
 

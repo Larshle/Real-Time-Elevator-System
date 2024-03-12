@@ -59,7 +59,7 @@ func (cs *CommonState) initCommonState() {
 	cs.States = states
 }
 
-func (es *CommonState) AddCall(newCall elevio.ButtonEvent, ElevatorID int) {
+func (es *CommonState) addAssignments(newCall elevio.ButtonEvent, ElevatorID int) {
 	if newCall.Button == elevio.BT_Cab {
 		es.States[ElevatorID].CabRequests[newCall.Floor] = true
 	} else {
@@ -69,7 +69,7 @@ func (es *CommonState) AddCall(newCall elevio.ButtonEvent, ElevatorID int) {
 	es.Origin = ElevatorID
 }
 
-func (es *CommonState) removeCall(deliveredAssingement elevio.ButtonEvent, ElevatorID int) {
+func (es *CommonState) removeAssignments(deliveredAssingement elevio.ButtonEvent, ElevatorID int) {
 	if deliveredAssingement.Button == elevio.BT_Cab {
 		es.States[ElevatorID].CabRequests[deliveredAssingement.Floor] = false
 	} else {
@@ -105,7 +105,7 @@ func (cs *CommonState) Print() {
 	}
 }
 
-func (cs *CommonState) FullyAcked() bool {
+func (cs *CommonState) fullyAcked() bool {
 	for index := range cs.Ackmap {
 		if cs.Ackmap[index] == NotAcked {
 			return false
@@ -126,12 +126,6 @@ func (cs *CommonState) makeElevUnav(p peers.PeerUpdate) {
 	}
 }
 
-func (cs *CommonState) makeElevav(ElevatorID int) {
-	if cs.Ackmap[ElevatorID] == NotAvailable {
-		cs.Ackmap[ElevatorID] = NotAcked
-	}
-}
-
 func (cs *CommonState) makeElevUnavExceptOrigin(ElevatorID int) {
 	for id := range cs.Ackmap {
 		if id != ElevatorID {
@@ -140,7 +134,7 @@ func (cs *CommonState) makeElevUnavExceptOrigin(ElevatorID int) {
 	}
 }
 
-func (cs *CommonState) NullAckmap() {
+func (cs *CommonState) nullAckmap() {
 	for id := range cs.Ackmap {
 		if cs.Ackmap[id] == Acked {
 			cs.Ackmap[id] = NotAcked
