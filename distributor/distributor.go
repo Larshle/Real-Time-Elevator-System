@@ -32,7 +32,7 @@ type CommonState struct {
 	States       [config.NumElevators]LocalElevState `json:"states"`
 }
 
-func initCommonState() CommonState {
+func (cs *CommonState) initCommonState() {
 	var hallRequests [config.NumFloors][2]bool
 	var cabRequests [config.NumFloors]bool
 	for f := range hallRequests {
@@ -52,13 +52,11 @@ func initCommonState() CommonState {
 		ackSlice[i] = NotAcked
 	}
 
-	return CommonState{
-		Origin:       0,
-		Seq:          0,
-		Ackmap:       ackSlice,
-		HallRequests: hallRequests,
-		States:       states,
-	}
+	cs.Seq = 0
+	cs.Origin = 0
+	cs.Ackmap = ackSlice
+	cs.HallRequests = hallRequests
+	cs.States = states
 }
 
 func (es *CommonState) AddCall(newCall elevio.ButtonEvent, ElevatorID int) {
