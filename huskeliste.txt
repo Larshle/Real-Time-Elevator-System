@@ -1,0 +1,11 @@
+
+
+Direction på oppstart av heis
+dobbelsjekke packetloss
+teste mer på isolated
+watchdog
+readme
+fjerne unødvendige filer (f.eks packetloss)
+rydde i kode, spesielt assigner
+endre Ack() til bare ren kode
+fjerne printing
