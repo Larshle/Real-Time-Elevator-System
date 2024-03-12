@@ -63,7 +63,7 @@ func main() {
 
 	for range toAssignerC {
 		cs := <-toAssignerC
-		localAssingment := assigner.ToLocalAssingment(assigner.CalculateHRA(cs), ElevatorID)
+		localAssingment := assigner.CalculateOptimalAssignments(cs, ElevatorID)
 		newAssignmentC <- localAssingment
 		lights.SetLights(cs, ElevatorID)
 	}
