@@ -60,17 +60,11 @@ func main() {
 		newAssignmentC,
 		newLocalElevStateC,
 		deliveredAssignmentC)
-	
-	for{
-		select {
-		case cs := <-toAssignerC:
-			// cs = assigner.RemoveUnavailableElevators(cs, ElevatorID)
-			// fmt.Println("\n")
-			// cs.Print()
-			// fmt.Println("\n")
-			localAssingment := assigner.ToLocalAssingment(assigner.CalculateHRA(cs), ElevatorID)
-			newAssignmentC <- localAssingment
-			lights.SetLights(cs, ElevatorID)
-		}
+
+	for range toAssignerC {
+		cs := <-toAssignerC
+		localAssingment := assigner.ToLocalAssingment(assigner.CalculateHRA(cs), ElevatorID)
+		newAssignmentC <- localAssingment
+		lights.SetLights(cs, ElevatorID)
 	}
 }

@@ -26,25 +26,23 @@ func ToLocalAssingment(a map[string][][3]bool, ElevatorID int) elevator.Assignme
 	return ea
 }
 
-
 func ToLightsAssingment(cs distributor.CommonState, ElevatorID int) elevator.Assignments {
-    var lights elevator.Assignments
+	var lights elevator.Assignments
 
 	L := cs.States[ElevatorID]
 
-    for f := 0; f < 4; f++ {
-        for b := 0; b < 2; b++ {
-            lights[f][b] = cs.HallRequests[f][b]
-        }
-    }
+	for f := 0; f < 4; f++ {
+		for b := 0; b < 2; b++ {
+			lights[f][b] = cs.HallRequests[f][b]
+		}
+	}
 
-    for f := 0; f < 4; f++ {
-        lights[f][elevio.BT_Cab] = L.CabRequests[f]
-    }
+	for f := 0; f < 4; f++ {
+		lights[f][elevio.BT_Cab] = L.CabRequests[f]
+	}
 
-    return lights
+	return lights
 }
-
 
 // func RemoveUnavailableElevators(cs distributor.CommonState, ElevatorID int) distributor.CommonState {
 
@@ -57,7 +55,6 @@ func ToLightsAssingment(cs distributor.CommonState, ElevatorID int) elevator.Ass
 // 			newSlice
 // 		}
 
-
 // 		if index != ElevatorID && cs.Ackmap[ElevatorID] == distributor.NotAvailable{
 // 			newSlice = append(cs.States[:index], cs.States[index+1:]...)
 // 			fmt.Println("Assigner: Removed unavailable elevators")
@@ -67,27 +64,23 @@ func ToLightsAssingment(cs distributor.CommonState, ElevatorID int) elevator.Ass
 // 	return cs
 // }
 
-
 type hra struct {
-
-	HallRequests [][2]bool        `json:"hallRequests"`
+	HallRequests [][2]bool                             `json:"hallRequests"`
 	States       map[string]distributor.LocalElevState `json:"states"`
 }
 
 func CalculateHRA(cs distributor.CommonState) map[string][][3]bool {
-	
+
 	m := make(map[string]distributor.LocalElevState)
 	for i, v := range cs.States {
-		if cs.Ackmap[i] == distributor.NotAvailable{
+		if cs.Ackmap[i] == distributor.NotAvailable {
 			continue
 		} else {
 			m[strconv.Itoa(i)] = v
 		}
 	}
-	
-	newHRA := hra{cs.HallRequests,m}
 
-
+	newHRA := hra{cs.HallRequests, m}
 
 	// fmt.Println("\n")
 	// fmt.Println(cs)

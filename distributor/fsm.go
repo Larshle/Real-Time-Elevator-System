@@ -2,11 +2,11 @@ package distributor
 
 import (
 	"fmt"
+	"root/config"
 	"root/elevator"
 	"root/elevio"
 	"root/network/peers"
 	"time"
-	// "root/config"
 )
 
 type StatshType int
@@ -37,8 +37,7 @@ func Distributor(
 	var StashType StatshType
 	var P peers.PeerUpdate
 
-	disconnectTime := 5*time.Second
-	disconnectTimer := time.NewTimer(disconnectTime)
+	disconnectTimer := time.NewTimer(config.DisconnectTime)
 	heartbeatTimer := time.NewTicker(15 * time.Millisecond)
 
 	stashed := false
@@ -79,17 +78,17 @@ func Distributor(
 		select {
 		case <-disconnectTimer.C:
 			isolated = true
-		case Penis := <- receiverPeersC:
+		case Penis := <-receiverPeersC:
 			P = Penis
 			commonState.makeElevav(ElevatorID)
-			fmt.Println("Penis",P)
-		
+			fmt.Println("Penis", P)
+
 		default:
 		}
 
 		switch {
 		case !acking: // Idle
-		select {
+			select {
 
 			case newOrder := <-elevioOrdersC:
 				NewOrderStash = newOrder
@@ -119,14 +118,14 @@ func Distributor(
 				acking = true
 
 			case arrivedCommonState := <-receiverFromNetworkC:
-				disconnectTimer = time.NewTimer(disconnectTime)
+				disconnectTimer = time.NewTimer(config.DisconnectTime)
 
 				switch {
-					case (arrivedCommonState.Origin > commonState.Origin && arrivedCommonState.Seq == commonState.Seq) || arrivedCommonState.Seq > commonState.Seq:
-						commonState = arrivedCommonState
-						commonState.Ack(ElevatorID)
-						acking = true
-						commonState.makeElevUnav(P)
+				case (arrivedCommonState.Origin > commonState.Origin && arrivedCommonState.Seq == commonState.Seq) || arrivedCommonState.Seq > commonState.Seq:
+					commonState = arrivedCommonState
+					commonState.Ack(ElevatorID)
+					acking = true
+					commonState.makeElevUnav(P)
 				}
 			default:
 			}
@@ -163,7 +162,7 @@ func Distributor(
 				if arrivedCommonState.Seq < commonState.Seq {
 					break
 				}
-				disconnectTimer = time.NewTimer(disconnectTime)
+				disconnectTimer = time.NewTimer(config.DisconnectTime)
 
 				switch {
 				case (arrivedCommonState.Origin > commonState.Origin && arrivedCommonState.Seq == commonState.Seq) || arrivedCommonState.Seq > commonState.Seq:

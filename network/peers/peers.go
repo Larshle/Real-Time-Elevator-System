@@ -1,9 +1,9 @@
 package peers
 
 import (
-	"root/network/conn"
 	"fmt"
 	"net"
+	"root/network/conn"
 	"sort"
 	"strconv"
 	"time"
@@ -59,12 +59,12 @@ func Receiver(port int, peerUpdateCh chan<- PeerUpdate) {
 		// Adding new connection
 		p.New = 1000
 		// if id != 0 {
-			if _, idExists := lastSeen[id]; !idExists {
-				p.New = id
-				updated = true
-			}
+		if _, idExists := lastSeen[id]; !idExists {
+			p.New = id
+			updated = true
+		}
 
-			lastSeen[id] = time.Now()
+		lastSeen[id] = time.Now()
 		// }
 
 		// Removing dead connection

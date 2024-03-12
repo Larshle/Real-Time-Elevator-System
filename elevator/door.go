@@ -45,7 +45,7 @@ func Door(doorClosedC chan<- bool, doorOpenC <-chan bool) {
 				ds = InCountDown
 			case InCountDown:
 				timeCounter = time.NewTimer(DoorOpenDuration)
-				
+
 			case Obstructed:
 				timeCounter = time.NewTimer(DoorOpenDuration)
 				ds = InCountDown

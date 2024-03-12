@@ -83,15 +83,12 @@ func Elevator(newAssignmentC <-chan Assignments, newLocalElevStateC chan<- State
 					doorOpenC <- true
 					EmptyAssigner(state.Floor, state.Direction, assignments, deliveredAssignmentC)
 					state.Behaviour = DoorOpen
-					
-
 
 				case assignments[state.Floor][elevio.BT_Cab] && !assignments[state.Floor][state.Direction.toOpposite()]:
 					elevio.SetMotorDirection(elevio.MD_Stop)
 					doorOpenC <- true
 					EmptyAssigner(state.Floor, state.Direction, assignments, deliveredAssignmentC)
 					state.Behaviour = DoorOpen
-
 
 				case assignments.ReqInDirection(state.Floor, state.Direction):
 
@@ -101,7 +98,6 @@ func Elevator(newAssignmentC <-chan Assignments, newLocalElevStateC chan<- State
 					state.Direction = state.Direction.toOpposite()
 					EmptyAssigner(state.Floor, state.Direction, assignments, deliveredAssignmentC)
 					state.Behaviour = DoorOpen
-					
 
 				case assignments.ReqInDirection(state.Floor, state.Direction.toOpposite()):
 					state.Direction = state.Direction.toOpposite()
