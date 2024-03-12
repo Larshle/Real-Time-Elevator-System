@@ -107,10 +107,9 @@ func (cs *CommonState) Print() {
 	}
 }
 
-func FullyAcked(ackmap [config.NumElevators]AckStatus) bool {
-
-	for index := range ackmap {
-		if ackmap[index] == NotAcked {
+func (cs *CommonState) FullyAcked() bool {
+	for index := range cs.Ackmap {
+		if cs.Ackmap[index] == NotAcked {
 			return false
 		}
 	}

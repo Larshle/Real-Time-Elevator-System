@@ -19,7 +19,7 @@ var ElevatorID int
 
 func main() {
 
-	port := flag.Int("port", 15357, "<-- Default verdi, men kan overskrives som en command line argument ved bruk av -port=xxxxx")
+	port := flag.Int("port", 15301, "<-- Default verdi, men kan overskrives som en command line argument ved bruk av -port=xxxxx")
 	id := flag.Int("id", 0, "<-- Default verdi, men kan overskrives som en command line argument ved bruk av -id=xxxxx")
 	flag.Parse()
 

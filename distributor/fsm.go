@@ -81,7 +81,7 @@ func Distributor(
 		case Penis := <-receiverPeersC:
 			P = Penis
 			commonState.makeElevav(ElevatorID)
-			fmt.Println("Penis", P)
+			fmt.Println("Peers", P)
 
 		default:
 		}
@@ -170,7 +170,7 @@ func Distributor(
 					commonState.Ack(ElevatorID)
 					commonState.makeElevUnav(P)
 
-				case FullyAcked(arrivedCommonState.Ackmap):
+				case arrivedCommonState.FullyAcked():
 					commonState = arrivedCommonState
 					toAssignerC <- commonState
 					switch {
