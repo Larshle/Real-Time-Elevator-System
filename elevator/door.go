@@ -3,10 +3,7 @@ package elevator
 import (
 	"root/elevio"
 	"time"
-)
-
-const (
-	DoorOpenDuration = 2 * time.Second
+	"root/config"
 )
 
 type DoorState int
@@ -41,13 +38,13 @@ func Door(doorClosedC chan<- bool, doorOpenC <-chan bool) {
 			switch ds {
 			case Closed:
 				elevio.SetDoorOpenLamp(true)
-				timeCounter = time.NewTimer(DoorOpenDuration)
+				timeCounter = time.NewTimer(config.DoorOpenDuration)
 				ds = InCountDown
 			case InCountDown:
-				timeCounter = time.NewTimer(DoorOpenDuration)
+				timeCounter = time.NewTimer(config.DoorOpenDuration)
 
 			case Obstructed:
-				timeCounter = time.NewTimer(DoorOpenDuration)
+				timeCounter = time.NewTimer(config.DoorOpenDuration)
 				ds = InCountDown
 
 			default:

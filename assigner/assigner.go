@@ -9,6 +9,7 @@ import (
 	"root/elevio"
 	"runtime"
 	"strconv"
+	"root/config"
 )
 
 func ToLocalAssingment(a map[string][][3]bool, ElevatorID int) elevator.Assignments {
@@ -18,7 +19,7 @@ func ToLocalAssingment(a map[string][][3]bool, ElevatorID int) elevator.Assignme
 		panic("elevator not here -local")
 	}
 
-	for f := 0; f < 4; f++ {
+	for f := 0; f < config.NumFloors; f++ {
 		for b := 0; b < 3; b++ {
 			ea[f][b] = L[f][b]
 		}
@@ -29,40 +30,20 @@ func ToLocalAssingment(a map[string][][3]bool, ElevatorID int) elevator.Assignme
 func ToLightsAssingment(cs distributor.CommonState, ElevatorID int) elevator.Assignments {
 	var lights elevator.Assignments
 
-	L := cs.States[ElevatorID]
+	myState := cs.States[ElevatorID]
 
-	for f := 0; f < 4; f++ {
+	for f := 0; f < config.NumFloors; f++ {
 		for b := 0; b < 2; b++ {
 			lights[f][b] = cs.HallRequests[f][b]
 		}
 	}
 
-	for f := 0; f < 4; f++ {
-		lights[f][elevio.BT_Cab] = L.CabRequests[f]
+	for f := 0; f < config.NumFloors; f++ {
+		lights[f][elevio.BT_Cab] = myState.CabRequests[f]
 	}
 
 	return lights
 }
-
-// func RemoveUnavailableElevators(cs distributor.CommonState, ElevatorID int) distributor.CommonState {
-
-// 	var newSlice []distributor.LocalElevState
-
-// 	for index := range cs.States {
-// 		if index != ElevatorID && cs.Ackmap[ElevatorID] == distributor.NotAvailable{
-// 			continue
-// 		} else{
-// 			newSlice
-// 		}
-
-// 		if index != ElevatorID && cs.Ackmap[ElevatorID] == distributor.NotAvailable{
-// 			newSlice = append(cs.States[:index], cs.States[index+1:]...)
-// 			fmt.Println("Assigner: Removed unavailable elevators")
-// 		}
-// 	}
-// 	cs.States = newSlice
-// 	return cs
-// }
 
 type hra struct {
 	HallRequests [][2]bool                             `json:"hallRequests"`
@@ -71,6 +52,7 @@ type hra struct {
 
 func CalculateHRA(cs distributor.CommonState) map[string][][3]bool {
 
+	// Convert from []LocalElevState to map[string]LocalElevState
 	m := make(map[string]distributor.LocalElevState)
 	for i, v := range cs.States {
 		if cs.Ackmap[i] == distributor.NotAvailable {
@@ -81,10 +63,6 @@ func CalculateHRA(cs distributor.CommonState) map[string][][3]bool {
 	}
 
 	newHRA := hra{cs.HallRequests, m}
-
-	// fmt.Println("\n")
-	// fmt.Println(cs)
-	// fmt.Println("\n")
 
 	hraExecutable := ""
 	switch runtime.GOOS {

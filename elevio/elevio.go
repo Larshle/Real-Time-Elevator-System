@@ -10,7 +10,7 @@ import (
 const _pollRate = 20 * time.Millisecond
 
 var _initialized bool = false
-var NumFloors int = 4
+var NumFloors int
 var _mtx sync.Mutex
 var _conn net.Conn
 
