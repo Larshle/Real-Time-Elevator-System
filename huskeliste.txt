@@ -9,3 +9,5 @@ fjerne unødvendige filer (f.eks packetloss)
 rydde i kode, spesielt assigner
 endre Ack() til bare ren kode
 fjerne printing
+ikke ha med EmptyAssigner
+makeElevav <- endre dette tullenavnet

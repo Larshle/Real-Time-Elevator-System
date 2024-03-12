@@ -132,10 +132,6 @@ func (cs *CommonState) makeElevav(ElevatorID int) {
 	}
 }
 
-func (cs *CommonState) Ack(ElevatorID int) {
-	cs.Ackmap[ElevatorID] = Acked
-}
-
 func (cs *CommonState) makeElevUnavExceptOrigin(ElevatorID int) {
 	for id := range cs.Ackmap {
 		if id != ElevatorID {

@@ -68,7 +68,7 @@ func Distributor(
 				StashType = AddCall
 				cs.AddCall(newOrder, ElevatorID)
 				cs.NullAckmap()
-				cs.Ack(ElevatorID)
+				cs.Ackmap[ElevatorID] = Acked
 				stashed = true
 				acking = true
 
@@ -77,7 +77,7 @@ func Distributor(
 				StashType = RemoveCall
 				cs.removeCall(removeOrder, ElevatorID)
 				cs.NullAckmap()
-				cs.Ack(ElevatorID)
+				cs.Ackmap[ElevatorID] = Acked
 				stashed = true
 				acking = true
 
@@ -86,7 +86,7 @@ func Distributor(
 				StashType = StateChange
 				cs.updateLocalElevState(newElevState, ElevatorID)
 				cs.NullAckmap()
-				cs.Ack(ElevatorID)
+				cs.Ackmap[ElevatorID] = Acked
 				stashed = true
 				acking = true
 
@@ -96,7 +96,7 @@ func Distributor(
 				switch {
 				case (arrivedCommonState.Origin > cs.Origin && arrivedCommonState.Seq == cs.Seq) || arrivedCommonState.Seq > cs.Seq:
 					cs = arrivedCommonState
-					cs.Ack(ElevatorID)
+					cs.Ackmap[ElevatorID] = Acked
 					acking = true
 					cs.makeElevUnav(peers)
 				}
@@ -140,7 +140,7 @@ func Distributor(
 				switch {
 				case (arrivedCommonState.Origin > cs.Origin && arrivedCommonState.Seq == cs.Seq) || arrivedCommonState.Seq > cs.Seq:
 					cs = arrivedCommonState
-					cs.Ack(ElevatorID)
+					cs.Ackmap[ElevatorID] = Acked
 					cs.makeElevUnav(peers)
 
 				case arrivedCommonState.FullyAcked():
@@ -152,17 +152,17 @@ func Distributor(
 						case AddCall:
 							cs.AddCall(NewOrderStash, ElevatorID)
 							cs.NullAckmap()
-							cs.Ack(ElevatorID)
+							cs.Ackmap[ElevatorID] = Acked
 
 						case RemoveCall:
 							cs.removeCall(RemoveOrderStash, ElevatorID)
 							cs.NullAckmap()
-							cs.Ack(ElevatorID)
+							cs.Ackmap[ElevatorID] = Acked
 
 						case StateChange:
 							cs.updateLocalElevState(StateStash, ElevatorID)
 							cs.NullAckmap()
-							cs.Ack(ElevatorID)
+							cs.Ackmap[ElevatorID] = Acked
 						}
 					case cs.Origin == ElevatorID && stashed:
 						stashed = false
@@ -173,7 +173,7 @@ func Distributor(
 
 				case commonStatesEqual(cs, arrivedCommonState):
 					cs = arrivedCommonState
-					cs.Ack(ElevatorID)
+					cs.Ackmap[ElevatorID] = Acked
 					cs.makeElevUnav(peers)
 
 				default:
