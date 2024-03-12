@@ -8,6 +8,7 @@ import (
 	"root/elevator"
 	"root/network/bcast"
 	"root/network/peers"
+	"root/lights"
 	"strconv"
 	"flag"
 	"fmt"
@@ -64,10 +65,10 @@ func main() {
 
 	select {
 	case cs := <-toAssignerC:
-		cs = assigner.removeUnavailableElevators(cs, ElevatorID)
-		localAssingment := assigner.toLocalAssingment(assigner.CalculateHRA(cs), ElevatorID)
-		elevator.SetLights(localAssingment, ElevatorID)
+		cs = assigner.RemoveUnavailableElevators(cs, ElevatorID)
+		localAssingment := assigner.ToLocalAssingment(assigner.CalculateHRA(cs), ElevatorID)
 		newAssignmentC <- localAssingment
+		lights.SetLights(cs, ElevatorID)
 
 	default: 
 	}

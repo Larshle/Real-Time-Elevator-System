@@ -42,37 +42,8 @@ func Distributor(
 	acking := false
 	isolated := false
 
-
-	commonState = CommonState{
-		Origin: 0,
-		Seq:    0,
-		Ackmap: map[int]AckStatus{
-			0: NotAcked,
-			1: NotAcked,
-			2: NotAcked,
-		},
-		HallRequests: [][2]bool{{false, false}, {false, false}, {false, false}, {false, false}},
-		States: map[int]LocalElevState{
-			0: {
-				Behaviour:   "idle",
-				Floor:       2,
-				Direction:   "down",
-				CabRequests: []bool{false, false, false, false},
-			},
-			1: {
-				Behaviour:   "idle",
-				Floor:       2,
-				Direction:   "down",
-				CabRequests: []bool{false, false, false, false},
-			},
-			2: {
-				Behaviour:   "idle",
-				Floor:       2,
-				Direction:   "down",
-				CabRequests: []bool{false, false, false, false},
-			},
-		},
-	}
+	commonState = initCommonState()
+	
 
 	for {
 
@@ -83,7 +54,7 @@ func Distributor(
 		}
 
 		switch {
-		case !stashed && !acking: // Idle
+		case !acking: // Idle
 			select {
 
 			case newOrder := <-elevioOrdersC:
@@ -133,7 +104,15 @@ func Distributor(
 			case <-receiverFromNetworkC:
 				isolated = false
 
-			// må legge til 2 caser med add/remove call
+			case newOrder := <-elevioOrdersC:
+				commonState.makeElevUnavExceptOrigin(ElevatorID)
+				commonState.AddCabCall(newOrder, ElevatorID)
+				toAssignerC <- commonState
+			
+			case removeOrder := <-deliveredAssignmentC:
+				commonState.makeElevUnavExceptOrigin(ElevatorID)
+				commonState.removeCabCall(removeOrder, ElevatorID)
+				toAssignerC <- commonState
 
 			case newElevState := <-newLocalElevStateC:
 				commonState.updateLocalElevState(newElevState, ElevatorID)

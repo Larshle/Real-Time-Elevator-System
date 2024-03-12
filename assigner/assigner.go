@@ -12,7 +12,7 @@ import (
 // Struct members must be public in order to be accessible by json.Marshal/.Unmarshal
 // This means they must start with a capital letter, so we need to use field renaming struct tags to make them camelCase
 
-func toLocalAssingment(a map[int][][3]bool, ElevatorID int) elevator.Assignments {
+func ToLocalAssingment(a map[int][][3]bool, ElevatorID int) elevator.Assignments {
 	var ea elevator.Assignments
 	L, ok := a[ElevatorID]
 	if !ok {
@@ -28,7 +28,7 @@ func toLocalAssingment(a map[int][][3]bool, ElevatorID int) elevator.Assignments
 }
 
 
-func removeUnavailableElevators(cs distributor.CommonState, ElevatorID int) distributor.CommonState {
+func RemoveUnavailableElevators(cs distributor.CommonState, ElevatorID int) distributor.CommonState {
 	for k := range cs.States {
 		if k != ElevatorID && cs.Ackmap[k] == distributor.NotAvailable {
 			delete(cs.States, k)
