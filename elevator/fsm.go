@@ -32,7 +32,7 @@ func Elevator(newAssignmentC <-chan Assignments, newLocalElevStateC chan<- State
 	startMovingC := make(chan bool, 16)
 	stopMovingC := make(chan bool, 16)
 
-	go Door(doorClosedC, doorOpenC)
+	go Door(doorClosedC, doorOpenC, barkC)
 	go elevio.PollFloorSensor(floorEnteredC)
 	go watchdog.Watchdog(barkC, startMovingC, stopMovingC)
 
