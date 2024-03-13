@@ -2,7 +2,7 @@ package main
 
 import (
 	"flag"
-	"fmt"
+	//"fmt"
 	"root/assigner"
 	"root/config"
 	"root/distributor"
@@ -13,6 +13,7 @@ import (
 	"root/network/peers"
 	"root/watchdog"
 	"strconv"
+	"root/backup"
 )
 
 var Port int
@@ -27,8 +28,10 @@ func main() {
 	Port = *port
 	ElevatorID = *id
 
-	fmt.Println()
+	
 	elevio.Init("localhost:"+strconv.Itoa(Port), config.NumFloors)
+
+	go backup.Backmyshiup("localhost:1569"+strconv.Itoa(ElevatorID), strconv.Itoa(Port), strconv.Itoa(ElevatorID))
 
 	//fmt.Println("Elevator initialized with ID", ElevatorID, "on port", Port)
 	//fmt.Println("System has", config.NumFloors, "floors and", config.NumElevators, "elevators.")
