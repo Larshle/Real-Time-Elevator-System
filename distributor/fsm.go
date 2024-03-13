@@ -64,6 +64,7 @@ func Distributor(
 			if stuck{
 				cs.Ackmap[ElevatorID] = NotAvailable
 				cs.Seq++
+				acking = true
 				// cs.Print()
 			}
 
@@ -107,6 +108,9 @@ func Distributor(
 				acking = true
 
 			case arrivedCs := <-receiverFromNetworkC:
+				if arrivedCs.Seq < cs.Seq {
+					break
+				}
 				disconnectTimer = time.NewTimer(config.DisconnectTime)
 
 				switch {
@@ -120,7 +124,7 @@ func Distributor(
 				case stuck:
 					cs = arrivedCs
 					cs.Ackmap[ElevatorID] = NotAvailable	
-					cs.Seq++
+					acking = true
 				}
 			default:
 			}
