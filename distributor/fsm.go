@@ -40,7 +40,7 @@ func Distributor(
 	cs.initCommonState()
 
 	disconnectTimer := time.NewTimer(config.DisconnectTime)
-	heartbeatTimer := time.NewTicker(15 * time.Millisecond)
+	heartbeatTimer := time.NewTicker(config.HeartbeatTime)
 
 	stashed := false
 	acking := false

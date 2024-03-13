@@ -3,6 +3,7 @@ package peers
 import (
 	"fmt"
 	"net"
+	"root/config"
 	"root/network/conn"
 	"sort"
 	"strconv"
@@ -15,9 +16,6 @@ type PeerUpdate struct {
 	Lost  []int // Changed from []string to []int
 }
 
-const interval = 15 * time.Millisecond
-const timeout = 500 * time.Millisecond
-
 func Transmitter(port int, id int, transmitEnable <-chan bool) { // Changed id type to int
 
 	conn := conn.DialBroadcastUDP(port)
@@ -27,7 +25,7 @@ func Transmitter(port int, id int, transmitEnable <-chan bool) { // Changed id t
 	for {
 		select {
 		case enable = <-transmitEnable:
-		case <-time.After(interval):
+		case <-time.After(config.HeartbeatTime):
 		}
 		if enable {
 			idStr := strconv.Itoa(id) // Convert int ID to string for transmission
@@ -48,7 +46,7 @@ func Receiver(port int, peerUpdateCh chan<- PeerUpdate) {
 	for {
 		updated := false
 
-		conn.SetReadDeadline(time.Now().Add(interval))
+		conn.SetReadDeadline(time.Now().Add(config.HeartbeatTime))
 		n, _, _ := conn.ReadFrom(buf[0:])
 
 		idStr := string(buf[:n])
@@ -77,7 +75,7 @@ func Receiver(port int, peerUpdateCh chan<- PeerUpdate) {
 
 		// Removing dead connection
 		for k, v := range lastSeen {
-			if time.Now().Sub(v) > timeout {
+			if time.Now().Sub(v) > config.DisconnectTime {
 				updated = true
 				p.Lost = append(p.Lost, k)
 				delete(lastSeen, k)
