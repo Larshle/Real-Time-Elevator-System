@@ -62,52 +62,32 @@ func Distributor(
 			peers = P
 		
 		case stuck = <-barkC:
-			if stuckStatus[ElevatorID]{
-				fmt.Println("Elevator", ElevatorID, "is stuck")
-				select{
-
-				case arrivedCommonState := <-receiverFromNetworkC:
-							if arrivedCommonState.Seq < cs.Seq {
-								break
-							}
-							disconnectTimer = time.NewTimer(config.DisconnectTime)
-							arrivedCommonState = cs
-							cs.Ackmap[ElevatorID] = NotAvailable
-							cs.Print()
-						default:
-
-				}
-
+			if stuck{
+				stuckStatus[ElevatorID] = stuck
+				cs.Seq += 10
+				cs.Ackmap[ElevatorID] = NotAvailable
+				cs.Print()
 			}
 
 		default:
 		}
 
 		switch {
-		//case stuckStatus[ElevatorID]:
-		//	select{
-//
-		//	case arrivedCommonState := <-receiverFromNetworkC:
-		//		if arrivedCommonState.Seq < commonState.Seq {
-		//			break
-		//		}
-		//		disconnectTimer = time.NewTimer(config.DisconnectTime)
-		//		arrivedCommonState = commonState
-		//		commonState.Ackmap[ElevatorID] = NotAvailable
-		//		//commonState.Print()
-		//	default:
-//
-//
-		//	}
+
 		case !acking: // Idle
 			select {
 
 			case newOrder := <-elevioOrdersC:
+				if stuck{
+					break
+				}
 				NewOrderStash = newOrder
 				StashType = AddCall
 				cs.addAssignments(newOrder, ElevatorID)
 				cs.nullAckmap()
 				cs.Ackmap[ElevatorID] = Acked
+				fmt.Println("New order added: ")
+				cs.Print()
 				stashed = true
 				acking = true
 
@@ -184,6 +164,8 @@ func Distributor(
 
 				case arrivedCs.fullyAcked(ElevatorID):
 					cs = arrivedCs
+					fmt.Println("Fully acked: ")
+					cs.Print()
 					toAssignerC <- cs
 					switch {
 					case cs.Origin != ElevatorID && stashed:
@@ -213,6 +195,12 @@ func Distributor(
 				case stuck:
 					cs = arrivedCs
 					cs.Ackmap[ElevatorID] = NotAvailable
+					cs.Print()
+					select{
+					case  <-elevioOrdersC:
+						continue
+					default:
+					}
 
 				case commonStatesEqual(cs, arrivedCs):
 					cs = arrivedCs

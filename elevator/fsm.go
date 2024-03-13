@@ -1,7 +1,7 @@
 package elevator
 
 import (
-	"fmt"
+	
 	"root/elevio"
 )
 
@@ -75,7 +75,6 @@ func Elevator(newAssignmentC <-chan Assignments, newLocalElevStateC chan<- State
 		case state.Floor = <-floorEnteredC:
 			elevio.SetFloorIndicator(state.Floor)
 			stopMoving <- true
-			fmt.Println("floor entered")
 			switch state.Behaviour {
 			case Moving:
 				switch {
@@ -98,6 +97,7 @@ func Elevator(newAssignmentC <-chan Assignments, newLocalElevStateC chan<- State
 					state.Behaviour = DoorOpen
 
 				case assignments.ReqInDirection(state.Floor, state.Direction):
+					startMoving <- true
 
 				case assignments[state.Floor][state.Direction.toOpposite()]:
 					elevio.SetMotorDirection(elevio.MD_Stop)
@@ -109,6 +109,7 @@ func Elevator(newAssignmentC <-chan Assignments, newLocalElevStateC chan<- State
 				case assignments.ReqInDirection(state.Floor, state.Direction.toOpposite()):
 					state.Direction = state.Direction.toOpposite()
 					elevio.SetMotorDirection(state.Direction.toMD())
+					startMoving <- true
 
 				default:
 					elevio.SetMotorDirection(elevio.MD_Stop)

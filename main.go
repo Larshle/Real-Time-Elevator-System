@@ -52,7 +52,7 @@ func main() {
 	go bcast.Receiver(config.BcastPortNumber, receiverFromNetworkC)
 	go bcast.Transmitter(config.BcastPortNumber, giverToNetworkC)
 
-	go watchdog.Watchdog(20, barkC, startMovingC, stopMovingC)
+	go watchdog.Watchdog(5, barkC, startMovingC, stopMovingC)
 
 	go distributor.Distributor(
 		deliveredAssignmentC,
