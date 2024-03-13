@@ -62,7 +62,6 @@ func Distributor(
 		switch {
 		case !acking: // Idle
 			select {
-
 			case newOrder := <-elevioOrdersC:
 				NewOrderStash = newOrder
 				StashType = AddCall
@@ -106,8 +105,10 @@ func Distributor(
 		case aloneOnNetwork:
 			select {
 			case <-receiverFromNetworkC:
-				aloneOnNetwork = false
-				fmt.Println("Hello network!")
+				if cs.States[ElevatorID].CabRequests == [config.NumFloors]bool{} {
+					aloneOnNetwork = false
+					fmt.Println("Hello network!")
+				}
 
 			case newOrder := <-elevioOrdersC:
 				cs.addCabCall(newOrder, ElevatorID)
@@ -136,7 +137,7 @@ func Distributor(
 				disconnectTimer = time.NewTimer(config.DisconnectTime)
 
 				switch {
-				case (arrivedCs.Origin > cs.Origin && arrivedCs.Seq == cs.Seq) || arrivedCs.Seq > cs.Seq:
+				case (arrivedCs.Origin > cs.Origin && arrivedCs.Seq == cs.Seq) || arrivedCs.Seq > cs.Seq: // Higher priority
 					cs = arrivedCs
 					cs.Ackmap[ElevatorID] = Acked
 					cs.makeLostPeersUnavailable(peers)
