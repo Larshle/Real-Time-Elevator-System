@@ -137,7 +137,7 @@ func Distributor(
 					cs = arrivedCs
 					cs.Ackmap[ElevatorID] = Acked
 					acking = true
-					cs.makeElevUnav(peers)
+					cs.makeLostPeersUnavailable(peers)
 				}
 			default:
 			}
@@ -146,21 +146,21 @@ func Distributor(
 			select {
 			case <-receiverFromNetworkC:
 				aloneOnNetwork = false
-				fmt.Println("Goodbye aloneOnNetwork")
+				fmt.Println("Hello network!")
 
 			case newOrder := <-elevioOrdersC:
 				cs.addCabCall(newOrder, ElevatorID)
-				fmt.Println("aloneOnNetwork")
+				fmt.Println("Goodbye network :(")
 				toAssignerC <- cs
 
 			case removeOrder := <-deliveredAssignmentC:
 				cs.removeAssignments(removeOrder, ElevatorID)
-				fmt.Println("aloneOnNetwork")
+				fmt.Println("Goodbye network :(")
 				toAssignerC <- cs
 
 			case newElevState := <-newLocalElevStateC:
 				cs.updateLocalElevState(newElevState, ElevatorID)
-				fmt.Println("aloneOnNetwork")
+				fmt.Println("Goodbye network :(")
 				toAssignerC <- cs
 
 			default:
@@ -180,9 +180,9 @@ func Distributor(
 				case (arrivedCs.Origin > cs.Origin && arrivedCs.Seq == cs.Seq) || arrivedCs.Seq > cs.Seq:
 					cs = arrivedCs
 					cs.Ackmap[ElevatorID] = Acked
-					cs.makeElevUnav(peers)
+					cs.makeLostPeersUnavailable(peers)
 
-				case arrivedCs.fullyAcked():
+				case arrivedCs.fullyAcked(ElevatorID):
 					cs = arrivedCs
 					toAssignerC <- cs
 					switch {
@@ -217,7 +217,7 @@ func Distributor(
 				case commonStatesEqual(cs, arrivedCs):
 					cs = arrivedCs
 					cs.Ackmap[ElevatorID] = Acked
-					cs.makeElevUnav(peers)
+					cs.makeLostPeersUnavailable(peers)
 
 				default:
 				}

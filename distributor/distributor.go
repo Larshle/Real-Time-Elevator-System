@@ -111,7 +111,10 @@ func (cs *CommonState) Print() {
 	}
 }
 
-func (cs *CommonState) fullyAcked() bool {
+func (cs *CommonState) fullyAcked(ElevatorID int) bool {
+	if cs.Ackmap[ElevatorID] == NotAvailable {
+		return false
+	}
 	for index := range cs.Ackmap {
 		if cs.Ackmap[index] == NotAcked {
 			return false
@@ -126,7 +129,7 @@ func commonStatesEqual(oldCS, newCS CommonState) bool {
 	return reflect.DeepEqual(oldCS, newCS)
 }
 
-func (cs *CommonState) makeElevUnav(p peers.PeerUpdate) {
+func (cs *CommonState) makeLostPeersUnavailable(p peers.PeerUpdate) {
 	for _, id := range p.Lost {
 		cs.Ackmap[id] = NotAvailable
 	}
