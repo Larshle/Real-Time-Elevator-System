@@ -1,7 +1,6 @@
 package distributor
 
 import (
-	"fmt"
 	"root/config"
 	"root/elevator"
 	"root/elevio"
@@ -107,22 +106,18 @@ func Distributor(
 			case <-receiverFromNetworkC:
 				if cs.States[ElevatorID].CabRequests == [config.NumFloors]bool{} {
 					aloneOnNetwork = false
-					fmt.Println("Hello network!")
 				}
 
 			case newOrder := <-elevioOrdersC:
 				cs.addCabCall(newOrder, ElevatorID)
-				fmt.Println("Goodbye network :(")
 				toAssignerC <- cs
 
 			case removeOrder := <-deliveredAssignmentC:
 				cs.removeAssignments(removeOrder, ElevatorID)
-				fmt.Println("Goodbye network :(")
 				toAssignerC <- cs
 
 			case newElevState := <-newLocalElevStateC:
 				cs.updateLocalElevState(newElevState, ElevatorID)
-				fmt.Println("Goodbye network :(")
 				toAssignerC <- cs
 
 			default:
