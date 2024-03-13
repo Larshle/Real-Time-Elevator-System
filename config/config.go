@@ -5,11 +5,12 @@ import (
 )
 
 const (
-	NumFloors       = 4
-	NumElevators    = 3
-	NumButtons      = 3
-	PeersPortNumber = 58735
-	BcastPortNumber = 58750
-	DisconnectTime  = 1 * time.Second
+	NumFloors        = 4
+	NumElevators     = 3
+	NumButtons       = 3
+	PeersPortNumber  = 58735
+	BcastPortNumber  = 58750
+	DisconnectTime   = 1 * time.Second
 	DoorOpenDuration = 2 * time.Second
+	WatchdogTime     = 5 * time.Second
 )

@@ -1,9 +1,9 @@
 package elevator
 
 import (
+	"root/config"
 	"root/elevio"
 	"time"
-	"root/config"
 )
 
 type DoorState int

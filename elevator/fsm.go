@@ -34,7 +34,7 @@ func Elevator(newAssignmentC <-chan Assignments, newLocalElevStateC chan<- State
 
 	go Door(doorClosedC, doorOpenC)
 	go elevio.PollFloorSensor(floorEnteredC)
-	go watchdog.Watchdog(5, barkC, startMovingC, stopMovingC)
+	go watchdog.Watchdog(barkC, startMovingC, stopMovingC)
 
 	// Initialize elevator
 	elevio.SetMotorDirection(elevio.MD_Down)

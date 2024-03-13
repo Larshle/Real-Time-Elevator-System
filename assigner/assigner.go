@@ -21,7 +21,6 @@ func CalculateOptimalAssignments(cs distributor.CommonState, ElevatorID int) ele
 
 	stateMap := make(map[string]distributor.LocalElevState)
 	for i, v := range cs.States {
-		fmt.Println("vstuck: ", v.Stuck)
 		if cs.Ackmap[i] == distributor.NotAvailable || v.Stuck { // Remove not-available and stuck elevators from stateMap
 			continue
 		} else {
@@ -87,10 +86,10 @@ func CalculateOptimalAssignments(cs distributor.CommonState, ElevatorID int) ele
 			}
 		}
 	}
-	fmt.Printf("output: \n")
-	for k, v := range *output {
-		fmt.Printf("%6v :  %+v\n", k, v)
-	}
+	// fmt.Printf("output: \n")
+	// for k, v := range *output {
+	// 	fmt.Printf("%6v :  %+v\n", k, v)
+	// }
 	return elevatorAssignments
 }
 
