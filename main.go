@@ -69,8 +69,8 @@ func main() {
 		newLocalElevStateC,
 		deliveredAssignmentC,
 		startMovingC,
-		stopMovingC, 
-		)
+		stopMovingC,
+		barkC)
 
 	for{
 		select{

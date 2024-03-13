@@ -22,7 +22,7 @@ func Watchdog(seconds int, barkC chan<- bool, startMovingC <-chan bool, stopMovi
 			barkC <- false
 
 		case <-timer.C:
-			fmt.Println("IM STUCK!!!")
+			fmt.Println("IM STUCK😱")
 			barkC <- true	
 		}
 	}

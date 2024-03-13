@@ -1,9 +1,10 @@
 package elevator
 
 import (
+	"fmt"
+	"root/config"
 	"root/elevio"
 	"time"
-	"root/config"
 )
 
 type DoorState int
@@ -14,7 +15,7 @@ const (
 	Obstructed
 )
 
-func Door(doorClosedC chan<- bool, doorOpenC <-chan bool) {
+func Door(doorClosedC chan<- bool, doorOpenC <-chan bool, barkC chan<- bool) {
 
 	elevio.SetDoorOpenLamp(false)
 	obstructionC := make(chan bool)
@@ -28,13 +29,24 @@ func Door(doorClosedC chan<- bool, doorOpenC <-chan bool) {
 	for {
 		select {
 		case obstruction = <-obstructionC:
+			fmt.Println("Obstruction detected", obstruction)
 			if !obstruction && ds == Obstructed {
 				elevio.SetDoorOpenLamp(false)
 				doorClosedC <- true
 				ds = Closed
 			}
+			if obstruction{
+				barkC <- true
+			}else{
+				barkC <- false	
+			}
+
+
 
 		case <-doorOpenC:
+			if obstruction{
+				barkC <- true
+			}
 			switch ds {
 			case Closed:
 				elevio.SetDoorOpenLamp(true)

@@ -65,7 +65,10 @@ func Distributor(
 				cs.Ackmap[ElevatorID] = NotAvailable
 				cs.Seq++
 				acking = true
+				fmt.Println(("IM STUCK"))
 				// cs.Print()
+			}else{
+				fmt.Println("Im free💩")
 			}
 
 		default:
@@ -180,7 +183,7 @@ func Distributor(
 				case arrivedCs.fullyAcked(ElevatorID):
 					cs = arrivedCs
 					fmt.Println("Fully acked: ")
-					cs.Print()
+					//cs.Print()
 					toAssignerC <- cs
 					switch {
 					case cs.Origin != ElevatorID && stashed:

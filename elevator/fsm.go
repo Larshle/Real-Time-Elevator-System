@@ -23,12 +23,12 @@ func (b Behaviour) ToString() string {
 	return map[Behaviour]string{Idle: "idle", DoorOpen: "doorOpen", Moving: "moving"}[b]
 }
 
-func Elevator(newAssignmentC <-chan Assignments, newLocalElevStateC chan<- State, deliveredAssignmentC chan<- elevio.ButtonEvent, startMoving chan<- bool, stopMoving chan<- bool) {
+func Elevator(newAssignmentC <-chan Assignments, newLocalElevStateC chan<- State, deliveredAssignmentC chan<- elevio.ButtonEvent, startMoving chan<- bool, stopMoving chan<- bool, barkC chan <- bool) {
 	doorOpenC := make(chan bool, 16)
 	doorClosedC := make(chan bool, 16)
 	floorEnteredC := make(chan int)
 
-	go Door(doorClosedC, doorOpenC)
+	go Door(doorClosedC, doorOpenC, barkC)
 	go elevio.PollFloorSensor(floorEnteredC)
 
 	// Initialize elevator
