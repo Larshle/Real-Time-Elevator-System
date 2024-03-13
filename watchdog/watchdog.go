@@ -13,7 +13,6 @@ func Watchdog(seconds int, barkC chan<- bool, startMovingC <-chan bool, stopMovi
 		select {
 		case <-stopMovingC:
 			timer.Stop() 
-			//timer.Reset(time.Duration(seconds) * time.Second)
 			fmt.Println("Stopped Moving: Timer reset.")
 			barkC <- false
 			

@@ -87,23 +87,7 @@ func Distributor(
 		case stuck = <- barkC:
 			stuckStatus[ElevatorID] = stuck
 			commonState.Print()
-			if stuckStatus[ElevatorID]{
-				fmt.Println("Elevator", ElevatorID, "is stuck")
-				select{
-					
-				case arrivedCommonState := <-receiverFromNetworkC:
-							if arrivedCommonState.Seq < commonState.Seq {
-								break
-							}
-							disconnectTimer = time.NewTimer(config.DisconnectTime)
-							arrivedCommonState = commonState
-							commonState.Ackmap[ElevatorID] = NotAvailable
-							commonState.Print()
-						default:
-
-				}
-				
-			}
+			
 
 		default:
 		}
@@ -201,11 +185,15 @@ func Distributor(
 				}
 				disconnectTimer = time.NewTimer(config.DisconnectTime)
 
+				
+
 				switch {
 				case (arrivedCommonState.Origin > commonState.Origin && arrivedCommonState.Seq == commonState.Seq) || arrivedCommonState.Seq > commonState.Seq:
 					commonState = arrivedCommonState
 					commonState.Ack(ElevatorID)
 					commonState.makeElevUnav(P)
+				
+				
 
 				case FullyAcked(arrivedCommonState.Ackmap):
 					commonState = arrivedCommonState
@@ -234,6 +222,10 @@ func Distributor(
 					default:
 						acking = false
 					}
+
+				case stuckStatus[ElevatorID] == stuck:
+					commonState = arrivedCommonState
+					commonState.Ackmap[ElevatorID] = NotAvailable
 
 				case commonStatesEqual(commonState, arrivedCommonState):
 					commonState = arrivedCommonState
