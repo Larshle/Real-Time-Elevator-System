@@ -62,16 +62,15 @@ func Distributor(
 		
 		case stuck = <-barkC:
 			if stuck{
-				cs.Seq++
 				cs.Ackmap[ElevatorID] = NotAvailable
-				cs.Print()
+				cs.Seq++
+				// cs.Print()
 			}
 
 		default:
 		}
 
 		switch {
-
 		case !acking: // Idle
 			select {
 
@@ -118,6 +117,10 @@ func Distributor(
 					// if !stuck{
 					// 	cs.Ackmap[ElevatorID] = Acked
 					// }
+				case stuck:
+					cs = arrivedCs
+					cs.Ackmap[ElevatorID] = NotAvailable	
+					cs.Seq++
 				}
 			default:
 			}
@@ -129,16 +132,22 @@ func Distributor(
 				fmt.Println("Hello network!")
 
 			case newOrder := <-elevioOrdersC:
+				if stuck{
+					break
+				}
+				cs.Ackmap[ElevatorID] = Acked
 				cs.addCabCall(newOrder, ElevatorID)
 				fmt.Println("Goodbye network :(")
 				toAssignerC <- cs
 
 			case removeOrder := <-deliveredAssignmentC:
+				cs.Ackmap[ElevatorID] = Acked
 				cs.removeAssignments(removeOrder, ElevatorID)
 				fmt.Println("Goodbye network :(")
 				toAssignerC <- cs
 
 			case newElevState := <-newLocalElevStateC:
+				cs.Ackmap[ElevatorID] = Acked
 				cs.updateLocalElevState(newElevState, ElevatorID)
 				fmt.Println("Goodbye network :(")
 				toAssignerC <- cs
@@ -159,7 +168,9 @@ func Distributor(
 				switch {
 				case (arrivedCs.Origin > cs.Origin && arrivedCs.Seq == cs.Seq) || arrivedCs.Seq > cs.Seq:
 					cs = arrivedCs
-					cs.Ackmap[ElevatorID] = Acked
+					if !stuck{
+						cs.Ackmap[ElevatorID] = Acked
+					}
 					cs.makeLostPeersUnavailable(peers)
 
 				case arrivedCs.fullyAcked(ElevatorID):
