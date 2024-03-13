@@ -69,12 +69,19 @@ func main() {
 		newLocalElevStateC,
 		deliveredAssignmentC,
 		startMovingC,
-		stopMovingC)
+		stopMovingC, 
+		)
 
-	for range toAssignerC {
-		cs := <-toAssignerC
-		localAssingment := assigner.CalculateOptimalAssignments(cs, ElevatorID)
-		newAssignmentC <- localAssingment
-		lights.SetLights(cs, ElevatorID)
+	for{
+		select{
+		case cs := <-toAssignerC:
+			localAssingment := assigner.CalculateOptimalAssignments(cs, ElevatorID)
+			newAssignmentC <- localAssingment
+			lights.SetLights(cs, ElevatorID)
+		
+		default:
+			continue
+		}
+
 	}
 }

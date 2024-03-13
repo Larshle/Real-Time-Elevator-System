@@ -50,7 +50,6 @@ func Distributor(
 
 	cs.initCommonState()
 
-	stuckStatus := make(map[int]bool)
 	for {
 
 		select {
@@ -63,10 +62,9 @@ func Distributor(
 		
 		case stuck = <-barkC:
 			if stuck{
-				stuckStatus[ElevatorID] = stuck
-				cs.Seq += 10
+				cs.Seq++
 				cs.Ackmap[ElevatorID] = NotAvailable
-				cs.Print()
+				//cs.Print()
 			}
 
 		default:
@@ -87,7 +85,7 @@ func Distributor(
 				cs.nullAckmap()
 				cs.Ackmap[ElevatorID] = Acked
 				fmt.Println("New order added: ")
-				cs.Print()
+				//cs.Print()
 				stashed = true
 				acking = true
 
@@ -115,9 +113,11 @@ func Distributor(
 				switch {
 				case (arrivedCs.Origin > cs.Origin && arrivedCs.Seq == cs.Seq) || arrivedCs.Seq > cs.Seq:
 					cs = arrivedCs
-					cs.Ackmap[ElevatorID] = Acked
 					acking = true
 					cs.makeLostPeersUnavailable(peers)
+					if !stuck{
+						cs.Ackmap[ElevatorID] = Acked
+					}
 				}
 			default:
 			}
@@ -164,8 +164,8 @@ func Distributor(
 
 				case arrivedCs.fullyAcked(ElevatorID):
 					cs = arrivedCs
-					fmt.Println("Fully acked: ")
-					cs.Print()
+					//fmt.Println("Fully acked: ")
+					//cs.Print()
 					toAssignerC <- cs
 					switch {
 					case cs.Origin != ElevatorID && stashed:
@@ -195,7 +195,7 @@ func Distributor(
 				case stuck:
 					cs = arrivedCs
 					cs.Ackmap[ElevatorID] = NotAvailable
-					cs.Print()
+					//cs.Print()
 					select{
 					case  <-elevioOrdersC:
 						continue
