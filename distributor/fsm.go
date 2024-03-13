@@ -137,7 +137,7 @@ func Distributor(
 				disconnectTimer = time.NewTimer(config.DisconnectTime)
 
 				switch {
-				case (arrivedCs.Origin > cs.Origin && arrivedCs.Seq == cs.Seq) || arrivedCs.Seq > cs.Seq: // Higher priority
+				case (arrivedCs.Origin > cs.Origin):
 					cs = arrivedCs
 					cs.Ackmap[ElevatorID] = Acked
 					cs.makeLostPeersUnavailable(peers)
