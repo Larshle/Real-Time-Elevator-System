@@ -45,37 +45,11 @@ func Distributor(
 
 	stashed := false
 	acking := false
-	isolated := false
 	stuck := false
+	aloneOnNetwork := false
 
-	commonState = initCommonState()
+	cs.initCommonState()
 
-	// commonState = CommonState{
-	// 	Origin: 0,
-	// 	Seq:    0,
-	// 	Ackmap: []AckStatus{NotAcked,NotAcked,NotAck				toAssignerC <- commonStateed},
-	// 	HallRequests: [][2]bool{{false, false}, {false, false}, {false, false}, {false, false}},
-	// 	States: []LocalElevState{
-	// 		{
-	// 			Behaviour:   "idle",
-	// 			Floor:       2,
-	// 			Direction:   "down",
-	// 			CabRequests: []bool{false, false, false, false},
-	// 		},
-	// 		{
-	// 			Behaviour:   "idle",
-	// 			Floor:       2,
-	// 			Direction:   "down",
-	// 			CabRequests: []bool{false, false, false, false},
-	// 		},
-	// 		{
-	// 			Behaviour:   "idle",
-	// 			Floor:       2,
-	// 			Direction:   "down",
-	// 			CabRequests: []bool{false, false, false, false},
-	// 		},
-	// 	},
-	// }
 	stuckStatus := make(map[int]bool)
 	for {
 
@@ -86,6 +60,25 @@ func Distributor(
 
 		case P := <-receiverPeersC:
 			peers = P
+		
+		case stuck = <-barkC:
+			if stuckStatus[ElevatorID]{
+				fmt.Println("Elevator", ElevatorID, "is stuck")
+				select{
+
+				case arrivedCommonState := <-receiverFromNetworkC:
+							if arrivedCommonState.Seq < cs.Seq {
+								break
+							}
+							disconnectTimer = time.NewTimer(config.DisconnectTime)
+							arrivedCommonState = cs
+							cs.Ackmap[ElevatorID] = NotAvailable
+							cs.Print()
+						default:
+
+				}
+
+			}
 
 		default:
 		}
@@ -216,6 +209,10 @@ func Distributor(
 					default:
 						acking = false
 					}
+				
+				case stuck:
+					cs = arrivedCs
+					cs.Ackmap[ElevatorID] = NotAvailable
 
 				case commonStatesEqual(cs, arrivedCs):
 					cs = arrivedCs
