@@ -9,7 +9,6 @@
 - [ ] rydde i kode, spesielt assigner
 - [ ] fjerne printing
 - [ ] ikke ha med EmptyAssigner
-- [ ] makeElevav <- endre dette tullenavnet
 - [ ] huske å endre doopOpen til 3 sekunder
 
 
