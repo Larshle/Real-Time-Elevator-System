@@ -1,7 +1,6 @@
 package distributor
 
 import (
-	"fmt"
 	"root/config"
 	"root/elevator"
 	"root/elevio"
@@ -73,7 +72,6 @@ func Distributor(
 		switch {
 		case !acking: // Idle
 			select {
-
 			case newOrder := <-elevioOrdersC:
 				if stuck{
 					break
@@ -128,8 +126,9 @@ func Distributor(
 		case aloneOnNetwork:
 			select {
 			case <-receiverFromNetworkC:
-				aloneOnNetwork = false
-				fmt.Println("Hello network!")
+				if cs.States[ElevatorID].CabRequests == [config.NumFloors]bool{} {
+					aloneOnNetwork = false
+				}
 
 			case newOrder := <-elevioOrdersC:
 				if stuck{
@@ -137,19 +136,16 @@ func Distributor(
 				}
 				cs.Ackmap[ElevatorID] = Acked
 				cs.addCabCall(newOrder, ElevatorID)
-				fmt.Println("Goodbye network :(")
 				toAssignerC <- cs
 
 			case removeOrder := <-deliveredAssignmentC:
 				cs.Ackmap[ElevatorID] = Acked
 				cs.removeAssignments(removeOrder, ElevatorID)
-				fmt.Println("Goodbye network :(")
 				toAssignerC <- cs
 
 			case newElevState := <-newLocalElevStateC:
 				cs.Ackmap[ElevatorID] = Acked
 				cs.updateLocalElevState(newElevState, ElevatorID)
-				fmt.Println("Goodbye network :(")
 				toAssignerC <- cs
 
 			default:
@@ -166,7 +162,7 @@ func Distributor(
 				
 
 				switch {
-				case (arrivedCs.Origin > cs.Origin && arrivedCs.Seq == cs.Seq) || arrivedCs.Seq > cs.Seq:
+				case (arrivedCs.Origin > cs.Origin):
 					cs = arrivedCs
 					if !stuck{
 						cs.Ackmap[ElevatorID] = Acked

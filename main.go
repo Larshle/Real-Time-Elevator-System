@@ -39,12 +39,12 @@ func main() {
 	giverToNetworkC := make(chan distributor.CommonState, 10000)      // Endre navn?
 	receiverFromNetworkC := make(chan distributor.CommonState, 10000) // Endre navn?
 	toAssignerC := make(chan distributor.CommonState, 10000)
-	receiverPeersC := make(chan peers.PeerUpdate, 10000) // Endre navn?
+	receiverPeersC := make(chan peers.PeerUpdate, 10000)			  // Endre navn?
 	giverPeersC := make(chan bool, 10000)    
 
 	barkC := make(chan bool, 10000)
 	startMovingC := make(chan bool, 10000)
-	stopMovingC := make(chan bool, 10000)         // Endre navn?
+	stopMovingC := make(chan bool, 10000)       				  // Endre navn?
 
 	go peers.Receiver(config.PeersPortNumber, receiverPeersC)
 	go peers.Transmitter(config.PeersPortNumber, ElevatorID, giverPeersC)

@@ -85,7 +85,6 @@ func CalculateOptimalAssignments(cs distributor.CommonState, ElevatorID int) ele
 
 func ToLightsAssingment(cs distributor.CommonState, ElevatorID int) elevator.Assignments {
 	var lights elevator.Assignments
-	myState := cs.States[ElevatorID]
 
 	for f := 0; f < config.NumFloors; f++ {
 		for b := 0; b < 2; b++ {
@@ -94,7 +93,7 @@ func ToLightsAssingment(cs distributor.CommonState, ElevatorID int) elevator.Ass
 	}
 
 	for f := 0; f < config.NumFloors; f++ {
-		lights[f][elevio.BT_Cab] = myState.CabRequests[f]
+		lights[f][elevio.BT_Cab] = cs.States[ElevatorID].CabRequests[f]
 	}
 
 	return lights
