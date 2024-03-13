@@ -1,6 +1,7 @@
 package elevator
 
 import (
+	"root/config"
 	"root/elevio"
 	"root/watchdog"
 )
@@ -34,7 +35,7 @@ func Elevator(newAssignmentC <-chan Assignments, newLocalElevStateC chan<- State
 
 	go Door(doorClosedC, doorOpenC, barkC)
 	go elevio.PollFloorSensor(floorEnteredC)
-	go watchdog.Watchdog(barkC, startMovingC, stopMovingC)
+	go watchdog.Watchdog(config.WatchdogTime, barkC, startMovingC, stopMovingC)
 
 	// Initialize elevator
 	elevio.SetMotorDirection(elevio.MD_Down)

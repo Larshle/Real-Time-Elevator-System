@@ -2,12 +2,11 @@ package watchdog
 
 import (
 	"fmt"
-	"root/config"
 	"time"
 )
 
-func Watchdog(barkC chan<- bool, startMovingC <-chan bool, stopMovingC <-chan bool) {
-	timer := time.NewTimer(time.Duration(config.WatchdogTime) * time.Second)
+func Watchdog(WatchdogTime time.Duration, barkC chan<- bool, startMovingC <-chan bool, stopMovingC <-chan bool) {
+	timer := time.NewTimer(WatchdogTime)
 	timer.Stop()
 
 	for {
@@ -17,13 +16,12 @@ func Watchdog(barkC chan<- bool, startMovingC <-chan bool, stopMovingC <-chan bo
 			barkC <- false
 
 		case <-startMovingC:
-			timer = time.NewTimer(time.Duration(config.WatchdogTime) * time.Second)
+			timer = time.NewTimer(WatchdogTime)
 			barkC <- false
 
 		case <-timer.C:
 			fmt.Println("IM STUCK!")
 			barkC <- true
-
 		}
 	}
 }
