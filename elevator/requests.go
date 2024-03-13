@@ -7,7 +7,6 @@ import (
 
 // HandleButtonPress handles the button press event and updates the elevator state
 // Make config file for parameters of elevator
-// HUSK ikke ha med EmptyAssigner
 
 type Assignments [config.NumFloors][config.NumButtons]bool
 

@@ -4,65 +4,31 @@ import (
 	"encoding/json"
 	"fmt"
 	"os/exec"
+	"root/config"
 	"root/distributor"
 	"root/elevator"
 	"root/elevio"
 	"runtime"
 	"strconv"
-	"root/config"
 )
 
-func ToLocalAssingment(a map[string][][3]bool, ElevatorID int) elevator.Assignments {
-	var ea elevator.Assignments
-	L, ok := a[strconv.Itoa(ElevatorID)]
-	if !ok {
-		panic("elevator not here -local")
-	}
-
-	for f := 0; f < config.NumFloors; f++ {
-		for b := 0; b < 3; b++ {
-			ea[f][b] = L[f][b]
-		}
-	}
-	return ea
-}
-
-func ToLightsAssingment(cs distributor.CommonState, ElevatorID int) elevator.Assignments {
-	var lights elevator.Assignments
-
-	myState := cs.States[ElevatorID]
-
-	for f := 0; f < config.NumFloors; f++ {
-		for b := 0; b < 2; b++ {
-			lights[f][b] = cs.HallRequests[f][b]
-		}
-	}
-
-	for f := 0; f < config.NumFloors; f++ {
-		lights[f][elevio.BT_Cab] = myState.CabRequests[f]
-	}
-
-	return lights
-}
-
-type hra struct {
-	HallRequests [][2]bool                             `json:"hallRequests"`
+type CalculateOptimalAssignmentsFormat struct {
+	HallRequests [config.NumFloors][2]bool             `json:"hallRequests"`
 	States       map[string]distributor.LocalElevState `json:"states"`
 }
 
-func CalculateHRA(cs distributor.CommonState) map[string][][3]bool {
+func CalculateOptimalAssignments(cs distributor.CommonState, ElevatorID int) elevator.Assignments {
 
-	// Convert from []LocalElevState to map[string]LocalElevState
-	m := make(map[string]distributor.LocalElevState)
+	stateMap := make(map[string]distributor.LocalElevState)
 	for i, v := range cs.States {
-		if cs.Ackmap[i] == distributor.NotAvailable {
+		if cs.Ackmap[i] == distributor.NotAvailable { // Remove not-available elevators from stateMap
 			continue
 		} else {
-			m[strconv.Itoa(i)] = v
+			stateMap[strconv.Itoa(i)] = v
 		}
 	}
 
-	newHRA := hra{cs.HallRequests, m}
+	hall_request_assignerInput := CalculateOptimalAssignmentsFormat{cs.HallRequests, stateMap}
 
 	hraExecutable := ""
 	switch runtime.GOOS {
@@ -76,7 +42,7 @@ func CalculateHRA(cs distributor.CommonState) map[string][][3]bool {
 		panic("OS not supported")
 	}
 
-	jsonBytes, err := json.Marshal(newHRA)
+	jsonBytes, err := json.Marshal(hall_request_assignerInput)
 	if err != nil {
 		fmt.Println("json.Marshal error: ", err)
 		panic("json.Marshal error")
@@ -96,10 +62,36 @@ func CalculateHRA(cs distributor.CommonState) map[string][][3]bool {
 		panic("json.Unmarshal error")
 	}
 
-	//fmt.Printf("output: \n")
-	//for k, v := range *output {
-	//fmt.Printf("%6v :  %+v\n", k, v)
-	//}
+	outputContent := *output
 
-	return *output
+	var elevatorAssignments elevator.Assignments
+	L, ok := outputContent[strconv.Itoa(ElevatorID)]
+
+	if !ok {
+		panic("elevator not here -local")
+	}
+
+	for f := 0; f < config.NumFloors; f++ {
+		for b := 0; b < 3; b++ {
+			elevatorAssignments[f][b] = L[f][b]
+		}
+	}
+	return elevatorAssignments
+}
+
+func ToLightsAssingment(cs distributor.CommonState, ElevatorID int) elevator.Assignments {
+	var lights elevator.Assignments
+	myState := cs.States[ElevatorID]
+
+	for f := 0; f < config.NumFloors; f++ {
+		for b := 0; b < 2; b++ {
+			lights[f][b] = cs.HallRequests[f][b]
+		}
+	}
+
+	for f := 0; f < config.NumFloors; f++ {
+		lights[f][elevio.BT_Cab] = myState.CabRequests[f]
+	}
+
+	return lights
 }

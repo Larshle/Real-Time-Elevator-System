@@ -41,6 +41,7 @@ func Receiver(port int, peerUpdateCh chan<- PeerUpdate) {
 	var buf [1024]byte
 	var p PeerUpdate
 	lastSeen := make(map[int]time.Time) // Key changed from string to int
+	p.Lost = make([]int, 0)             // Declare Lost outside the loop
 
 	conn := conn.DialBroadcastUDP(port)
 
@@ -58,17 +59,23 @@ func Receiver(port int, peerUpdateCh chan<- PeerUpdate) {
 
 		// Adding new connection
 		p.New = 1000
-		// if id != 0 {
 		if _, idExists := lastSeen[id]; !idExists {
 			p.New = id
 			updated = true
+
+			// Check if the new peer was previously lost
+			for i, lostPeer := range p.Lost {
+				if lostPeer == id {
+					// Remove the peer from Lost
+					p.Lost = append(p.Lost[:i], p.Lost[i+1:]...)
+					break
+				}
+			}
 		}
 
 		lastSeen[id] = time.Now()
-		// }
 
 		// Removing dead connection
-		p.Lost = make([]int, 0)
 		for k, v := range lastSeen {
 			if time.Now().Sub(v) > timeout {
 				updated = true
