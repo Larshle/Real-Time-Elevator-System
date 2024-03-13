@@ -35,7 +35,7 @@ func (a Assignments) ReqInDirection(floor int, dir Direction) bool {
 	}
 }
 
-func EmptyAssigner(floor int, dir Direction, a Assignments, orderDoneC chan<- elevio.ButtonEvent) {
+func AssingemtDone(floor int, dir Direction, a Assignments, orderDoneC chan<- elevio.ButtonEvent) {
 	if a[floor][elevio.BT_Cab] {
 		orderDoneC <- elevio.ButtonEvent{Floor: floor, Button: elevio.BT_Cab}
 	}
