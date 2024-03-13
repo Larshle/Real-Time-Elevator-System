@@ -79,6 +79,12 @@ func (es *CommonState) removeAssignments(deliveredAssingement elevio.ButtonEvent
 	es.Origin = ElevatorID
 }
 
+func (es *CommonState) addCabCall(newCall elevio.ButtonEvent, ElevatorID int) {
+	if newCall.Button == elevio.BT_Cab {
+		es.States[ElevatorID].CabRequests[newCall.Floor] = true
+	}
+}
+
 func (es *CommonState) updateLocalElevState(localElevState elevator.State, ElevatorID int) {
 	localEs := es.States[ElevatorID]
 	localEs.Behaviour = localElevState.Behaviour.ToString()
@@ -126,7 +132,7 @@ func (cs *CommonState) makeElevUnav(p peers.PeerUpdate) {
 	}
 }
 
-func (cs *CommonState) makeElevUnavExceptOrigin(ElevatorID int) {
+func (cs *CommonState) makeOthersUnavailable(ElevatorID int) {
 	for id := range cs.Ackmap {
 		if id != ElevatorID {
 			cs.Ackmap[id] = NotAvailable
@@ -139,17 +145,5 @@ func (cs *CommonState) nullAckmap() {
 		if cs.Ackmap[id] == Acked {
 			cs.Ackmap[id] = NotAcked
 		}
-	}
-}
-
-func (es *CommonState) removeCabCall(deliveredAssingement elevio.ButtonEvent, ElevatorID int) {
-	if deliveredAssingement.Button == elevio.BT_Cab {
-		es.States[ElevatorID].CabRequests[deliveredAssingement.Floor] = false
-	}
-}
-
-func (es *CommonState) addCabCall(newCall elevio.ButtonEvent, ElevatorID int) {
-	if newCall.Button == elevio.BT_Cab {
-		es.States[ElevatorID].CabRequests[newCall.Floor] = true
 	}
 }

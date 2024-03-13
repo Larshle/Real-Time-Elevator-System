@@ -44,13 +44,14 @@ func Distributor(
 
 	stashed := false
 	acking := false
-	isolated := false
+	aloneOnNetwork := false
 
 	for {
 
 		select {
 		case <-disconnectTimer.C:
-			isolated = true
+			aloneOnNetwork = true
+			cs.makeOthersUnavailable(ElevatorID)
 
 		case P := <-receiverPeersC:
 			peers = P
@@ -102,27 +103,25 @@ func Distributor(
 			default:
 			}
 
-		case isolated:
+		case aloneOnNetwork:
 			select {
 			case <-receiverFromNetworkC:
-				isolated = false
+				aloneOnNetwork = false
+				fmt.Println("Goodbye aloneOnNetwork")
 
 			case newOrder := <-elevioOrdersC:
-				cs.makeElevUnavExceptOrigin(ElevatorID)
 				cs.addCabCall(newOrder, ElevatorID)
-				fmt.Println("ISOLATED")
+				fmt.Println("aloneOnNetwork")
 				toAssignerC <- cs
 
 			case removeOrder := <-deliveredAssignmentC:
-				cs.makeElevUnavExceptOrigin(ElevatorID)
-				cs.removeCabCall(removeOrder, ElevatorID)
-				fmt.Println("ISOLATED")
+				cs.removeAssignments(removeOrder, ElevatorID)
+				fmt.Println("aloneOnNetwork")
 				toAssignerC <- cs
 
 			case newElevState := <-newLocalElevStateC:
 				cs.updateLocalElevState(newElevState, ElevatorID)
-				cs.makeElevUnavExceptOrigin(ElevatorID)
-				fmt.Println("ISOLATED")
+				fmt.Println("aloneOnNetwork")
 				toAssignerC <- cs
 
 			default:
