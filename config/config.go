@@ -10,6 +10,6 @@ const (
 	NumButtons      = 3
 	PeersPortNumber = 58735
 	BcastPortNumber = 58750
-	DisconnectTime  = 5 * time.Second
+	DisconnectTime  = 1 * time.Second
 	DoorOpenDuration = 2 * time.Second
 )
