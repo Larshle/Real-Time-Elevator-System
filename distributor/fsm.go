@@ -24,8 +24,7 @@ func Distributor(
 	receiverFromNetworkC <-chan CommonState,
 	toAssignerC chan<- CommonState,
 	receiverPeersC <-chan peers.PeerUpdate,
-	ElevatorID int,
-	barkC <-chan bool) {
+	ElevatorID int) {
 
 	elevioOrdersC := make(chan elevio.ButtonEvent, 10000)
 
@@ -45,10 +44,7 @@ func Distributor(
 
 	stashed := false
 	acking := false
-	stuck := false
 	aloneOnNetwork := false
-
-	cs.initCommonState()
 
 	for {
 
@@ -60,14 +56,13 @@ func Distributor(
 		case P := <-receiverPeersC:
 			peers = P
 
-		case stuck = <-barkC:
-			if stuck {
-				cs.States[ElevatorID].Stuck = true
-				acking = true
-			} else {
-				cs.States[ElevatorID].Stuck = false
-			}
-			
+		// case stuck = <-barkC:
+		// 	if stuck {
+		// 		cs.States[ElevatorID].Stuck = true
+		// 		acking = true
+		// 	} else {
+		// 		cs.States[ElevatorID].Stuck = false
+		// 	}
 
 		default:
 		}
@@ -76,9 +71,6 @@ func Distributor(
 		case !acking: // Idle
 			select {
 			case newOrder := <-elevioOrdersC:
-				if stuck {
-					break
-				}
 				NewOrderStash = newOrder
 				StashType = AddCall
 				cs.addAssignments(newOrder, ElevatorID)
@@ -134,7 +126,7 @@ func Distributor(
 				}
 
 			case newOrder := <-elevioOrdersC:
-				if stuck {
+				if cs.States[ElevatorID].Stuck {
 					break
 				}
 				cs.Ackmap[ElevatorID] = Acked

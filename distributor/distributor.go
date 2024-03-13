@@ -61,41 +61,42 @@ func (cs *CommonState) initCommonState() {
 	cs.States = states
 }
 
-func (es *CommonState) addAssignments(newCall elevio.ButtonEvent, ElevatorID int) {
+func (cs *CommonState) addAssignments(newCall elevio.ButtonEvent, ElevatorID int) {
 	if newCall.Button == elevio.BT_Cab {
-		es.States[ElevatorID].CabRequests[newCall.Floor] = true
+		cs.States[ElevatorID].CabRequests[newCall.Floor] = true
 	} else {
-		es.HallRequests[newCall.Floor][newCall.Button] = true
+		cs.HallRequests[newCall.Floor][newCall.Button] = true
 	}
-	es.Seq++
-	es.Origin = ElevatorID
+	cs.Seq++
+	cs.Origin = ElevatorID
 }
 
-func (es *CommonState) removeAssignments(deliveredAssingement elevio.ButtonEvent, ElevatorID int) {
+func (cs *CommonState) removeAssignments(deliveredAssingement elevio.ButtonEvent, ElevatorID int) {
 	if deliveredAssingement.Button == elevio.BT_Cab {
-		es.States[ElevatorID].CabRequests[deliveredAssingement.Floor] = false
+		cs.States[ElevatorID].CabRequests[deliveredAssingement.Floor] = false
 	} else {
-		es.HallRequests[deliveredAssingement.Floor][deliveredAssingement.Button] = false
+		cs.HallRequests[deliveredAssingement.Floor][deliveredAssingement.Button] = false
 	}
-	es.Seq++
-	es.Origin = ElevatorID
+	cs.Seq++
+	cs.Origin = ElevatorID
 }
 
-func (es *CommonState) addCabCall(newCall elevio.ButtonEvent, ElevatorID int) {
+func (cs *CommonState) addCabCall(newCall elevio.ButtonEvent, ElevatorID int) {
 	if newCall.Button == elevio.BT_Cab {
-		es.States[ElevatorID].CabRequests[newCall.Floor] = true
+		cs.States[ElevatorID].CabRequests[newCall.Floor] = true
 	}
 }
 
-func (es *CommonState) updateLocalElevState(localElevState elevator.State, ElevatorID int) {
-	localEs := es.States[ElevatorID]
+func (cs *CommonState) updateLocalElevState(localElevState elevator.State, ElevatorID int) {
+	localEs := cs.States[ElevatorID]
+	localEs.Stuck = localElevState.Stuck
 	localEs.Behaviour = localElevState.Behaviour.ToString()
 	localEs.Floor = localElevState.Floor
 	localEs.Direction = localElevState.Direction.ToString()
-	localEs.CabRequests = es.States[ElevatorID].CabRequests
-	es.States[ElevatorID] = localEs
-	es.Seq++
-	es.Origin = ElevatorID
+	localEs.CabRequests = cs.States[ElevatorID].CabRequests
+	cs.States[ElevatorID] = localEs
+	cs.Seq++
+	cs.Origin = ElevatorID
 }
 
 func (cs *CommonState) Print() {

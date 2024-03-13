@@ -1,11 +1,12 @@
 package elevator
 
 import (
-	
 	"root/elevio"
+	"root/watchdog"
 )
 
 type State struct {
+	Stuck     bool
 	Behaviour Behaviour
 	Floor     int
 	Direction Direction
@@ -23,19 +24,23 @@ func (b Behaviour) ToString() string {
 	return map[Behaviour]string{Idle: "idle", DoorOpen: "doorOpen", Moving: "moving"}[b]
 }
 
-func Elevator(newAssignmentC <-chan Assignments, newLocalElevStateC chan<- State, deliveredAssignmentC chan<- elevio.ButtonEvent, startMoving chan<- bool, stopMoving chan<- bool) {
+func Elevator(newAssignmentC <-chan Assignments, newLocalElevStateC chan<- State, deliveredAssignmentC chan<- elevio.ButtonEvent) {
 	doorOpenC := make(chan bool, 16)
 	doorClosedC := make(chan bool, 16)
 	floorEnteredC := make(chan int)
+	barkC := make(chan bool, 16)
+	startMovingC := make(chan bool, 16)
+	stopMovingC := make(chan bool, 16)
 
 	go Door(doorClosedC, doorOpenC)
 	go elevio.PollFloorSensor(floorEnteredC)
+	go watchdog.Watchdog(5, barkC, startMovingC, stopMovingC)
 
 	// Initialize elevator
 	elevio.SetMotorDirection(elevio.MD_Down)
 	state := State{Direction: Down, Behaviour: Moving}
-	startMoving <- true
-	stopMoving <- true
+	startMovingC <- true
+	stopMovingC <- true
 
 	var assignments Assignments
 
@@ -48,7 +53,7 @@ func Elevator(newAssignmentC <-chan Assignments, newLocalElevStateC chan<- State
 				case assignments.ReqInDirection(state.Floor, state.Direction):
 					elevio.SetMotorDirection(state.Direction.toMD())
 					state.Behaviour = Moving
-					startMoving <- true
+					startMovingC <- true
 					newLocalElevStateC <- state
 
 				case assignments[state.Floor][state.Direction.toOpposite()]:
@@ -61,7 +66,7 @@ func Elevator(newAssignmentC <-chan Assignments, newLocalElevStateC chan<- State
 					state.Direction = state.Direction.toOpposite()
 					elevio.SetMotorDirection(state.Direction.toMD())
 					state.Behaviour = Moving
-					startMoving <- true
+					startMovingC <- true
 					newLocalElevStateC <- state
 
 				default:
@@ -74,7 +79,7 @@ func Elevator(newAssignmentC <-chan Assignments, newLocalElevStateC chan<- State
 
 		case state.Floor = <-floorEnteredC:
 			elevio.SetFloorIndicator(state.Floor)
-			stopMoving <- true
+			stopMovingC <- true
 			switch state.Behaviour {
 			case Moving:
 				switch {
@@ -97,7 +102,7 @@ func Elevator(newAssignmentC <-chan Assignments, newLocalElevStateC chan<- State
 					state.Behaviour = DoorOpen
 
 				case assignments.ReqInDirection(state.Floor, state.Direction):
-					startMoving <- true
+					startMovingC <- true
 
 				case assignments[state.Floor][state.Direction.toOpposite()]:
 					elevio.SetMotorDirection(elevio.MD_Stop)
@@ -109,7 +114,7 @@ func Elevator(newAssignmentC <-chan Assignments, newLocalElevStateC chan<- State
 				case assignments.ReqInDirection(state.Floor, state.Direction.toOpposite()):
 					state.Direction = state.Direction.toOpposite()
 					elevio.SetMotorDirection(state.Direction.toMD())
-					startMoving <- true
+					startMovingC <- true
 
 				default:
 					elevio.SetMotorDirection(elevio.MD_Stop)
@@ -141,14 +146,14 @@ func Elevator(newAssignmentC <-chan Assignments, newLocalElevStateC chan<- State
 					elevio.SetMotorDirection(state.Direction.toMD())
 					state.Behaviour = Moving
 					newLocalElevStateC <- state
-					startMoving <- true
+					startMovingC <- true
 
 				case assignments.ReqInDirection(state.Floor, state.Direction.toOpposite()):
 					state.Direction = state.Direction.toOpposite()
 					elevio.SetMotorDirection(state.Direction.toMD())
 					state.Behaviour = Moving
 					newLocalElevStateC <- state
-					startMoving <- true
+					startMovingC <- true
 				default:
 				}
 
@@ -161,10 +166,14 @@ func Elevator(newAssignmentC <-chan Assignments, newLocalElevStateC chan<- State
 				}
 
 			case Moving:
-				
 
 			default:
 				panic("Assignments in wrong state")
+			}
+		case stuck := <-barkC:
+			if stuck != state.Stuck {
+				state.Stuck = stuck
+				newLocalElevStateC <- state
 			}
 		}
 	}

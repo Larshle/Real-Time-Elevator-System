@@ -11,7 +11,6 @@ import (
 	"root/lights"
 	"root/network/bcast"
 	"root/network/peers"
-	"root/watchdog"
 	"strconv"
 )
 
@@ -42,17 +41,12 @@ func main() {
 	receiverPeersC := make(chan peers.PeerUpdate, 10000)			  // Endre navn?
 	giverPeersC := make(chan bool, 10000)    
 
-	barkC := make(chan bool, 10000)
-	startMovingC := make(chan bool, 10000)
-	stopMovingC := make(chan bool, 10000)       				  // Endre navn?
-
 	go peers.Receiver(config.PeersPortNumber, receiverPeersC)
 	go peers.Transmitter(config.PeersPortNumber, ElevatorID, giverPeersC)
 
 	go bcast.Receiver(config.BcastPortNumber, receiverFromNetworkC)
 	go bcast.Transmitter(config.BcastPortNumber, giverToNetworkC)
 
-	go watchdog.Watchdog(5, barkC, startMovingC, stopMovingC)
 
 	go distributor.Distributor(
 		deliveredAssignmentC,
@@ -61,16 +55,12 @@ func main() {
 		receiverFromNetworkC,
 		toAssignerC,
 		receiverPeersC,
-		ElevatorID,
-		barkC)
+		ElevatorID)	
 
 	go elevator.Elevator(
 		newAssignmentC,
 		newLocalElevStateC,
-		deliveredAssignmentC,
-		startMovingC,
-		stopMovingC, 
-		)
+		deliveredAssignmentC)
 
 	for{
 		select{
