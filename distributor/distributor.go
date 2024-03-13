@@ -18,6 +18,7 @@ const (
 )
 
 type LocalElevState struct {
+	Stuck       bool
 	Behaviour   string                 `json:"behaviour"`
 	Floor       int                    `json:"floor"`
 	Direction   string                 `json:"direction"`
@@ -44,6 +45,7 @@ func (cs *CommonState) initCommonState() {
 	var states [config.NumElevators]LocalElevState
 	for i := 0; i < config.NumElevators; i++ {
 		states[i] = LocalElevState{
+			Stuck:       false,
 			Behaviour:   "idle",
 			Floor:       2,
 			Direction:   "down",

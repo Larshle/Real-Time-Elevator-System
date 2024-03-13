@@ -21,7 +21,7 @@ func CalculateOptimalAssignments(cs distributor.CommonState, ElevatorID int) ele
 
 	stateMap := make(map[string]distributor.LocalElevState)
 	for i, v := range cs.States {
-		if cs.Ackmap[i] == distributor.NotAvailable { // Remove not-available elevators from stateMap
+		if cs.Ackmap[i] == distributor.NotAvailable || v.Stuck { // Remove not-available and stuck elevators from stateMap
 			continue
 		} else {
 			stateMap[strconv.Itoa(i)] = v
@@ -62,23 +62,33 @@ func CalculateOptimalAssignments(cs distributor.CommonState, ElevatorID int) ele
 		panic("json.Unmarshal error")
 	}
 
+	fmt.Printf("output: \n")
+	for k, v := range *output {
+		fmt.Printf("%6v :  %+v\n", k, v)
+	}
+
 	outputContent := *output
 
 	var elevatorAssignments elevator.Assignments
 	L, ok := outputContent[strconv.Itoa(ElevatorID)]
 
 	if !ok {
-		panic("elevator not here -local")
+		fmt.Println("Warning: elevator not here -local")
+		// panic("elevator not here -local")
 	}
 
 	for f := 0; f < config.NumFloors; f++ {
 		for b := 0; b < 3; b++ {
-			elevatorAssignments[f][b] = L[f][b]
+			if f < len(L) && b < len(L[f]) {
+				elevatorAssignments[f][b] = L[f][b]
+			} else {
+				elevatorAssignments[f][b] = false
+			}
 		}
 	}
 	fmt.Printf("output: \n")
 	for k, v := range *output {
-	fmt.Printf("%6v :  %+v\n", k, v)
+		fmt.Printf("%6v :  %+v\n", k, v)
 	}
 	return elevatorAssignments
 }

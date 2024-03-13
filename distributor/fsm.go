@@ -1,6 +1,7 @@
 package distributor
 
 import (
+	"fmt"
 	"root/config"
 	"root/elevator"
 	"root/elevio"
@@ -24,7 +25,7 @@ func Distributor(
 	toAssignerC chan<- CommonState,
 	receiverPeersC <-chan peers.PeerUpdate,
 	ElevatorID int,
-	barkC <-chan bool,) {
+	barkC <-chan bool) {
 
 	elevioOrdersC := make(chan elevio.ButtonEvent, 10000)
 
@@ -58,13 +59,15 @@ func Distributor(
 
 		case P := <-receiverPeersC:
 			peers = P
-		
+
 		case stuck = <-barkC:
-			if stuck{
-				cs.Ackmap[ElevatorID] = NotAvailable
-				cs.Seq++
-				// cs.Print()
+			if stuck {
+				cs.States[ElevatorID].Stuck = true
+				acking = true
+			} else {
+				cs.States[ElevatorID].Stuck = false
 			}
+			
 
 		default:
 		}
@@ -73,7 +76,7 @@ func Distributor(
 		case !acking: // Idle
 			select {
 			case newOrder := <-elevioOrdersC:
-				if stuck{
+				if stuck {
 					break
 				}
 				NewOrderStash = newOrder
@@ -113,12 +116,12 @@ func Distributor(
 					acking = true
 					cs.makeLostPeersUnavailable(peers)
 					// if !stuck{
-					// 	cs.Ackmap[ElevatorID] = Acked
+					cs.Ackmap[ElevatorID] = Acked
 					// }
-				case stuck:
-					cs = arrivedCs
-					cs.Ackmap[ElevatorID] = NotAvailable	
-					cs.Seq++
+					// case stuck:
+					// 	cs = arrivedCs
+					// 	cs.Ackmap[ElevatorID] = NotAvailable
+					// 	cs.Seq++
 				}
 			default:
 			}
@@ -131,7 +134,7 @@ func Distributor(
 				}
 
 			case newOrder := <-elevioOrdersC:
-				if stuck{
+				if stuck {
 					break
 				}
 				cs.Ackmap[ElevatorID] = Acked
@@ -159,14 +162,12 @@ func Distributor(
 				}
 				disconnectTimer = time.NewTimer(config.DisconnectTime)
 
-				
-
 				switch {
 				case (arrivedCs.Origin > cs.Origin):
 					cs = arrivedCs
-					if !stuck{
-						cs.Ackmap[ElevatorID] = Acked
-					}
+					// if !stuck {
+					cs.Ackmap[ElevatorID] = Acked
+					// }
 					cs.makeLostPeersUnavailable(peers)
 
 				case arrivedCs.fullyAcked(ElevatorID):
@@ -198,13 +199,13 @@ func Distributor(
 					default:
 						acking = false
 					}
-				
-				case stuck:
-					cs = arrivedCs
-					cs.Ackmap[ElevatorID] = NotAvailable
-					//cs.Print()
-					select{
-					case  <-elevioOrdersC:
+
+					// case stuck:
+					// 	cs = arrivedCs
+					// 	cs.Ackmap[ElevatorID] = Acked
+					// 	cs.
+					select {
+					case <-elevioOrdersC:
 						continue
 					default:
 					}
