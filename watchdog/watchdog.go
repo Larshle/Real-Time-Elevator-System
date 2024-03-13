@@ -15,7 +15,6 @@ func Watchdog(seconds int, barkC chan<- bool, startMovingC <-chan bool, stopMovi
 			timer.Stop() 
 			//fmt.Println("Stopped Moving: Timer reset.")
 			barkC <- false
-			
 
 		case <-startMovingC:
 			timer = time.NewTimer(time.Duration(seconds)*time.Second)
@@ -24,9 +23,7 @@ func Watchdog(seconds int, barkC chan<- bool, startMovingC <-chan bool, stopMovi
 
 		case <-timer.C:
 			fmt.Println("IM STUCK!!!")
-			
-			barkC <- true
-			
+			barkC <- true	
 		}
 	}
 }

@@ -64,7 +64,7 @@ func Distributor(
 			if stuck{
 				cs.Seq++
 				cs.Ackmap[ElevatorID] = NotAvailable
-				//cs.Print()
+				cs.Print()
 			}
 
 		default:
@@ -115,9 +115,9 @@ func Distributor(
 					cs = arrivedCs
 					acking = true
 					cs.makeLostPeersUnavailable(peers)
-					if !stuck{
-						cs.Ackmap[ElevatorID] = Acked
-					}
+					// if !stuck{
+					// 	cs.Ackmap[ElevatorID] = Acked
+					// }
 				}
 			default:
 			}
@@ -164,8 +164,8 @@ func Distributor(
 
 				case arrivedCs.fullyAcked(ElevatorID):
 					cs = arrivedCs
-					//fmt.Println("Fully acked: ")
-					//cs.Print()
+					fmt.Println("Fully acked: ")
+					cs.Print()
 					toAssignerC <- cs
 					switch {
 					case cs.Origin != ElevatorID && stashed:
