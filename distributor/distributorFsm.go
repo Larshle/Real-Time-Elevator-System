@@ -79,6 +79,11 @@ func Distributor(
 					cs = arrivedCs
 					toAssignerC <- cs
 					acking = false
+					switch (StashType) {
+					case condition:
+						
+					}
+
 
 				case cs.equals(arrivedCs):
 					cs = arrivedCs
@@ -109,6 +114,7 @@ func Distributor(
 					toAssignerC <- cs
 					stashed = false
 				}
+			}
 		case aloneOnNetwork:
 			select {
 			case <-receiverFromNetworkC:
@@ -180,5 +186,4 @@ func Distributor(
 		}
 	}
 
-}
 }
