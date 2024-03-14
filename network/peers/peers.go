@@ -3,6 +3,7 @@ package peers
 import (
 	"fmt"
 	"net"
+	"root/config"
 	"root/network/conn"
 	"sort"
 	"strconv"
@@ -15,9 +16,6 @@ type PeerUpdate struct {
 	Lost  []int // Changed from []string to []int
 }
 
-const interval = 15 * time.Millisecond
-const timeout = 500 * time.Millisecond
-
 func Transmitter(port int, id int, transmitEnable <-chan bool) { // Changed id type to int
 
 	conn := conn.DialBroadcastUDP(port)
@@ -27,7 +25,7 @@ func Transmitter(port int, id int, transmitEnable <-chan bool) { // Changed id t
 	for {
 		select {
 		case enable = <-transmitEnable:
-		case <-time.After(interval):
+		case <-time.After(config.HeartbeatTime):
 		}
 		if enable {
 			idStr := strconv.Itoa(id) // Convert int ID to string for transmission
@@ -41,13 +39,14 @@ func Receiver(port int, peerUpdateCh chan<- PeerUpdate) {
 	var buf [1024]byte
 	var p PeerUpdate
 	lastSeen := make(map[int]time.Time) // Key changed from string to int
+	p.Lost = make([]int, 0)             // Declare Lost outside the loop
 
 	conn := conn.DialBroadcastUDP(port)
 
 	for {
 		updated := false
 
-		conn.SetReadDeadline(time.Now().Add(interval))
+		conn.SetReadDeadline(time.Now().Add(config.HeartbeatTime))
 		n, _, _ := conn.ReadFrom(buf[0:])
 
 		idStr := string(buf[:n])
@@ -58,19 +57,25 @@ func Receiver(port int, peerUpdateCh chan<- PeerUpdate) {
 
 		// Adding new connection
 		p.New = 1000
-		// if id != 0 {
 		if _, idExists := lastSeen[id]; !idExists {
 			p.New = id
 			updated = true
+
+			// Check if the new peer was previously lost
+			for i, lostPeer := range p.Lost {
+				if lostPeer == id {
+					// Remove the peer from Lost
+					p.Lost = append(p.Lost[:i], p.Lost[i+1:]...)
+					break
+				}
+			}
 		}
 
 		lastSeen[id] = time.Now()
-		// }
 
 		// Removing dead connection
-		p.Lost = make([]int, 0)
 		for k, v := range lastSeen {
-			if time.Now().Sub(v) > timeout {
+			if time.Now().Sub(v) > config.DisconnectTime {
 				updated = true
 				p.Lost = append(p.Lost, k)
 				delete(lastSeen, k)

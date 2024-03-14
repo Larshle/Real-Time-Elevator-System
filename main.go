@@ -19,7 +19,7 @@ var ElevatorID int
 
 func main() {
 
-	port := flag.Int("port", 15357, "<-- Default verdi, men kan overskrives som en command line argument ved bruk av -port=xxxxx")
+	port := flag.Int("port", 15301, "<-- Default verdi, men kan overskrives som en command line argument ved bruk av -port=xxxxx")
 	id := flag.Int("id", 0, "<-- Default verdi, men kan overskrives som en command line argument ved bruk av -id=xxxxx")
 	flag.Parse()
 
@@ -29,8 +29,8 @@ func main() {
 	fmt.Println()
 	elevio.Init("localhost:"+strconv.Itoa(Port), config.NumFloors)
 
-	fmt.Println("Elevator initialized with ID", ElevatorID, "on port", Port)
-	fmt.Println("System has", config.NumFloors, "floors and", config.NumElevators, "elevators.")
+	//fmt.Println("Elevator initialized with ID", ElevatorID, "on port", Port)
+	//fmt.Println("System has", config.NumFloors, "floors and", config.NumElevators, "elevators.")
 
 	newAssignmentC := make(chan elevator.Assignments, 10000)
 	deliveredAssignmentC := make(chan elevio.ButtonEvent, 10000)
@@ -39,7 +39,7 @@ func main() {
 	receiverFromNetworkC := make(chan distributor.CommonState, 10000) // Endre navn?
 	toAssignerC := make(chan distributor.CommonState, 10000)
 	receiverPeersC := make(chan peers.PeerUpdate, 10000) // Endre navn?
-	giverPeersC := make(chan bool, 10000)                // Endre navn?
+	giverPeersC := make(chan bool, 10000)
 
 	go peers.Receiver(config.PeersPortNumber, receiverPeersC)
 	go peers.Transmitter(config.PeersPortNumber, ElevatorID, giverPeersC)
@@ -61,10 +61,16 @@ func main() {
 		newLocalElevStateC,
 		deliveredAssignmentC)
 
-	for range toAssignerC {
-		cs := <-toAssignerC
-		localAssingment := assigner.ToLocalAssingment(assigner.CalculateHRA(cs), ElevatorID)
-		newAssignmentC <- localAssingment
-		lights.SetLights(cs, ElevatorID)
+	for {
+		select {
+		case cs := <-toAssignerC:
+			localAssingment := assigner.CalculateOptimalAssignments(cs, ElevatorID)
+			newAssignmentC <- localAssingment
+			lights.SetLights(cs, ElevatorID)
+
+		default:
+			continue
+		}
+
 	}
 }
