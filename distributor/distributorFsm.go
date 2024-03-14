@@ -79,11 +79,22 @@ func Distributor(
 					cs = arrivedCs
 					toAssignerC <- cs
 					acking = false
-					switch (StashType) {
-					case condition:
-						
-					}
+					if stashed {
+					cs.prepNewCs(id)
+					switch stashType {
+					case AddCall:
+						cs.addAssignments(NewOrderStash, id)
+						cs.Ackmap[id] = Acked
 
+					case RemoveCall:
+						cs.removeAssignments(RemoveOrderStash, id)
+						cs.Ackmap[id] = Acked
+
+					case StateChange:
+						cs.updateLocalElevState(stateStash, id)
+						cs.Ackmap[id] = Acked
+					}
+				}
 
 				case cs.equals(arrivedCs):
 					cs = arrivedCs
@@ -114,6 +125,7 @@ func Distributor(
 					toAssignerC <- cs
 					stashed = false
 				}
+			default:
 			}
 		case aloneOnNetwork:
 			select {
