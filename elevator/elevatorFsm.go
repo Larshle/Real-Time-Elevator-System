@@ -4,13 +4,15 @@ import (
 	"root/config"
 	"root/elevio"
 	"root/watchdog"
+	"time"
 )
 
 type State struct {
-	Stuck     bool
-	Behaviour Behaviour
-	Floor     int
-	Direction Direction
+	Obstructed bool
+	Motorstop  bool
+	Behaviour  Behaviour
+	Floor      int
+	Direction  Direction
 }
 
 type Behaviour int
@@ -29,20 +31,21 @@ func Elevator(newAssignmentC <-chan Assignments, newLocalElevStateC chan<- State
 	doorOpenC := make(chan bool, 16)
 	doorClosedC := make(chan bool, 16)
 	floorEnteredC := make(chan int)
-	barkC := make(chan bool, 16) // stuckC
+	obstructionC := make(chan bool, 16) // stuckC
 	startMovingC := make(chan bool, 16)
 	stopMovingC := make(chan bool, 16)
 
-	go Door(doorClosedC, doorOpenC, barkC)
+	go Door(doorClosedC, doorOpenC, obstructionC)
 	go elevio.PollFloorSensor(floorEnteredC)
-	go watchdog.MotorWatchdog(config.WatchdogTime, barkC, startMovingC, stopMovingC)
+	go watchdog.MotorWatchdog(config.WatchdogTime, motorC, startMovingC, stopMovingC)
 
 	elevio.SetMotorDirection(elevio.MD_Down)
 	state := State{Direction: Down, Behaviour: Moving}
-	startMovingC <- true
-	stopMovingC <- true
 
 	var assignments Assignments
+
+    motorTimer:= time.NewTimer(config.WatchdogTime)
+	motorTimer.Stop()
 
 	for {
 		select {
@@ -53,7 +56,8 @@ func Elevator(newAssignmentC <-chan Assignments, newLocalElevStateC chan<- State
 				case assignments.ReqInDirection(state.Floor, state.Direction):
 					elevio.SetMotorDirection(state.Direction.toMD())
 					state.Behaviour = Moving
-					startMovingC <- true
+					motorTimer = time.NewTimer(config.WatchdogTime)
+					motorC <- false
 					newLocalElevStateC <- state
 
 				case assignments[state.Floor][state.Direction.toOpposite()]:
@@ -66,7 +70,8 @@ func Elevator(newAssignmentC <-chan Assignments, newLocalElevStateC chan<- State
 					state.Direction = state.Direction.toOpposite()
 					elevio.SetMotorDirection(state.Direction.toMD())
 					state.Behaviour = Moving
-					startMovingC <- true
+					motorTimer = time.NewTimer(config.WatchdogTime)
+			motorC <- false
 					newLocalElevStateC <- state
 
 				default:
@@ -102,7 +107,8 @@ func Elevator(newAssignmentC <-chan Assignments, newLocalElevStateC chan<- State
 					state.Behaviour = DoorOpen
 
 				case assignments.ReqInDirection(state.Floor, state.Direction):
-					startMovingC <- true
+					motorTimer = time.NewTimer(config.WatchdogTime)
+			motorC <- false
 
 				case assignments[state.Floor][state.Direction.toOpposite()]:
 					elevio.SetMotorDirection(elevio.MD_Stop)
@@ -114,7 +120,8 @@ func Elevator(newAssignmentC <-chan Assignments, newLocalElevStateC chan<- State
 				case assignments.ReqInDirection(state.Floor, state.Direction.toOpposite()):
 					state.Direction = state.Direction.toOpposite()
 					elevio.SetMotorDirection(state.Direction.toMD())
-					startMovingC <- true
+					motorTimer = time.NewTimer(config.WatchdogTime)
+					motorC <- false
 
 				default:
 					elevio.SetMotorDirection(elevio.MD_Stop)
@@ -146,14 +153,16 @@ func Elevator(newAssignmentC <-chan Assignments, newLocalElevStateC chan<- State
 					elevio.SetMotorDirection(state.Direction.toMD())
 					state.Behaviour = Moving
 					newLocalElevStateC <- state
-					startMovingC <- true
+					motorTimer = time.NewTimer(config.WatchdogTime)
+					motorC <- false
 
 				case assignments.ReqInDirection(state.Floor, state.Direction.toOpposite()):
 					state.Direction = state.Direction.toOpposite()
 					elevio.SetMotorDirection(state.Direction.toMD())
 					state.Behaviour = Moving
 					newLocalElevStateC <- state
-					startMovingC <- true
+					motorTimer = time.NewTimer(config.WatchdogTime)
+			motorC <- false
 				default:
 				}
 
@@ -170,8 +179,18 @@ func Elevator(newAssignmentC <-chan Assignments, newLocalElevStateC chan<- State
 			default:
 				panic("Assignments in wrong state")
 			}
-		case stuck := <-barkC:
+		case motorStuck := <-motorTimer.C:
 			if stuck != state.Stuck {
+				state.Stuck = stuck
+				newLocalElevStateC <- state
+			}
+		case obstruction := <-obstructionC:
+			if obstruction != state.Stuck {
+				state.Stuck = stuck
+				newLocalElevStateC <- state
+			}
+		case motor := <-motorC:
+			if motor != state.Motorstop {
 				state.Stuck = stuck
 				newLocalElevStateC <- state
 			}
