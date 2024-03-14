@@ -113,7 +113,7 @@ func (cs *CommonState) fullyAcked(ElevatorID int) bool {
 	return true
 }
 
-func commonStatesEqual(oldCS, newCS CommonState) bool {
+func (oldCS *CommonState) equals(newCS CommonState) bool {
 	oldCS.Ackmap = [config.NumElevators]AckStatus{}
 	newCS.Ackmap = [config.NumElevators]AckStatus{}
 	return reflect.DeepEqual(oldCS, newCS)

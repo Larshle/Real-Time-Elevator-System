@@ -63,25 +63,25 @@ func Distributor(
 		case !acking:
 			select {
 			case newOrder := <-elevioOrdersC:
-				cs.prepNewCs(ElevatorID)
 				stashType = AddCall
 				NewOrderStash = newOrder
+				cs.prepNewCs(ElevatorID)
 				cs.addAssignments(newOrder, ElevatorID)
 				cs.Ackmap[ElevatorID] = Acked
 				acking = true
 
 			case removeOrder := <-deliveredAssignmentC:
-				cs.prepNewCs(ElevatorID)
 				stashType = RemoveCall
 				RemoveOrderStash = removeOrder
+				cs.prepNewCs(ElevatorID)
 				cs.removeAssignments(removeOrder, ElevatorID)
 				cs.Ackmap[ElevatorID] = Acked
 				acking = true
 
 			case newElevState := <-newLocalElevStateC:
-				cs.prepNewCs(ElevatorID)
 				stashType = StateChange
 				stateStash = newElevState
+				cs.prepNewCs(ElevatorID)
 				cs.updateLocalElevState(newElevState, ElevatorID)
 				cs.Ackmap[ElevatorID] = Acked
 				acking = true
@@ -169,7 +169,7 @@ func Distributor(
 						acking = false
 					}
 
-				case commonStatesEqual(cs, arrivedCs):
+				case cs.equals(arrivedCs):
 					cs = arrivedCs
 					cs.Ackmap[ElevatorID] = Acked
 					cs.makeLostPeersUnavailable(peers)
