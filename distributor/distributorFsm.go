@@ -62,6 +62,37 @@ func Distributor(
 
 		switch {
 		
+		case aloneOnNetwork:
+			select {
+			case <-receiverFromNetworkC:
+				if cs.States[id].CabRequests == [config.NumFloors]bool{} {
+					aloneOnNetwork = false
+				}
+
+			case newOrder := <-elevioOrdersC:
+				if cs.States[id].State.Motorstop {
+					break
+				}
+				cs.Ackmap[id] = Acked
+				cs.addCabCall(newOrder, id)
+				toAssignerC <- cs
+
+			case removeOrder := <-deliveredAssignmentC:
+				cs.Ackmap[id] = Acked
+				cs.removeAssignments(removeOrder, id)
+				toAssignerC <- cs
+
+			case newElevState := <-newLocalElevStateC:
+				if newElevState.Obstructed || newElevState.Motorstop{
+					break
+				}
+				cs.Ackmap[id] = Acked
+				cs.updateLocalElevState(newElevState, id)
+				toAssignerC <- cs
+
+			default:
+			}
+		
 		case acking:
 			select {
 			case arrivedCs := <-receiverFromNetworkC:
@@ -125,33 +156,6 @@ func Distributor(
 					toAssignerC <- cs
 					stashed = false
 				}
-			default:
-			}
-		case aloneOnNetwork:
-			select {
-			case <-receiverFromNetworkC:
-				if cs.States[id].CabRequests == [config.NumFloors]bool{} {
-					aloneOnNetwork = false
-				}
-
-			case newOrder := <-elevioOrdersC:
-				if cs.States[id].State.Motorstop {
-					break
-				}
-				cs.Ackmap[id] = Acked
-				cs.addCabCall(newOrder, id)
-				toAssignerC <- cs
-
-			case removeOrder := <-deliveredAssignmentC:
-				cs.Ackmap[id] = Acked
-				cs.removeAssignments(removeOrder, id)
-				toAssignerC <- cs
-
-			case newElevState := <-newLocalElevStateC:
-				cs.Ackmap[id] = Acked
-				cs.updateLocalElevState(newElevState, id)
-				toAssignerC <- cs
-
 			default:
 			}
 
