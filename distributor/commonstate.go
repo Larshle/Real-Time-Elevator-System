@@ -53,8 +53,6 @@ func (cs *CommonState) addCabCall(newCall elevio.ButtonEvent, id int) {
 }
 
 func (cs *CommonState) updateLocalElevState(localElevState elevator.State, id int) {
-	//localEs := cs.States[id]
-
 	cs.States[id] = LocalElevState{
 		State:       localElevState,
 		CabRequests: cs.States[id].CabRequests,

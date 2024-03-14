@@ -1,7 +1,6 @@
 package distributor
 
 import (
-	"fmt"
 	"root/config"
 	"root/elevator"
 	"root/elevio"
@@ -36,15 +35,13 @@ func Distributor(
 	var RemoveOrderStash elevio.ButtonEvent
 	var stashType StashType
 	var peers peers.PeerUpdate
-
 	var cs CommonState
 
 	disconnectTimer := time.NewTimer(config.DisconnectTime)
 	heartbeatTimer := time.NewTicker(config.HeartbeatTime)
 
-	acking := false
+	idle := true
 	aloneOnNetwork := false
-	stashed := false
 
 	for {
 		select {
@@ -54,10 +51,8 @@ func Distributor(
 
 		case P := <-receiverPeersC:
 			peers = P
-			fmt.Println("Peers: ", peers)
-			cs.makeLostPeersUnavailable(peers)
-			cs.Print()
-			acking = true
+			cs.makeOthersUnavailable(id)
+			idle = false
 
 		case <-heartbeatTimer.C:
 			giverToNetworkC <- cs
@@ -66,6 +61,43 @@ func Distributor(
 		}
 
 		switch {
+		case idle:
+			select {
+			case newOrder := <-elevioOrdersC:
+				stashType = AddCall
+				NewOrderStash = newOrder
+				cs.prepNewCs(id)
+				cs.addAssignments(newOrder, id)
+				cs.Ackmap[id] = Acked
+				idle = false
+
+			case removeOrder := <-deliveredAssignmentC:
+				stashType = RemoveCall
+				RemoveOrderStash = removeOrder
+				cs.prepNewCs(id)
+				cs.removeAssignments(removeOrder, id)
+				cs.Ackmap[id] = Acked
+				idle = false
+
+			case newElevState := <-newLocalElevStateC:
+				stashType = StateChange
+				stateStash = newElevState
+				cs.prepNewCs(id)
+				cs.updateLocalElevState(newElevState, id)
+				cs.Ackmap[id] = Acked
+				idle = false
+
+			case arrivedCs := <-receiverFromNetworkC:
+				disconnectTimer = time.NewTimer(config.DisconnectTime)
+				if (arrivedCs.Origin > cs.Origin && arrivedCs.Seq == cs.Seq) || arrivedCs.Seq > cs.Seq {
+					cs = arrivedCs
+					cs.makeLostPeersUnavailable(peers)
+					cs.Ackmap[id] = Acked
+					idle = false
+				}
+
+			default:
+			}
 
 		case aloneOnNetwork:
 			select {
@@ -88,7 +120,7 @@ func Distributor(
 				toAssignerC <- cs
 
 			case newElevState := <-newLocalElevStateC:
-				if !(newElevState.Obstructed || newElevState.Motorstop) {
+				if !(newElevState.Obstructed || newElevState.Motorstop){
 					cs.Ackmap[id] = Acked
 					cs.updateLocalElevState(newElevState, id)
 					toAssignerC <- cs
@@ -97,13 +129,14 @@ func Distributor(
 			default:
 			}
 
-		case acking:
+		case !idle:
 			select {
 			case arrivedCs := <-receiverFromNetworkC:
-				disconnectTimer = time.NewTimer(config.DisconnectTime)
 				if arrivedCs.Seq < cs.Seq {
 					break
 				}
+				disconnectTimer = time.NewTimer(config.DisconnectTime)
+
 				switch {
 				case (arrivedCs.Origin > cs.Origin && arrivedCs.Seq == cs.Seq) || arrivedCs.Seq > cs.Seq:
 					cs = arrivedCs
@@ -113,7 +146,31 @@ func Distributor(
 				case arrivedCs.fullyAcked(id):
 					cs = arrivedCs
 					toAssignerC <- cs
-					acking = false
+					switch {
+					case cs.Origin != id && stashType != None:
+						cs.prepNewCs(id)
+
+						switch stashType {
+						case AddCall:
+							cs.addAssignments(NewOrderStash, id)
+							cs.Ackmap[id] = Acked
+
+						case RemoveCall:
+							cs.removeAssignments(RemoveOrderStash, id)
+							cs.Ackmap[id] = Acked
+
+						case StateChange:
+							cs.updateLocalElevState(stateStash, id)
+							cs.Ackmap[id] = Acked
+						}
+
+					case cs.Origin == id && stashType != None:
+						stashType = None
+						idle = true
+
+					default:
+						idle = true
+					}
 
 				case cs.equals(arrivedCs):
 					cs = arrivedCs
@@ -124,85 +181,6 @@ func Distributor(
 				}
 			default:
 			}
-
-		case stashed:
-			select {
-			case arrivedCs := <-receiverFromNetworkC:
-				disconnectTimer = time.NewTimer(config.DisconnectTime)
-				if arrivedCs.Seq < cs.Seq {
-					break
-				}
-				switch {
-				case (arrivedCs.Origin > cs.Origin && arrivedCs.Seq == cs.Seq) || arrivedCs.Seq > cs.Seq:
-					cs = arrivedCs
-					cs.Ackmap[id] = Acked
-					cs.makeLostPeersUnavailable(peers)
-					acking = true
-
-				case arrivedCs.fullyAcked(id):
-					cs = arrivedCs
-					toAssignerC <- cs
-					stashed = false
-				case !cs.equals(arrivedCs):
-					cs.prepNewCs(id)
-					switch stashType {
-					case AddCall:
-						cs.addAssignments(NewOrderStash, id)
-						cs.Ackmap[id] = Acked
-
-					case RemoveCall:
-						cs.removeAssignments(RemoveOrderStash, id)
-						cs.Ackmap[id] = Acked
-
-					case StateChange:
-						cs.updateLocalElevState(stateStash, id)
-						cs.Ackmap[id] = Acked
-					}
-				}
-			default:
-			}
-
-		default: // Idle
-			select {
-			case newOrder := <-elevioOrdersC:
-				stashType = AddCall
-				NewOrderStash = newOrder
-				cs.prepNewCs(id)
-				cs.addAssignments(newOrder, id)
-				cs.Ackmap[id] = Acked
-				acking = true
-				stashed = true
-
-			case removeOrder := <-deliveredAssignmentC:
-				stashType = RemoveCall
-				RemoveOrderStash = removeOrder
-				cs.prepNewCs(id)
-				cs.removeAssignments(removeOrder, id)
-				cs.Ackmap[id] = Acked
-				acking = true
-				stashed = true
-
-			case newElevState := <-newLocalElevStateC:
-				stashType = StateChange
-				stateStash = newElevState
-				cs.prepNewCs(id)
-				cs.updateLocalElevState(newElevState, id)
-				cs.Ackmap[id] = Acked
-				acking = true
-				stashed = true
-
-			case arrivedCs := <-receiverFromNetworkC:
-				disconnectTimer = time.NewTimer(config.DisconnectTime)
-				if (arrivedCs.Origin > cs.Origin && arrivedCs.Seq == cs.Seq) || arrivedCs.Seq > cs.Seq {
-					cs = arrivedCs
-					cs.makeLostPeersUnavailable(peers)
-					cs.Ackmap[id] = Acked
-					acking = true
-				}
-
-			default:
-			}
 		}
 	}
-
 }
