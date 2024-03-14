@@ -1,7 +1,7 @@
 package distributor
 
 import (
-	//"fmt"
+	"fmt"
 	"reflect"
 	"root/config"
 	"root/elevator"
@@ -29,8 +29,6 @@ type CommonState struct {
 	HallRequests [config.NumFloors][2]bool
 	States       [config.NumElevators]LocalElevState
 }
-
-
 
 func (cs *CommonState) addAssignments(newCall elevio.ButtonEvent, id int) {
 	if newCall.Button == elevio.BT_Cab {
@@ -62,23 +60,22 @@ func (cs *CommonState) updateLocalElevState(localElevState elevator.State, id in
 		CabRequests: cs.States[id].CabRequests,
 	}
 }
-/*
 func (cs *CommonState) Print() {
 	fmt.Println("\nOrigin:", cs.Origin)
 	fmt.Println("seq:", cs.Seq)
 	fmt.Println("Ackmap:", cs.Ackmap)
 	fmt.Println("Hall Requests:", cs.HallRequests)
 
-	for i, state := range cs.States {
+	for i, _ := range cs.States {
 		fmt.Printf("Elevator %d:\n", int(i))
-		fmt.Printf("\tStuck: %t\n", state.Stuck)
-		fmt.Printf("\tBehaviour: %s\n", state.Behaviour)
-		fmt.Printf("\tFloor: %d\n", state.Floor)
-		fmt.Printf("\tDirection: %s\n", state.Direction)
-		fmt.Printf("\tCab Requests: %v\n\n", state.CabRequests)
+		fmt.Printf("\tMotorstop: %t\n", cs.States[i].State.Motorstop)
+		fmt.Printf("\tObstruvted: %t\n", cs.States[i].State.Obstructed)
+		fmt.Printf("\tBehaviour: %d\n", cs.States[i].State.Behaviour)
+		fmt.Printf("\tFloor: %d\n", cs.States[i].State.Floor)
+		fmt.Printf("\tDirection: %d\n", cs.States[i].State.Direction)
+		fmt.Printf("\tCab Requests: %v\n\n", cs.States[i].CabRequests)
 	}
 }
-*/
 
 func (cs *CommonState) fullyAcked(id int) bool {
 	if cs.Ackmap[id] == NotAvailable {
@@ -99,7 +96,9 @@ func (oldCs CommonState) equals(newCs CommonState) bool {
 }
 
 func (cs *CommonState) makeLostPeersUnavailable(p peers.PeerUpdate) {
-	for _, id := range p.Lost {
+	fmt.Println("nuuudle")
+	for a, id := range p.Lost {
+		fmt.Println("_", a, "id:", id)
 		cs.Ackmap[id] = NotAvailable
 	}
 }

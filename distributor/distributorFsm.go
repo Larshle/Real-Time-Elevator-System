@@ -1,6 +1,7 @@
 package distributor
 
 import (
+	"fmt"
 	"root/config"
 	"root/elevator"
 	"root/elevio"
@@ -53,6 +54,10 @@ func Distributor(
 
 		case P := <-receiverPeersC:
 			peers = P
+			fmt.Println("Peers: ", peers)
+			cs.makeLostPeersUnavailable(peers)
+			cs.Print()
+			acking = true
 
 		case <-heartbeatTimer.C:
 			giverToNetworkC <- cs
@@ -61,7 +66,7 @@ func Distributor(
 		}
 
 		switch {
-		
+
 		case aloneOnNetwork:
 			select {
 			case <-receiverFromNetworkC:
@@ -83,16 +88,15 @@ func Distributor(
 				toAssignerC <- cs
 
 			case newElevState := <-newLocalElevStateC:
-				if newElevState.Obstructed || newElevState.Motorstop{
-					break
+				if !(newElevState.Obstructed || newElevState.Motorstop) {
+					cs.Ackmap[id] = Acked
+					cs.updateLocalElevState(newElevState, id)
+					toAssignerC <- cs
 				}
-				cs.Ackmap[id] = Acked
-				cs.updateLocalElevState(newElevState, id)
-				toAssignerC <- cs
 
 			default:
 			}
-		
+
 		case acking:
 			select {
 			case arrivedCs := <-receiverFromNetworkC:
@@ -110,22 +114,6 @@ func Distributor(
 					cs = arrivedCs
 					toAssignerC <- cs
 					acking = false
-					if stashed {
-					cs.prepNewCs(id)
-					switch stashType {
-					case AddCall:
-						cs.addAssignments(NewOrderStash, id)
-						cs.Ackmap[id] = Acked
-
-					case RemoveCall:
-						cs.removeAssignments(RemoveOrderStash, id)
-						cs.Ackmap[id] = Acked
-
-					case StateChange:
-						cs.updateLocalElevState(stateStash, id)
-						cs.Ackmap[id] = Acked
-					}
-				}
 
 				case cs.equals(arrivedCs):
 					cs = arrivedCs
@@ -136,9 +124,9 @@ func Distributor(
 				}
 			default:
 			}
-		
+
 		case stashed:
-			select{
+			select {
 			case arrivedCs := <-receiverFromNetworkC:
 				disconnectTimer = time.NewTimer(config.DisconnectTime)
 				if arrivedCs.Seq < cs.Seq {
@@ -155,11 +143,26 @@ func Distributor(
 					cs = arrivedCs
 					toAssignerC <- cs
 					stashed = false
+				case !cs.equals(arrivedCs):
+					cs.prepNewCs(id)
+					switch stashType {
+					case AddCall:
+						cs.addAssignments(NewOrderStash, id)
+						cs.Ackmap[id] = Acked
+
+					case RemoveCall:
+						cs.removeAssignments(RemoveOrderStash, id)
+						cs.Ackmap[id] = Acked
+
+					case StateChange:
+						cs.updateLocalElevState(stateStash, id)
+						cs.Ackmap[id] = Acked
+					}
 				}
 			default:
 			}
 
-		default:
+		default: // Idle
 			select {
 			case newOrder := <-elevioOrdersC:
 				stashType = AddCall
