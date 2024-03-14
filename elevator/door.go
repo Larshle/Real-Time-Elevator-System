@@ -14,7 +14,7 @@ const (
 	Obstructed
 )
 
-func Door(doorClosedC chan<- bool, doorOpenC <-chan bool, barkC chan<- bool) {
+func Door(doorClosedC chan<- bool, doorOpenC <-chan bool, obstrucedC chan<- bool) {
 
 	elevio.SetDoorOpenLamp(false)
 	obstructionC := make(chan bool)
@@ -34,14 +34,14 @@ func Door(doorClosedC chan<- bool, doorOpenC <-chan bool, barkC chan<- bool) {
 				ds = Closed
 			}
 			if obstruction {
-				barkC <- true
+				obstrucedC <- true
 			} else {
-				barkC <- false
+				obstrucedC <- false
 			}
 
 		case <-doorOpenC:
 			if obstruction {
-				barkC <- true
+				obstrucedC <- true
 			}
 			switch ds {
 			case Closed:

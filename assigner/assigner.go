@@ -28,7 +28,7 @@ func CalculateOptimalAssignments(cs distributor.CommonState, ElevatorID int) ele
 
 	stateMap := make(map[string]hraState)
 	for i, v := range cs.States {
-		if cs.Ackmap[i] == distributor.NotAvailable || v.State.Stuck { // Remove not-available and stuck elevators from stateMap
+		if cs.Ackmap[i] == distributor.NotAvailable || v.State.Motorstop || v.State.Obstructed { // Remove not-available and stuck elevators from stateMap
 			continue
 		} else {
 			stateMap[strconv.Itoa(i)] = hraState{
