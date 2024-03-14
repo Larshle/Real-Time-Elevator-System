@@ -33,11 +33,12 @@ type CommonState struct {
 	States       [config.NumElevators]LocalElevState `json:"states"`
 }
 
-func initCommonState(ElevatorID int) (cs CommonState) {
+func initCommonState(id int) (cs CommonState) {
 	cs.Seq = 0
-	cs.Origin = ElevatorID
+	cs.Origin = id
 	cs.Ackmap = [config.NumElevators]AckStatus{}
 	cs.HallRequests = [config.NumFloors][2]bool{}
+
 	var states [config.NumElevators]LocalElevState
 	for i := 0; i < config.NumElevators; i++ {
 		states[i] = LocalElevState{
@@ -48,41 +49,42 @@ func initCommonState(ElevatorID int) (cs CommonState) {
 			CabRequests: [config.NumFloors]bool{},
 		}
 	}
+	
 	cs.States = states
 
 	return cs
 }
 
-func (cs *CommonState) addAssignments(newCall elevio.ButtonEvent, ElevatorID int) {
+func (cs *CommonState) addAssignments(newCall elevio.ButtonEvent, id int) {
 	if newCall.Button == elevio.BT_Cab {
-		cs.States[ElevatorID].CabRequests[newCall.Floor] = true
+		cs.States[id].CabRequests[newCall.Floor] = true
 	} else {
 		cs.HallRequests[newCall.Floor][newCall.Button] = true
 	}
 }
 
-func (cs *CommonState) removeAssignments(deliveredAssingement elevio.ButtonEvent, ElevatorID int) {
+func (cs *CommonState) removeAssignments(deliveredAssingement elevio.ButtonEvent, id int) {
 	if deliveredAssingement.Button == elevio.BT_Cab {
-		cs.States[ElevatorID].CabRequests[deliveredAssingement.Floor] = false
+		cs.States[id].CabRequests[deliveredAssingement.Floor] = false
 	} else {
 		cs.HallRequests[deliveredAssingement.Floor][deliveredAssingement.Button] = false
 	}
 }
 
-func (cs *CommonState) addCabCall(newCall elevio.ButtonEvent, ElevatorID int) {
+func (cs *CommonState) addCabCall(newCall elevio.ButtonEvent, id int) {
 	if newCall.Button == elevio.BT_Cab {
-		cs.States[ElevatorID].CabRequests[newCall.Floor] = true
+		cs.States[id].CabRequests[newCall.Floor] = true
 	}
 }
 
-func (cs *CommonState) updateLocalElevState(localElevState elevator.State, ElevatorID int) {
-	localEs := cs.States[ElevatorID]
+func (cs *CommonState) updateLocalElevState(localElevState elevator.State, id int) {
+	localEs := cs.States[id]
 	localEs.Stuck = localElevState.Stuck
 	localEs.Behaviour = localElevState.Behaviour.ToString()
 	localEs.Floor = localElevState.Floor
 	localEs.Direction = localElevState.Direction.ToString()
-	localEs.CabRequests = cs.States[ElevatorID].CabRequests
-	cs.States[ElevatorID] = localEs
+	localEs.CabRequests = cs.States[id].CabRequests
+	cs.States[id] = localEs
 }
 
 func (cs *CommonState) Print() {
@@ -101,8 +103,8 @@ func (cs *CommonState) Print() {
 	}
 }
 
-func (cs *CommonState) fullyAcked(ElevatorID int) bool {
-	if cs.Ackmap[ElevatorID] == NotAvailable {
+func (cs *CommonState) fullyAcked(id int) bool {
+	if cs.Ackmap[id] == NotAvailable {
 		return false
 	}
 	for index := range cs.Ackmap {
@@ -113,10 +115,10 @@ func (cs *CommonState) fullyAcked(ElevatorID int) bool {
 	return true
 }
 
-func (oldCS *CommonState) equals(newCS CommonState) bool {
-	oldCS.Ackmap = [config.NumElevators]AckStatus{}
-	newCS.Ackmap = [config.NumElevators]AckStatus{}
-	return reflect.DeepEqual(oldCS, newCS)
+func (oldCs *CommonState) equals(newCs CommonState) bool {
+	oldCs.Ackmap = [config.NumElevators]AckStatus{}
+	newCs.Ackmap = [config.NumElevators]AckStatus{}
+	return reflect.DeepEqual(oldCs, newCs)
 }
 
 func (cs *CommonState) makeLostPeersUnavailable(p peers.PeerUpdate) {
@@ -125,10 +127,10 @@ func (cs *CommonState) makeLostPeersUnavailable(p peers.PeerUpdate) {
 	}
 }
 
-func (cs *CommonState) makeOthersUnavailable(ElevatorID int) {
-	for id := range cs.Ackmap {
-		if id != ElevatorID {
-			cs.Ackmap[id] = NotAvailable
+func (cs *CommonState) makeOthersUnavailable(id int) {
+	for elev := range cs.Ackmap {
+		if elev != id {
+			cs.Ackmap[elev] = NotAvailable
 		}
 	}
 }

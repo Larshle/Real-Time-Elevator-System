@@ -24,7 +24,7 @@ func Distributor(
 	receiverFromNetworkC <-chan CommonState,
 	toAssignerC chan<- CommonState,
 	receiverPeersC <-chan peers.PeerUpdate,
-	ElevatorID int) {
+	id int) {
 
 	elevioOrdersC := make(chan elevio.ButtonEvent, 10000)
 
@@ -36,7 +36,7 @@ func Distributor(
 	var stashType StashType
 	var peers peers.PeerUpdate
 
-	cs := initCommonState(ElevatorID)
+	cs := initCommonState(id)
 
 	disconnectTimer := time.NewTimer(config.DisconnectTime)
 	heartbeatTimer := time.NewTicker(config.HeartbeatTime)
@@ -48,7 +48,7 @@ func Distributor(
 		select {
 		case <-disconnectTimer.C:
 			aloneOnNetwork = true
-			cs.makeOthersUnavailable(ElevatorID)
+			cs.makeOthersUnavailable(id)
 
 		case P := <-receiverPeersC:
 			peers = P
@@ -65,25 +65,25 @@ func Distributor(
 			case newOrder := <-elevioOrdersC:
 				stashType = AddCall
 				NewOrderStash = newOrder
-				cs.prepNewCs(ElevatorID)
-				cs.addAssignments(newOrder, ElevatorID)
-				cs.Ackmap[ElevatorID] = Acked
+				cs.prepNewCs(id)
+				cs.addAssignments(newOrder, id)
+				cs.Ackmap[id] = Acked
 				acking = true
 
 			case removeOrder := <-deliveredAssignmentC:
 				stashType = RemoveCall
 				RemoveOrderStash = removeOrder
-				cs.prepNewCs(ElevatorID)
-				cs.removeAssignments(removeOrder, ElevatorID)
-				cs.Ackmap[ElevatorID] = Acked
+				cs.prepNewCs(id)
+				cs.removeAssignments(removeOrder, id)
+				cs.Ackmap[id] = Acked
 				acking = true
 
 			case newElevState := <-newLocalElevStateC:
 				stashType = StateChange
 				stateStash = newElevState
-				cs.prepNewCs(ElevatorID)
-				cs.updateLocalElevState(newElevState, ElevatorID)
-				cs.Ackmap[ElevatorID] = Acked
+				cs.prepNewCs(id)
+				cs.updateLocalElevState(newElevState, id)
+				cs.Ackmap[id] = Acked
 				acking = true
 
 			case arrivedCs := <-receiverFromNetworkC:
@@ -91,7 +91,7 @@ func Distributor(
 				if (arrivedCs.Origin > cs.Origin && arrivedCs.Seq == cs.Seq) || arrivedCs.Seq > cs.Seq {
 					cs = arrivedCs
 					cs.makeLostPeersUnavailable(peers)
-					cs.Ackmap[ElevatorID] = Acked
+					cs.Ackmap[id] = Acked
 					acking = true
 				}
 
@@ -101,26 +101,26 @@ func Distributor(
 		case aloneOnNetwork:
 			select {
 			case <-receiverFromNetworkC:
-				if cs.States[ElevatorID].CabRequests == [config.NumFloors]bool{} {
+				if cs.States[id].CabRequests == [config.NumFloors]bool{} {
 					aloneOnNetwork = false
 				}
 
 			case newOrder := <-elevioOrdersC:
-				if cs.States[ElevatorID].Stuck {
+				if cs.States[id].Stuck {
 					break
 				}
-				cs.Ackmap[ElevatorID] = Acked
-				cs.addCabCall(newOrder, ElevatorID)
+				cs.Ackmap[id] = Acked
+				cs.addCabCall(newOrder, id)
 				toAssignerC <- cs
 
 			case removeOrder := <-deliveredAssignmentC:
-				cs.Ackmap[ElevatorID] = Acked
-				cs.removeAssignments(removeOrder, ElevatorID)
+				cs.Ackmap[id] = Acked
+				cs.removeAssignments(removeOrder, id)
 				toAssignerC <- cs
 
 			case newElevState := <-newLocalElevStateC:
-				cs.Ackmap[ElevatorID] = Acked
-				cs.updateLocalElevState(newElevState, ElevatorID)
+				cs.Ackmap[id] = Acked
+				cs.updateLocalElevState(newElevState, id)
 				toAssignerC <- cs
 
 			default:
@@ -137,31 +137,31 @@ func Distributor(
 				switch {
 				case (arrivedCs.Origin > cs.Origin && arrivedCs.Seq == cs.Seq) || arrivedCs.Seq > cs.Seq:
 					cs = arrivedCs
-					cs.Ackmap[ElevatorID] = Acked
+					cs.Ackmap[id] = Acked
 					cs.makeLostPeersUnavailable(peers)
 
-				case arrivedCs.fullyAcked(ElevatorID):
+				case arrivedCs.fullyAcked(id):
 					cs = arrivedCs
 					toAssignerC <- cs
 					switch {
-					case cs.Origin != ElevatorID && stashType != None:
-						cs.prepNewCs(ElevatorID)
+					case cs.Origin != id && stashType != None:
+						cs.prepNewCs(id)
 
 						switch stashType {
 						case AddCall:
-							cs.addAssignments(NewOrderStash, ElevatorID)
-							cs.Ackmap[ElevatorID] = Acked
+							cs.addAssignments(NewOrderStash, id)
+							cs.Ackmap[id] = Acked
 
 						case RemoveCall:
-							cs.removeAssignments(RemoveOrderStash, ElevatorID)
-							cs.Ackmap[ElevatorID] = Acked
+							cs.removeAssignments(RemoveOrderStash, id)
+							cs.Ackmap[id] = Acked
 
 						case StateChange:
-							cs.updateLocalElevState(stateStash, ElevatorID)
-							cs.Ackmap[ElevatorID] = Acked
+							cs.updateLocalElevState(stateStash, id)
+							cs.Ackmap[id] = Acked
 						}
 
-					case cs.Origin == ElevatorID && stashType != None:
+					case cs.Origin == id && stashType != None:
 						stashType = None
 						acking = false
 
@@ -171,7 +171,7 @@ func Distributor(
 
 				case cs.equals(arrivedCs):
 					cs = arrivedCs
-					cs.Ackmap[ElevatorID] = Acked
+					cs.Ackmap[id] = Acked
 					cs.makeLostPeersUnavailable(peers)
 
 				default:
