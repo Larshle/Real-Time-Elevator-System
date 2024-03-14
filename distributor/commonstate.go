@@ -33,7 +33,7 @@ type CommonState struct {
 	States       [config.NumElevators]LocalElevState `json:"states"`
 }
 
-func initCommonState(ElevatorID int) (cs CommonState){
+func initCommonState(ElevatorID int) (cs CommonState) {
 	cs.Seq = 0
 	cs.Origin = ElevatorID
 	cs.Ackmap = [config.NumElevators]AckStatus{}
@@ -133,7 +133,7 @@ func (cs *CommonState) makeOthersUnavailable(ElevatorID int) {
 	}
 }
 
-func (cs CommonState) prepNewCs(id int) (CommonState) {
+func (cs *CommonState) prepNewCs(id int) {
 	cs.Seq++
 	cs.Origin = id
 	for id := range cs.Ackmap {
@@ -141,5 +141,4 @@ func (cs CommonState) prepNewCs(id int) (CommonState) {
 			cs.Ackmap[id] = NotAcked
 		}
 	}
-	return cs
 }
