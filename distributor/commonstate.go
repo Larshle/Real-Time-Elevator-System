@@ -49,7 +49,7 @@ func initCommonState(id int) (cs CommonState) {
 			CabRequests: [config.NumFloors]bool{},
 		}
 	}
-	
+
 	cs.States = states
 
 	return cs
@@ -115,7 +115,7 @@ func (cs *CommonState) fullyAcked(id int) bool {
 	return true
 }
 
-func (oldCs *CommonState) equals(newCs CommonState) bool {
+func (oldCs CommonState) equals(newCs CommonState) bool {
 	oldCs.Ackmap = [config.NumElevators]AckStatus{}
 	newCs.Ackmap = [config.NumElevators]AckStatus{}
 	return reflect.DeepEqual(oldCs, newCs)
