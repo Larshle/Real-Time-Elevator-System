@@ -1,7 +1,7 @@
 package distributor
 
 import (
-	"fmt"
+	//"fmt"
 	"reflect"
 	"root/config"
 	"root/elevator"
@@ -18,19 +18,16 @@ const (
 )
 
 type LocalElevState struct {
-	Stuck       bool
-	Behaviour   string                 `json:"behaviour"`
-	Floor       int                    `json:"floor"`
-	Direction   string                 `json:"direction"`
-	CabRequests [config.NumFloors]bool `json:"cabRequests"`
+	State       elevator.State
+	CabRequests [config.NumFloors]bool
 }
 
 type CommonState struct {
 	Seq          int
 	Origin       int
 	Ackmap       [config.NumElevators]AckStatus
-	HallRequests [config.NumFloors][2]bool           `json:"hallRequests"`
-	States       [config.NumElevators]LocalElevState `json:"states"`
+	HallRequests [config.NumFloors][2]bool
+	States       [config.NumElevators]LocalElevState
 }
 
 func initCommonState(id int) (cs CommonState) {
@@ -42,10 +39,7 @@ func initCommonState(id int) (cs CommonState) {
 	var states [config.NumElevators]LocalElevState
 	for i := 0; i < config.NumElevators; i++ {
 		states[i] = LocalElevState{
-			Stuck:       false,
-			Behaviour:   "idle",
-			Floor:       2,
-			Direction:   "down",
+			State:       elevator.State{},
 			CabRequests: [config.NumFloors]bool{},
 		}
 	}
@@ -78,15 +72,14 @@ func (cs *CommonState) addCabCall(newCall elevio.ButtonEvent, id int) {
 }
 
 func (cs *CommonState) updateLocalElevState(localElevState elevator.State, id int) {
-	localEs := cs.States[id]
-	localEs.Stuck = localElevState.Stuck
-	localEs.Behaviour = localElevState.Behaviour.ToString()
-	localEs.Floor = localElevState.Floor
-	localEs.Direction = localElevState.Direction.ToString()
-	localEs.CabRequests = cs.States[id].CabRequests
-	cs.States[id] = localEs
-}
+	//localEs := cs.States[id]
 
+	cs.States[id] = LocalElevState{
+		State:       localElevState,
+		CabRequests: cs.States[id].CabRequests,
+	}
+}
+/*
 func (cs *CommonState) Print() {
 	fmt.Println("\nOrigin:", cs.Origin)
 	fmt.Println("seq:", cs.Seq)
@@ -102,6 +95,7 @@ func (cs *CommonState) Print() {
 		fmt.Printf("\tCab Requests: %v\n\n", state.CabRequests)
 	}
 }
+*/
 
 func (cs *CommonState) fullyAcked(id int) bool {
 	if cs.Ackmap[id] == NotAvailable {

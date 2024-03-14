@@ -106,7 +106,7 @@ func Distributor(
 				}
 
 			case newOrder := <-elevioOrdersC:
-				if cs.States[id].Stuck {
+				if cs.States[id].State.Stuck {
 					break
 				}
 				cs.Ackmap[id] = Acked

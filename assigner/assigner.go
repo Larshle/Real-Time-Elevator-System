@@ -13,18 +13,30 @@ import (
 )
 
 type CalculateOptimalAssignmentsFormat struct {
-	HallRequests [config.NumFloors][2]bool             `json:"hallRequests"`
-	States       map[string]distributor.LocalElevState `json:"states"`
+	HallRequests [config.NumFloors][2]bool `json:"hallRequests"`
+	States       map[string]hraState       `json:"states"`
+}
+
+type hraState struct {
+	Behaviour   string                 `json:"behaviour"`
+	Floor       int                    `json:"floor"`
+	Direction   string                 `json:"direction"`
+	CabRequests [config.NumFloors]bool `json:"cabRequests"`
 }
 
 func CalculateOptimalAssignments(cs distributor.CommonState, ElevatorID int) elevator.Assignments {
 
-	stateMap := make(map[string]distributor.LocalElevState)
+	stateMap := make(map[string]hraState)
 	for i, v := range cs.States {
-		if cs.Ackmap[i] == distributor.NotAvailable || v.Stuck { // Remove not-available and stuck elevators from stateMap
+		if cs.Ackmap[i] == distributor.NotAvailable || v.State.Stuck { // Remove not-available and stuck elevators from stateMap
 			continue
 		} else {
-			stateMap[strconv.Itoa(i)] = v
+			stateMap[strconv.Itoa(i)] = hraState{
+				Behaviour:   v.State.Behaviour.ToString(),
+				Floor:       v.State.Floor,
+				Direction:   v.State.Direction.ToString(),
+				CabRequests: v.CabRequests,
+			}
 		}
 	}
 
