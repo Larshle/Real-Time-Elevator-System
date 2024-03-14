@@ -5,7 +5,7 @@ import (
 	"time"
 )
 
-func Watchdog(WatchdogTime time.Duration, barkC chan<- bool, startMovingC <-chan bool, stopMovingC <-chan bool) {
+func MotorWatchdog(WatchdogTime time.Duration, barkC chan<- bool, startMovingC <-chan bool, stopMovingC <-chan bool) {
 	timer := time.NewTimer(WatchdogTime)
 	timer.Stop()
 

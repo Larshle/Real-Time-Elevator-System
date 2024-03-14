@@ -29,15 +29,14 @@ func Elevator(newAssignmentC <-chan Assignments, newLocalElevStateC chan<- State
 	doorOpenC := make(chan bool, 16)
 	doorClosedC := make(chan bool, 16)
 	floorEnteredC := make(chan int)
-	barkC := make(chan bool, 16)
+	barkC := make(chan bool, 16) // stuckC
 	startMovingC := make(chan bool, 16)
 	stopMovingC := make(chan bool, 16)
 
 	go Door(doorClosedC, doorOpenC, barkC)
 	go elevio.PollFloorSensor(floorEnteredC)
-	go watchdog.Watchdog(config.WatchdogTime, barkC, startMovingC, stopMovingC)
+	go watchdog.MotorWatchdog(config.WatchdogTime, barkC, startMovingC, stopMovingC)
 
-	// Initialize elevator
 	elevio.SetMotorDirection(elevio.MD_Down)
 	state := State{Direction: Down, Behaviour: Moving}
 	startMovingC <- true

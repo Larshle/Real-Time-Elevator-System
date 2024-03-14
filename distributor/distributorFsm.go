@@ -1,7 +1,6 @@
 package distributor
 
 import (
-	"fmt"
 	"root/config"
 	"root/elevator"
 	"root/elevio"
@@ -35,9 +34,8 @@ func Distributor(
 	var RemoveOrderStash elevio.ButtonEvent
 	var StashType StashType
 	var peers peers.PeerUpdate
-	var cs CommonState
 
-	cs.initCommonState()
+	cs := initCommonState(ElevatorID)
 
 	disconnectTimer := time.NewTimer(config.DisconnectTime)
 	heartbeatTimer := time.NewTicker(config.HeartbeatTime)
@@ -56,45 +54,39 @@ func Distributor(
 		case P := <-receiverPeersC:
 			peers = P
 
-		// case stuck = <-barkC:
-		// 	if stuck {
-		// 		cs.States[ElevatorID].Stuck = true
-		// 		acking = true
-		// 	} else {
-		// 		cs.States[ElevatorID].Stuck = false
-		// 	}
+		case <-heartbeatTimer.C:
+			giverToNetworkC <- cs
 
 		default:
 		}
 
 		switch {
-		case !acking: // Idle
+		case !acking:
+
 			select {
 			case newOrder := <-elevioOrdersC:
-				NewOrderStash = newOrder
+				cs = cs.prepNewCs(ElevatorID)
 				StashType = AddCall
+				NewOrderStash = newOrder
 				cs.addAssignments(newOrder, ElevatorID)
-				cs.nullAckmap()
 				cs.Ackmap[ElevatorID] = Acked
-				fmt.Println("New order added: ")
-				//cs.Print()
 				stashed = true
 				acking = true
 
 			case removeOrder := <-deliveredAssignmentC:
-				RemoveOrderStash = removeOrder
+				cs = cs.prepNewCs(ElevatorID)
 				StashType = RemoveCall
+				RemoveOrderStash = removeOrder
 				cs.removeAssignments(removeOrder, ElevatorID)
-				cs.nullAckmap()
 				cs.Ackmap[ElevatorID] = Acked
 				stashed = true
 				acking = true
 
 			case newElevState := <-newLocalElevStateC:
-				StateStash = newElevState
+				cs = cs.prepNewCs(ElevatorID)
 				StashType = StateChange
+				StateStash = newElevState
 				cs.updateLocalElevState(newElevState, ElevatorID)
-				cs.nullAckmap()
 				cs.Ackmap[ElevatorID] = Acked
 				stashed = true
 				acking = true
@@ -102,18 +94,11 @@ func Distributor(
 			case arrivedCs := <-receiverFromNetworkC:
 				disconnectTimer = time.NewTimer(config.DisconnectTime)
 
-				switch {
-				case (arrivedCs.Origin > cs.Origin && arrivedCs.Seq == cs.Seq) || arrivedCs.Seq > cs.Seq:
+				if (arrivedCs.Origin > cs.Origin && arrivedCs.Seq == cs.Seq) || arrivedCs.Seq > cs.Seq {
 					cs = arrivedCs
-					acking = true
 					cs.makeLostPeersUnavailable(peers)
-					// if !stuck{
 					cs.Ackmap[ElevatorID] = Acked
-					// }
-					// case stuck:
-					// 	cs = arrivedCs
-					// 	cs.Ackmap[ElevatorID] = NotAvailable
-					// 	cs.Seq++
+					acking = true
 				}
 			default:
 			}
@@ -146,7 +131,7 @@ func Distributor(
 			default:
 			}
 
-		default:
+		case acking:
 			select {
 			case arrivedCs := <-receiverFromNetworkC:
 				if arrivedCs.Seq < cs.Seq {
@@ -155,34 +140,29 @@ func Distributor(
 				disconnectTimer = time.NewTimer(config.DisconnectTime)
 
 				switch {
-				case (arrivedCs.Origin > cs.Origin):
+				case (arrivedCs.Origin > cs.Origin && arrivedCs.Seq == cs.Seq) || arrivedCs.Seq > cs.Seq:
 					cs = arrivedCs
-					// if !stuck {
 					cs.Ackmap[ElevatorID] = Acked
-					// }
 					cs.makeLostPeersUnavailable(peers)
 
 				case arrivedCs.fullyAcked(ElevatorID):
 					cs = arrivedCs
-					fmt.Println("Fully acked: ")
-					cs.Print()
 					toAssignerC <- cs
 					switch {
 					case cs.Origin != ElevatorID && stashed:
+						cs = cs.prepNewCs(ElevatorID)
+
 						switch StashType {
 						case AddCall:
 							cs.addAssignments(NewOrderStash, ElevatorID)
-							cs.nullAckmap()
 							cs.Ackmap[ElevatorID] = Acked
 
 						case RemoveCall:
 							cs.removeAssignments(RemoveOrderStash, ElevatorID)
-							cs.nullAckmap()
 							cs.Ackmap[ElevatorID] = Acked
 
 						case StateChange:
 							cs.updateLocalElevState(StateStash, ElevatorID)
-							cs.nullAckmap()
 							cs.Ackmap[ElevatorID] = Acked
 						}
 					case cs.Origin == ElevatorID && stashed:
@@ -190,16 +170,6 @@ func Distributor(
 						acking = false
 					default:
 						acking = false
-					}
-
-					// case stuck:
-					// 	cs = arrivedCs
-					// 	cs.Ackmap[ElevatorID] = Acked
-					// 	cs.
-					select {
-					case <-elevioOrdersC:
-						continue
-					default:
 					}
 
 				case commonStatesEqual(cs, arrivedCs):
@@ -211,11 +181,6 @@ func Distributor(
 				}
 			default:
 			}
-		}
-		select {
-		case <-heartbeatTimer.C:
-			giverToNetworkC <- cs
-		default:
 		}
 	}
 }

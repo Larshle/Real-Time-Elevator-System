@@ -33,15 +33,11 @@ type CommonState struct {
 	States       [config.NumElevators]LocalElevState `json:"states"`
 }
 
-func (cs *CommonState) initCommonState() {
-	var hallRequests [config.NumFloors][2]bool
-	var cabRequests [config.NumFloors]bool
-	for f := range hallRequests {
-		hallRequests[f] = [2]bool{false, false}
-		cabRequests[f] = false
-	}
-
-	var ackSlice [config.NumElevators]AckStatus
+func initCommonState(ElevatorID int) (cs CommonState){
+	cs.Seq = 0
+	cs.Origin = ElevatorID
+	cs.Ackmap = [config.NumElevators]AckStatus{}
+	cs.HallRequests = [config.NumFloors][2]bool{}
 	var states [config.NumElevators]LocalElevState
 	for i := 0; i < config.NumElevators; i++ {
 		states[i] = LocalElevState{
@@ -49,16 +45,12 @@ func (cs *CommonState) initCommonState() {
 			Behaviour:   "idle",
 			Floor:       2,
 			Direction:   "down",
-			CabRequests: cabRequests,
+			CabRequests: [config.NumFloors]bool{},
 		}
-		ackSlice[i] = NotAcked
 	}
-
-	cs.Seq = 0
-	cs.Origin = 0
-	cs.Ackmap = ackSlice
-	cs.HallRequests = hallRequests
 	cs.States = states
+
+	return cs
 }
 
 func (cs *CommonState) addAssignments(newCall elevio.ButtonEvent, ElevatorID int) {
@@ -67,8 +59,6 @@ func (cs *CommonState) addAssignments(newCall elevio.ButtonEvent, ElevatorID int
 	} else {
 		cs.HallRequests[newCall.Floor][newCall.Button] = true
 	}
-	cs.Seq++
-	cs.Origin = ElevatorID
 }
 
 func (cs *CommonState) removeAssignments(deliveredAssingement elevio.ButtonEvent, ElevatorID int) {
@@ -77,8 +67,6 @@ func (cs *CommonState) removeAssignments(deliveredAssingement elevio.ButtonEvent
 	} else {
 		cs.HallRequests[deliveredAssingement.Floor][deliveredAssingement.Button] = false
 	}
-	cs.Seq++
-	cs.Origin = ElevatorID
 }
 
 func (cs *CommonState) addCabCall(newCall elevio.ButtonEvent, ElevatorID int) {
@@ -95,8 +83,6 @@ func (cs *CommonState) updateLocalElevState(localElevState elevator.State, Eleva
 	localEs.Direction = localElevState.Direction.ToString()
 	localEs.CabRequests = cs.States[ElevatorID].CabRequests
 	cs.States[ElevatorID] = localEs
-	cs.Seq++
-	cs.Origin = ElevatorID
 }
 
 func (cs *CommonState) Print() {
@@ -107,6 +93,7 @@ func (cs *CommonState) Print() {
 
 	for i, state := range cs.States {
 		fmt.Printf("Elevator %d:\n", int(i))
+		fmt.Printf("\tStuck: %t\n", state.Stuck)
 		fmt.Printf("\tBehaviour: %s\n", state.Behaviour)
 		fmt.Printf("\tFloor: %d\n", state.Floor)
 		fmt.Printf("\tDirection: %s\n", state.Direction)
@@ -146,10 +133,13 @@ func (cs *CommonState) makeOthersUnavailable(ElevatorID int) {
 	}
 }
 
-func (cs *CommonState) nullAckmap() {
+func (cs CommonState) prepNewCs(id int) (CommonState) {
+	cs.Seq++
+	cs.Origin = id
 	for id := range cs.Ackmap {
 		if cs.Ackmap[id] == Acked {
 			cs.Ackmap[id] = NotAcked
 		}
 	}
+	return cs
 }
