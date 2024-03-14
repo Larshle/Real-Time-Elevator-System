@@ -30,24 +30,7 @@ type CommonState struct {
 	States       [config.NumElevators]LocalElevState
 }
 
-func initCommonState(id int) (cs CommonState) {
-	cs.Seq = 0
-	cs.Origin = id
-	cs.Ackmap = [config.NumElevators]AckStatus{}
-	cs.HallRequests = [config.NumFloors][2]bool{}
 
-	var states [config.NumElevators]LocalElevState
-	for i := 0; i < config.NumElevators; i++ {
-		states[i] = LocalElevState{
-			State:       elevator.State{},
-			CabRequests: [config.NumFloors]bool{},
-		}
-	}
-
-	cs.States = states
-
-	return cs
-}
 
 func (cs *CommonState) addAssignments(newCall elevio.ButtonEvent, id int) {
 	if newCall.Button == elevio.BT_Cab {

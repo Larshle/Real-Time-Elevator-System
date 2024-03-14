@@ -36,7 +36,7 @@ func Distributor(
 	var stashType StashType
 	var peers peers.PeerUpdate
 
-	cs := initCommonState(id)
+	var cs CommonState
 
 	disconnectTimer := time.NewTimer(config.DisconnectTime)
 	heartbeatTimer := time.NewTicker(config.HeartbeatTime)
