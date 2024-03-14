@@ -182,7 +182,7 @@ func Distributor(
 
 				case arrivedCs.fullyAcked(ElevatorID):
 					cs = arrivedCs
-					fmt.Println("Fully acked: ")
+					//fmt.Println("Fully acked: ")
 					//cs.Print()
 					toAssignerC <- cs
 					switch {

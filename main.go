@@ -23,18 +23,18 @@ func main() {
 
 	port := flag.Int("port", 15301, "<-- Default verdi, men kan overskrives som en command line argument ved bruk av -port=xxxxx")
 	id := flag.Int("id", 0, "<-- Default verdi, men kan overskrives som en command line argument ved bruk av -id=xxxxx")
+	//backup2 := flag.Int("backup", 0, "<-- for å endre om man vil ha med backup eller ikke")
 	flag.Parse()
 
 	Port = *port
 	ElevatorID = *id
+
 
 	
 	elevio.Init("localhost:"+strconv.Itoa(Port), config.NumFloors)
 
 	go backup.Backmyshiup("localhost:1569"+strconv.Itoa(ElevatorID), strconv.Itoa(Port), strconv.Itoa(ElevatorID))
 
-	//fmt.Println("Elevator initialized with ID", ElevatorID, "on port", Port)
-	//fmt.Println("System has", config.NumFloors, "floors and", config.NumElevators, "elevators.")
 
 	newAssignmentC := make(chan elevator.Assignments, 10000)
 	deliveredAssignmentC := make(chan elevio.ButtonEvent, 10000)
