@@ -67,7 +67,7 @@ func CalculateOptimalAssignments(cs distributor.CommonState, ElevatorID int) ele
 		panic("exec.Command error")
 	}
 
-	output := new(map[string][][3]bool)
+	output := new(map[string]elevator.Assignments)
 	err = json.Unmarshal(ret, &output)
 	if err != nil {
 		fmt.Println("json.Unmarshal error: ", err)
@@ -79,30 +79,7 @@ func CalculateOptimalAssignments(cs distributor.CommonState, ElevatorID int) ele
 		fmt.Printf("%6v :  %+v\n", k, v)
 	}
 
-	outputContent := *output
-
-	var elevatorAssignments elevator.Assignments
-	L, ok := outputContent[strconv.Itoa(ElevatorID)]
-
-	if !ok {
-		fmt.Println("Warning: elevator not here -local")
-		// panic("elevator not here -local")
-	}
-
-	for f := 0; f < config.NumFloors; f++ {
-		for b := 0; b < 3; b++ {
-			if f < len(L) && b < len(L[f]) {
-				elevatorAssignments[f][b] = L[f][b]
-			} else {
-				elevatorAssignments[f][b] = false
-			}
-		}
-	}
-	// fmt.Printf("output: \n")
-	// for k, v := range *output {
-	// 	fmt.Printf("%6v :  %+v\n", k, v)
-	// }
-	return elevatorAssignments
+	return (*output)[strconv.Itoa(ElevatorID)]
 }
 
 func ToLightsAssingment(cs distributor.CommonState, ElevatorID int) elevator.Assignments {
