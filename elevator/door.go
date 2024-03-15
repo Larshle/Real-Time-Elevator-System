@@ -6,7 +6,10 @@ import (
 	"time"
 )
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
+=======
+>>>>>>> parent of 34a4414 (Merge pull request #2 from Larshle/UpdatingNEWassignments)
 const(
 	DoorOpenDuration = 3*time.Second
 )
@@ -22,8 +25,12 @@ const (
 )
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 func Door(doorClosedC chan<- bool, doorOpenC <-chan bool, barkC chan<- bool) {
 
+=======
+func Door(doorClosedC chan<- bool, doorOpenC <-chan bool) {
+>>>>>>> parent of 34a4414 (Merge pull request #2 from Larshle/UpdatingNEWassignments)
 =======
 func Door(doorClosedC chan<- bool, doorOpenC <-chan bool) {
 >>>>>>> parent of 34a4414 (Merge pull request #2 from Larshle/UpdatingNEWassignments)
@@ -37,6 +44,7 @@ func Door(doorClosedC chan<- bool, doorOpenC <-chan bool) {
 
 	for {
 		select {
+<<<<<<< HEAD
 <<<<<<< HEAD
 		case obstruction = <-obstructionC:
 			if !obstruction && ds == Obstructed {
@@ -74,6 +82,15 @@ func Door(doorClosedC chan<- bool, doorOpenC <-chan bool) {
 
 >>>>>>> parent of 34a4414 (Merge pull request #2 from Larshle/UpdatingNEWassignments)
 
+=======
+			case obstruction = <-obstructionC:
+				if !obstruction && ds == Obstructed{
+					elevio.SetDoorOpenLamp(false)
+					doorClosedC <- true 
+				}
+
+
+>>>>>>> parent of 34a4414 (Merge pull request #2 from Larshle/UpdatingNEWassignments)
 			case <-doorOpenC:
 				switch ds{
 					case InCountDown:
