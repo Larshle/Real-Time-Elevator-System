@@ -31,9 +31,13 @@ func (d Direction) toOpposite() Direction {
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 func (d Direction) ToString() string {
 	return map[Direction]string{Up: "up", Down: "down"}[d]
 }
+=======
+
+>>>>>>> parent of 34a4414 (Merge pull request #2 from Larshle/UpdatingNEWassignments)
 =======
 
 >>>>>>> parent of 34a4414 (Merge pull request #2 from Larshle/UpdatingNEWassignments)
