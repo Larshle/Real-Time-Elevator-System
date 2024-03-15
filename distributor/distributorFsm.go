@@ -42,14 +42,14 @@ func Distributor(
 	heartbeatTimer := time.NewTicker(config.HeartbeatTime)
 
 	idle := true
-	aloneOnNetwork := false
+	notOnNetwork := false
 
 	for {
 		select {
 		case <-disconnectTimer.C:
 			cs.makeOthersUnavailable(id)
 			fmt.Println("Lost connection to network")
-			aloneOnNetwork = true
+			notOnNetwork = true
 
 		case P := <-peersC:
 			peers = P
@@ -101,12 +101,12 @@ func Distributor(
 			default:
 			}
 
-		case aloneOnNetwork:
+		case notOnNetwork:
 			select {
 			case <-networkRx:
 				if cs.States[id].CabRequests == [config.NumFloors]bool{} {
 					fmt.Println("Regained connection to network")
-					aloneOnNetwork = false
+					notOnNetwork = false
 				} else {
 					cs.Ackmap[id] = NotAvailable
 				}
