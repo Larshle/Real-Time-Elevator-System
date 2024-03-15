@@ -16,7 +16,10 @@ import (
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
+=======
+>>>>>>> parent of 34a4414 (Merge pull request #2 from Larshle/UpdatingNEWassignments)
 =======
 >>>>>>> parent of 34a4414 (Merge pull request #2 from Larshle/UpdatingNEWassignments)
 =======
@@ -62,8 +65,12 @@ const (
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 func Door(doorClosedC chan<- bool, doorOpenC <-chan bool, barkC chan<- bool) {
 
+=======
+func Door(doorClosedC chan<- bool, doorOpenC <-chan bool) {
+>>>>>>> parent of 34a4414 (Merge pull request #2 from Larshle/UpdatingNEWassignments)
 =======
 func Door(doorClosedC chan<- bool, doorOpenC <-chan bool) {
 >>>>>>> parent of 34a4414 (Merge pull request #2 from Larshle/UpdatingNEWassignments)
@@ -118,6 +125,7 @@ func Door(doorClosedC chan<- bool, doorOpenC <-chan bool) {
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 		case obstruction = <-obstructionC:
 			if !obstruction && ds == Obstructed {
 				elevio.SetDoorOpenLamp(false)
@@ -154,6 +162,15 @@ func Door(doorClosedC chan<- bool, doorOpenC <-chan bool) {
 
 >>>>>>> parent of 34a4414 (Merge pull request #2 from Larshle/UpdatingNEWassignments)
 
+=======
+			case obstruction = <-obstructionC:
+				if !obstruction && ds == Obstructed{
+					elevio.SetDoorOpenLamp(false)
+					doorClosedC <- true 
+				}
+
+
+>>>>>>> parent of 34a4414 (Merge pull request #2 from Larshle/UpdatingNEWassignments)
 =======
 			case obstruction = <-obstructionC:
 				if !obstruction && ds == Obstructed{
