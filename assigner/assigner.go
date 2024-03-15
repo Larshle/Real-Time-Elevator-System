@@ -76,7 +76,11 @@ func CalculateOptimalAssignments(cs distributor.CommonState, ElevatorID int) ele
 
 	fmt.Printf("output: \n")
 	for k, v := range *output {
+<<<<<<< HEAD
 		fmt.Printf("%6v :  %+v\n", k, v)
+=======
+ 	fmt.Printf("%6v :  %+v\n", k, v)
+>>>>>>> parent of 09eda7c (Merge pull request #3 from Larshle/UpdatingNEWassignments)
 	}
 
 	return (*output)[strconv.Itoa(ElevatorID)]
