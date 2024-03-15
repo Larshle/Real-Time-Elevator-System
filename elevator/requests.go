@@ -29,10 +29,8 @@ func (a Assignments) ReqInDirection(floor int, dir Direction) bool {
 			return false
 		case Down:
 			for i := 0; i < floor; i++ {
-				for j := 0; j < 3; j++ {
-					if a[i][j] {
-						return true
-					}
+				if a[i][elevio.BT_HallDown] || a[i][elevio.BT_Cab] {
+					return true
 				}
 			}
 			return false
@@ -45,11 +43,17 @@ func (a Assignments) ReqInDirection(floor int, dir Direction) bool {
 func EmptyAssigner(floor int, dir Direction, a Assignments, orderDoneC chan<- elevio.ButtonEvent) {
 =======
 
-func EmptyAssingner(floor int, dir Direction, a Assingments, orderDoneC chan<- elevio.ButtonEvent) {
+func EmptyAssingner(floor int, dir Direction, a Assingments, orderDoneC chan<- elevio.ButtonEvent) bool {
 	if a[floor][elevio.BT_Cab] {
 		orderDoneC <- elevio.ButtonEvent{Floor: floor, Button: elevio.BT_Cab}
 	}
 	if a[floor][dir] {
 		orderDoneC <- elevio.ButtonEvent{Floor: floor, Button: dir.toBT()}
 	}
+	return false
 }
+
+
+
+
+
