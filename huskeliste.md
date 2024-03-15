@@ -1,9 +1,9 @@
 
 
-- [ ] Direction på oppstart av heis
-- [ ] dobbelsjekke packetloss
-- [ ] teste mer på isolated
-- [ ] watchdog
+- [X] Direction på oppstart av heis
+- [X] dobbelsjekke packetloss
+- [X] teste mer på isolated
+- [X] watchdog
 - [ ] readme
 - [ ] fjerne unødvendige filer (f.eks packetloss)
 - [ ] rydde i kode, spesielt assigner

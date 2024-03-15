@@ -12,26 +12,26 @@ import (
 	"strconv"
 )
 
-type CalculateOptimalAssignmentsFormat struct {
-	HallRequests [config.NumFloors][2]bool `json:"hallRequests"`
-	States       map[string]hraState       `json:"states"`
-}
-
-type hraState struct {
+type HRAState struct {
 	Behaviour   string                 `json:"behaviour"`
 	Floor       int                    `json:"floor"`
 	Direction   string                 `json:"direction"`
 	CabRequests [config.NumFloors]bool `json:"cabRequests"`
 }
 
+type HRAInput struct {
+	HallRequests [config.NumFloors][2]bool `json:"hallRequests"`
+	States       map[string]HRAState       `json:"states"`
+}
+
 func CalculateOptimalAssignments(cs distributor.CommonState, ElevatorID int) elevator.Assignments {
 
-	stateMap := make(map[string]hraState)
+	stateMap := make(map[string]HRAState)
 	for i, v := range cs.States {
-		if cs.Ackmap[i] == distributor.NotAvailable || v.State.Motorstop || v.State.Obstructed { // Remove not-available and stuck elevators from stateMap
+		if cs.Ackmap[i] == distributor.NotAvailable || v.State.Motorstop || v.State.Obstructed { // Remove not-available, stuck and obstructed elevators from stateMap
 			continue
 		} else {
-			stateMap[strconv.Itoa(i)] = hraState{
+			stateMap[strconv.Itoa(i)] = HRAState{
 				Behaviour:   v.State.Behaviour.ToString(),
 				Floor:       v.State.Floor,
 				Direction:   v.State.Direction.ToString(),
@@ -40,7 +40,7 @@ func CalculateOptimalAssignments(cs distributor.CommonState, ElevatorID int) ele
 		}
 	}
 
-	hall_request_assignerInput := CalculateOptimalAssignmentsFormat{cs.HallRequests, stateMap}
+	hall_request_assignerInput := HRAInput{cs.HallRequests, stateMap}
 
 	hraExecutable := ""
 	switch runtime.GOOS {
@@ -72,11 +72,6 @@ func CalculateOptimalAssignments(cs distributor.CommonState, ElevatorID int) ele
 	if err != nil {
 		fmt.Println("json.Unmarshal error: ", err)
 		panic("json.Unmarshal error")
-	}
-
-	fmt.Printf("output: \n")
-	for k, v := range *output {
-		fmt.Printf("%6v :  %+v\n", k, v)
 	}
 
 	return (*output)[strconv.Itoa(ElevatorID)]

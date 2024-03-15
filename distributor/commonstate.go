@@ -17,7 +17,7 @@ const (
 	NotAvailable
 )
 
-type LocalElevState struct {
+type LocalState struct {
 	State       elevator.State
 	CabRequests [config.NumFloors]bool
 }
@@ -27,7 +27,7 @@ type CommonState struct {
 	Origin       int
 	Ackmap       [config.NumElevators]AckStatus
 	HallRequests [config.NumFloors][2]bool
-	States       [config.NumElevators]LocalElevState
+	States       [config.NumElevators]LocalState
 }
 
 func (cs *CommonState) addAssignments(newCall elevio.ButtonEvent, id int) {
@@ -52,26 +52,10 @@ func (cs *CommonState) addCabCall(newCall elevio.ButtonEvent, id int) {
 	}
 }
 
-func (cs *CommonState) updateLocalElevState(localElevState elevator.State, id int) {
-	cs.States[id] = LocalElevState{
-		State:       localElevState,
+func (cs *CommonState) updateLocalState(localState elevator.State, id int) {
+	cs.States[id] = LocalState{
+		State:       localState,
 		CabRequests: cs.States[id].CabRequests,
-	}
-}
-func (cs *CommonState) Print() {
-	fmt.Println("\nOrigin:", cs.Origin)
-	fmt.Println("seq:", cs.Seq)
-	fmt.Println("Ackmap:", cs.Ackmap)
-	fmt.Println("Hall Requests:", cs.HallRequests)
-
-	for i, _ := range cs.States {
-		fmt.Printf("Elevator %d:\n", int(i))
-		fmt.Printf("\tMotorstop: %t\n", cs.States[i].State.Motorstop)
-		fmt.Printf("\tObstruvted: %t\n", cs.States[i].State.Obstructed)
-		fmt.Printf("\tBehaviour: %d\n", cs.States[i].State.Behaviour)
-		fmt.Printf("\tFloor: %d\n", cs.States[i].State.Floor)
-		fmt.Printf("\tDirection: %d\n", cs.States[i].State.Direction)
-		fmt.Printf("\tCab Requests: %v\n\n", cs.States[i].CabRequests)
 	}
 }
 

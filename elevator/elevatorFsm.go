@@ -3,7 +3,6 @@ package elevator
 import (
 	"root/config"
 	"root/elevio"
-	//"root/watchdog"
 	"time"
 )
 
@@ -27,7 +26,7 @@ func (b Behaviour) ToString() string {
 	return map[Behaviour]string{Idle: "idle", DoorOpen: "doorOpen", Moving: "moving"}[b]
 }
 
-func Elevator(newAssignmentC <-chan Assignments, newLocalElevStateC chan<- State, deliveredAssignmentC chan<- elevio.ButtonEvent) {
+func Elevator(newAssignmentC <-chan Assignments, deliveredAssignmentC chan<- elevio.ButtonEvent, newLocalStateC chan<- State) {
 	doorOpenC := make(chan bool, 16)
 	doorClosedC := make(chan bool, 16)
 	floorEnteredC := make(chan int)
@@ -42,7 +41,7 @@ func Elevator(newAssignmentC <-chan Assignments, newLocalElevStateC chan<- State
 
 	var assignments Assignments
 
-    motorTimer:= time.NewTimer(config.WatchdogTime)
+	motorTimer := time.NewTimer(config.WatchdogTime)
 	motorTimer.Stop()
 
 	for {
@@ -56,13 +55,13 @@ func Elevator(newAssignmentC <-chan Assignments, newLocalElevStateC chan<- State
 					state.Behaviour = Moving
 					motorTimer = time.NewTimer(config.WatchdogTime)
 					motorC <- false
-					newLocalElevStateC <- state
+					newLocalStateC <- state
 
 				case assignments[state.Floor][state.Direction.toOpposite()]:
 					doorOpenC <- true
 					state.Direction = state.Direction.toOpposite()
 					EmptyAssigner(state.Floor, state.Direction, assignments, deliveredAssignmentC)
-					newLocalElevStateC <- state
+					newLocalStateC <- state
 
 				case assignments.ReqInDirection(state.Floor, state.Direction.toOpposite()):
 					state.Direction = state.Direction.toOpposite()
@@ -70,11 +69,11 @@ func Elevator(newAssignmentC <-chan Assignments, newLocalElevStateC chan<- State
 					state.Behaviour = Moving
 					motorTimer = time.NewTimer(config.WatchdogTime)
 					motorC <- false
-					newLocalElevStateC <- state
+					newLocalStateC <- state
 
 				default:
 					state.Behaviour = Idle
-					newLocalElevStateC <- state
+					newLocalStateC <- state
 				}
 			default:
 				panic("DoorClosed in wrong state")
@@ -129,7 +128,7 @@ func Elevator(newAssignmentC <-chan Assignments, newLocalElevStateC chan<- State
 			default:
 				panic("FloorEntered in wrong state")
 			}
-			newLocalElevStateC <- state
+			newLocalStateC <- state
 
 		case assignments = <-newAssignmentC:
 			switch state.Behaviour {
@@ -139,19 +138,19 @@ func Elevator(newAssignmentC <-chan Assignments, newLocalElevStateC chan<- State
 					doorOpenC <- true
 					EmptyAssigner(state.Floor, state.Direction, assignments, deliveredAssignmentC)
 					state.Behaviour = DoorOpen
-					newLocalElevStateC <- state
+					newLocalStateC <- state
 
 				case assignments[state.Floor][state.Direction.toOpposite()]:
 					doorOpenC <- true
 					state.Direction = state.Direction.toOpposite()
 					EmptyAssigner(state.Floor, state.Direction, assignments, deliveredAssignmentC)
 					state.Behaviour = DoorOpen
-					newLocalElevStateC <- state
+					newLocalStateC <- state
 
 				case assignments.ReqInDirection(state.Floor, state.Direction):
 					elevio.SetMotorDirection(state.Direction.toMD())
 					state.Behaviour = Moving
-					newLocalElevStateC <- state
+					newLocalStateC <- state
 					motorTimer = time.NewTimer(config.WatchdogTime)
 					motorC <- false
 
@@ -159,7 +158,7 @@ func Elevator(newAssignmentC <-chan Assignments, newLocalElevStateC chan<- State
 					state.Direction = state.Direction.toOpposite()
 					elevio.SetMotorDirection(state.Direction.toMD())
 					state.Behaviour = Moving
-					newLocalElevStateC <- state
+					newLocalStateC <- state
 					motorTimer = time.NewTimer(config.WatchdogTime)
 					motorC <- false
 				default:
@@ -178,20 +177,20 @@ func Elevator(newAssignmentC <-chan Assignments, newLocalElevStateC chan<- State
 			default:
 				panic("Assignments in wrong state")
 			}
-		case  <-motorTimer.C:
-			if  !state.Motorstop {
+		case <-motorTimer.C:
+			if !state.Motorstop {
 				state.Motorstop = true
-				newLocalElevStateC <- state
+				newLocalStateC <- state
 			}
 		case obstruction := <-obstructionC:
 			if obstruction != state.Obstructed {
 				state.Obstructed = obstruction
-				newLocalElevStateC <- state
+				newLocalStateC <- state
 			}
 		case motor := <-motorC:
 			if state.Motorstop {
 				state.Motorstop = motor
-				newLocalElevStateC <- state
+				newLocalStateC <- state
 			}
 		}
 	}
