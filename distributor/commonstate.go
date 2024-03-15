@@ -22,14 +22,14 @@ type LocalState struct {
 }
 
 type CommonState struct {
-	Seq          int
+	SeqNum       int
 	Origin       int
 	Ackmap       [config.NumElevators]AckStatus
 	HallRequests [config.NumFloors][2]bool
 	States       [config.NumElevators]LocalState
 }
 
-func (cs *CommonState) addAssignments(newCall elevio.ButtonEvent, id int) {
+func (cs *CommonState) addOrder(newCall elevio.ButtonEvent, id int) {
 	if newCall.Button == elevio.BT_Cab {
 		cs.States[id].CabRequests[newCall.Floor] = true
 	} else {
@@ -37,7 +37,7 @@ func (cs *CommonState) addAssignments(newCall elevio.ButtonEvent, id int) {
 	}
 }
 
-func (cs *CommonState) removeAssignments(deliveredAssingement elevio.ButtonEvent, id int) {
+func (cs *CommonState) removeOrder(deliveredAssingement elevio.ButtonEvent, id int) {
 	if deliveredAssingement.Button == elevio.BT_Cab {
 		cs.States[id].CabRequests[deliveredAssingement.Floor] = false
 	} else {
@@ -91,7 +91,7 @@ func (cs *CommonState) makeOthersUnavailable(id int) {
 }
 
 func (cs *CommonState) prepNewCs(id int) {
-	cs.Seq++
+	cs.SeqNum++
 	cs.Origin = id
 	for id := range cs.Ackmap {
 		if cs.Ackmap[id] == Acked {

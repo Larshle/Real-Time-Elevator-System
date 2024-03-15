@@ -27,20 +27,25 @@ func (b Behaviour) ToString() string {
 	return map[Behaviour]string{Idle: "idle", DoorOpen: "doorOpen", Moving: "moving"}[b]
 }
 
-func Elevator(newAssignmentC <-chan Assignments, deliveredAssignmentC chan<- elevio.ButtonEvent, newLocalStateC chan<- State) {
-	doorOpenC := make(chan bool, 16)
-	doorClosedC := make(chan bool, 16)
-	floorEnteredC := make(chan int)
-	obstructionC := make(chan bool, 16) // stuckC
-	motorC := make(chan bool, 16)
+func Elevator(
+	newOrderC 		<-chan Orders,
+	deliveredOrderC chan<- elevio.ButtonEvent,
+	newLocalStateC 	chan<- State,
+) {
 
-	go Door(doorClosedC, doorOpenC, obstructionC)
+	doorOpenC 		:= make(chan bool, 16)
+	doorClosedC 	:= make(chan bool, 16)
+	floorEnteredC 	:= make(chan int)
+	obstructedC 	:= make(chan bool, 16)
+	motorC 			:= make(chan bool, 16)
+
+	go Door(doorClosedC, doorOpenC, obstructedC)
 	go elevio.PollFloorSensor(floorEnteredC)
 
 	elevio.SetMotorDirection(elevio.MD_Down)
 	state := State{Direction: Down, Behaviour: Moving}
 
-	var assignments Assignments
+	var orders Orders
 
 	motorTimer := time.NewTimer(config.WatchdogTime)
 	motorTimer.Stop()
@@ -51,21 +56,21 @@ func Elevator(newAssignmentC <-chan Assignments, deliveredAssignmentC chan<- ele
 			switch state.Behaviour {
 			case DoorOpen:
 				switch {
-				case assignments.ReqInDirection(state.Floor, state.Direction):
+				case orders.OrderInDirection(state.Floor, state.Direction):
 					elevio.SetMotorDirection(state.Direction.toMD())
 					state.Behaviour = Moving
 					motorTimer = time.NewTimer(config.WatchdogTime)
 					motorC <- false
 					newLocalStateC <- state
 
-				case assignments[state.Floor][state.Direction.toOpposite()]:
+				case orders[state.Floor][state.Direction.Opposite()]:
 					doorOpenC <- true
-					state.Direction = state.Direction.toOpposite()
-					EmptyAssigner(state.Floor, state.Direction, assignments, deliveredAssignmentC)
+					state.Direction = state.Direction.Opposite()
+					OrderDone(state.Floor, state.Direction, orders, deliveredOrderC)
 					newLocalStateC <- state
 
-				case assignments.ReqInDirection(state.Floor, state.Direction.toOpposite()):
-					state.Direction = state.Direction.toOpposite()
+				case orders.OrderInDirection(state.Floor, state.Direction.Opposite()):
+					state.Direction = state.Direction.Opposite()
 					elevio.SetMotorDirection(state.Direction.toMD())
 					state.Behaviour = Moving
 					motorTimer = time.NewTimer(config.WatchdogTime)
@@ -87,37 +92,37 @@ func Elevator(newAssignmentC <-chan Assignments, deliveredAssignmentC chan<- ele
 			switch state.Behaviour {
 			case Moving:
 				switch {
-				case assignments[state.Floor][state.Direction]:
+				case orders[state.Floor][state.Direction]:
 					elevio.SetMotorDirection(elevio.MD_Stop)
 					doorOpenC <- true
-					EmptyAssigner(state.Floor, state.Direction, assignments, deliveredAssignmentC)
+					OrderDone(state.Floor, state.Direction, orders, deliveredOrderC)
 					state.Behaviour = DoorOpen
 
-				case assignments[state.Floor][elevio.BT_Cab] && assignments.ReqInDirection(state.Floor, state.Direction):
+				case orders[state.Floor][elevio.BT_Cab] && orders.OrderInDirection(state.Floor, state.Direction):
 					elevio.SetMotorDirection(elevio.MD_Stop)
 					doorOpenC <- true
-					EmptyAssigner(state.Floor, state.Direction, assignments, deliveredAssignmentC)
+					OrderDone(state.Floor, state.Direction, orders, deliveredOrderC)
 					state.Behaviour = DoorOpen
 
-				case assignments[state.Floor][elevio.BT_Cab] && !assignments[state.Floor][state.Direction.toOpposite()]:
+				case orders[state.Floor][elevio.BT_Cab] && !orders[state.Floor][state.Direction.Opposite()]:
 					elevio.SetMotorDirection(elevio.MD_Stop)
 					doorOpenC <- true
-					EmptyAssigner(state.Floor, state.Direction, assignments, deliveredAssignmentC)
+					OrderDone(state.Floor, state.Direction, orders, deliveredOrderC)
 					state.Behaviour = DoorOpen
 
-				case assignments.ReqInDirection(state.Floor, state.Direction):
+				case orders.OrderInDirection(state.Floor, state.Direction):
 					motorTimer = time.NewTimer(config.WatchdogTime)
 					motorC <- false
 
-				case assignments[state.Floor][state.Direction.toOpposite()]:
+				case orders[state.Floor][state.Direction.Opposite()]:
 					elevio.SetMotorDirection(elevio.MD_Stop)
 					doorOpenC <- true
-					state.Direction = state.Direction.toOpposite()
-					EmptyAssigner(state.Floor, state.Direction, assignments, deliveredAssignmentC)
+					state.Direction = state.Direction.Opposite()
+					OrderDone(state.Floor, state.Direction, orders, deliveredOrderC)
 					state.Behaviour = DoorOpen
 
-				case assignments.ReqInDirection(state.Floor, state.Direction.toOpposite()):
-					state.Direction = state.Direction.toOpposite()
+				case orders.OrderInDirection(state.Floor, state.Direction.Opposite()):
+					state.Direction = state.Direction.Opposite()
 					elevio.SetMotorDirection(state.Direction.toMD())
 					motorTimer = time.NewTimer(config.WatchdogTime)
 					motorC <- false
@@ -131,32 +136,32 @@ func Elevator(newAssignmentC <-chan Assignments, deliveredAssignmentC chan<- ele
 			}
 			newLocalStateC <- state
 
-		case assignments = <-newAssignmentC:
+		case orders = <-newOrderC:
 			switch state.Behaviour {
 			case Idle:
 				switch {
-				case assignments[state.Floor][state.Direction] || assignments[state.Floor][elevio.BT_Cab]:
+				case orders[state.Floor][state.Direction] || orders[state.Floor][elevio.BT_Cab]:
 					doorOpenC <- true
-					EmptyAssigner(state.Floor, state.Direction, assignments, deliveredAssignmentC)
+					OrderDone(state.Floor, state.Direction, orders, deliveredOrderC)
 					state.Behaviour = DoorOpen
 					newLocalStateC <- state
 
-				case assignments[state.Floor][state.Direction.toOpposite()]:
+				case orders[state.Floor][state.Direction.Opposite()]:
 					doorOpenC <- true
-					state.Direction = state.Direction.toOpposite()
-					EmptyAssigner(state.Floor, state.Direction, assignments, deliveredAssignmentC)
+					state.Direction = state.Direction.Opposite()
+					OrderDone(state.Floor, state.Direction, orders, deliveredOrderC)
 					state.Behaviour = DoorOpen
 					newLocalStateC <- state
 
-				case assignments.ReqInDirection(state.Floor, state.Direction):
+				case orders.OrderInDirection(state.Floor, state.Direction):
 					elevio.SetMotorDirection(state.Direction.toMD())
 					state.Behaviour = Moving
 					newLocalStateC <- state
 					motorTimer = time.NewTimer(config.WatchdogTime)
 					motorC <- false
 
-				case assignments.ReqInDirection(state.Floor, state.Direction.toOpposite()):
-					state.Direction = state.Direction.toOpposite()
+				case orders.OrderInDirection(state.Floor, state.Direction.Opposite()):
+					state.Direction = state.Direction.Opposite()
 					elevio.SetMotorDirection(state.Direction.toMD())
 					state.Behaviour = Moving
 					newLocalStateC <- state
@@ -167,16 +172,16 @@ func Elevator(newAssignmentC <-chan Assignments, deliveredAssignmentC chan<- ele
 
 			case DoorOpen:
 				switch {
-				case assignments[state.Floor][elevio.BT_Cab] || assignments[state.Floor][state.Direction]:
+				case orders[state.Floor][elevio.BT_Cab] || orders[state.Floor][state.Direction]:
 					doorOpenC <- true
-					EmptyAssigner(state.Floor, state.Direction, assignments, deliveredAssignmentC)
+					OrderDone(state.Floor, state.Direction, orders, deliveredOrderC)
 
 				}
 
 			case Moving:
 
 			default:
-				panic("Assignments in wrong state")
+				panic("Orders in wrong state")
 			}
 		case <-motorTimer.C:
 			if !state.Motorstop {
@@ -184,7 +189,7 @@ func Elevator(newAssignmentC <-chan Assignments, deliveredAssignmentC chan<- ele
 				state.Motorstop = true
 				newLocalStateC <- state
 			}
-		case obstruction := <-obstructionC:
+		case obstruction := <-obstructedC:
 			if obstruction != state.Obstructed {
 				state.Obstructed = obstruction
 				newLocalStateC <- state

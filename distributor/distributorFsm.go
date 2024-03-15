@@ -12,28 +12,29 @@ import (
 type StashType int
 
 const (
-	None StashType = iota
-	RemoveCall
-	AddCall
-	StateChange
+	None	StashType = iota
+	Remove
+	Add
+	State
 )
 
 func Distributor(
-	deliveredAssignmentC <-chan elevio.ButtonEvent,
-	newLocalStateC <-chan elevator.State,
-	networkTx chan<- CommonState,
-	networkRx <-chan CommonState,
-	confirmedCommonstateC chan<- CommonState,
-	peersC <-chan peers.PeerUpdate,
-	id int) {
+	deliveredOrderC 		<-chan elevio.ButtonEvent,
+	newLocalStateC			<-chan elevator.State,
+	networkTx				chan<- CommonState,
+	networkRx 				<-chan CommonState,
+	confirmedCommonstateC	chan<- CommonState,
+	peersC 					<-chan peers.PeerUpdate,
+	id 						int,
+	){
 
-	elevioOrdersC := make(chan elevio.ButtonEvent, 10000)
+	addOrderC := make(chan elevio.ButtonEvent, config.Buffer)
 
-	go elevio.PollButtons(elevioOrdersC)
+	go elevio.PollButtons(addOrderC)
 
+	var removeStash elevio.ButtonEvent
+	var addStash elevio.ButtonEvent
 	var stateStash elevator.State
-	var newOrderStash elevio.ButtonEvent
-	var removeOrderStash elevio.ButtonEvent
 	var stashType StashType
 	var peers peers.PeerUpdate
 	var cs CommonState
@@ -65,24 +66,24 @@ func Distributor(
 		switch {
 		case idle:
 			select {
-			case newOrder := <-elevioOrdersC:
-				stashType = AddCall
-				newOrderStash = newOrder
+			case newOrder := <-addOrderC:
+				stashType = Add
+				addStash = newOrder
 				cs.prepNewCs(id)
-				cs.addAssignments(newOrder, id)
+				cs.addOrder(newOrder, id)
 				cs.Ackmap[id] = Acked
 				idle = false
 
-			case removeOrder := <-deliveredAssignmentC:
-				stashType = RemoveCall
-				removeOrderStash = removeOrder
+			case orderToRemove := <-deliveredOrderC:
+				stashType = Remove
+				removeStash = orderToRemove
 				cs.prepNewCs(id)
-				cs.removeAssignments(removeOrder, id)
+				cs.removeOrder(orderToRemove, id)
 				cs.Ackmap[id] = Acked
 				idle = false
 
 			case newLocalState := <-newLocalStateC:
-				stashType = StateChange
+				stashType = State
 				stateStash = newLocalState
 				cs.prepNewCs(id)
 				cs.updateLocalState(newLocalState, id)
@@ -91,7 +92,7 @@ func Distributor(
 
 			case arrivedCs := <-networkRx:
 				disconnectTimer = time.NewTimer(config.DisconnectTime)
-				if (arrivedCs.Origin > cs.Origin && arrivedCs.Seq == cs.Seq) || arrivedCs.Seq > cs.Seq {
+				if (arrivedCs.Origin > cs.Origin && arrivedCs.SeqNum == cs.SeqNum) || arrivedCs.SeqNum > cs.SeqNum {
 					cs = arrivedCs
 					cs.makeLostPeersUnavailable(peers)
 					cs.Ackmap[id] = Acked
@@ -111,7 +112,7 @@ func Distributor(
 					cs.Ackmap[id] = NotAvailable
 				}
 
-			case newOrder := <-elevioOrdersC:
+			case newOrder := <-addOrderC:
 				if cs.States[id].State.Motorstop {
 					break
 				}
@@ -119,9 +120,9 @@ func Distributor(
 				cs.addCabCall(newOrder, id)
 				confirmedCommonstateC <- cs
 
-			case removeOrder := <-deliveredAssignmentC:
+			case orderToRemove := <-deliveredOrderC:
 				cs.Ackmap[id] = Acked
-				cs.removeAssignments(removeOrder, id)
+				cs.removeOrder(orderToRemove, id)
 				confirmedCommonstateC <- cs
 
 			case newLocalState := <-newLocalStateC:
@@ -137,13 +138,13 @@ func Distributor(
 		case !idle:
 			select {
 			case arrivedCs := <-networkRx:
-				if arrivedCs.Seq < cs.Seq {
+				if arrivedCs.SeqNum < cs.SeqNum {
 					break
 				}
 				disconnectTimer = time.NewTimer(config.DisconnectTime)
 
 				switch {
-				case (arrivedCs.Origin > cs.Origin && arrivedCs.Seq == cs.Seq) || arrivedCs.Seq > cs.Seq:
+				case (arrivedCs.Origin > cs.Origin && arrivedCs.SeqNum == cs.SeqNum) || arrivedCs.SeqNum > cs.SeqNum:
 					cs = arrivedCs
 					cs.Ackmap[id] = Acked
 					cs.makeLostPeersUnavailable(peers)
@@ -156,15 +157,15 @@ func Distributor(
 						cs.prepNewCs(id)
 
 						switch stashType {
-						case AddCall:
-							cs.addAssignments(newOrderStash, id)
+						case Add:
+							cs.addOrder(addStash, id)
 							cs.Ackmap[id] = Acked
 
-						case RemoveCall:
-							cs.removeAssignments(removeOrderStash, id)
+						case Remove:
+							cs.removeOrder(removeStash, id)
 							cs.Ackmap[id] = Acked
 
-						case StateChange:
+						case State:
 							cs.updateLocalState(stateStash, id)
 							cs.Ackmap[id] = Acked
 						}

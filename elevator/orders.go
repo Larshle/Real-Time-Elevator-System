@@ -5,12 +5,9 @@ import (
 	"root/elevio"
 )
 
-// HandleButtonPress handles the button press event and updates the elevator state
-// Make config file for parameters of elevator
+type Orders [config.NumFloors][config.NumButtons]bool
 
-type Assignments [config.NumFloors][config.NumButtons]bool
-
-func (a Assignments) ReqInDirection(floor int, dir Direction) bool {
+func (a Orders) OrderInDirection(floor int, dir Direction) bool {
 	switch dir {
 	case Up:
 		for f := floor + 1; f < config.NumFloors; f++ {
@@ -35,7 +32,7 @@ func (a Assignments) ReqInDirection(floor int, dir Direction) bool {
 	}
 }
 
-func EmptyAssigner(floor int, dir Direction, a Assignments, orderDoneC chan<- elevio.ButtonEvent) {
+func OrderDone(floor int, dir Direction, a Orders, orderDoneC chan<- elevio.ButtonEvent) {
 	if a[floor][elevio.BT_Cab] {
 		orderDoneC <- elevio.ButtonEvent{Floor: floor, Button: elevio.BT_Cab}
 	}

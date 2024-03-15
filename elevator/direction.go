@@ -19,7 +19,7 @@ func (d Direction) toBT() elevio.ButtonType {
 	return map[Direction]elevio.ButtonType{Up: elevio.BT_HallUp, Down: elevio.BT_HallDown}[d]
 }
 
-func (d Direction) toOpposite() Direction {
+func (d Direction) Opposite() Direction {
 	return map[Direction]Direction{Up: Down, Down: Up}[d]
 
 }

@@ -15,62 +15,61 @@ import (
 )
 
 var Port int
-var ElevatorID int
+var id int
 
 func main() {
 
 	port := flag.Int("port", 15301, "<-- Default verdi, men kan overskrives som en command line argument ved bruk av -port=xxxxx")
-	id := flag.Int("id", 0, "<-- Default verdi, men kan overskrives som en command line argument ved bruk av -id=xxxxx")
+	elevatorId := flag.Int("id", 0, "<-- Default verdi, men kan overskrives som en command line argument ved bruk av -id=xxxxx")
 	flag.Parse()
 
 	Port = *port
-	ElevatorID = *id
+	id = *elevatorId
 
 	fmt.Println()
 	elevio.Init("localhost:"+strconv.Itoa(Port), config.NumFloors)
 
-	fmt.Println("Elevator initialized with ID", ElevatorID, "on port", Port)
+	fmt.Println("Elevator initialized with ID", id, "on port", Port)
 	fmt.Println("System has", config.NumFloors, "floors and", config.NumElevators, "elevators.")
 
-	newAssignmentC := make(chan elevator.Assignments, 10000)
-	deliveredAssignmentC := make(chan elevio.ButtonEvent, 10000)
-	newLocalStateC := make(chan elevator.State, 10000)
-	networkTx := make(chan distributor.CommonState, 10000) // Endre navn?
-	networkRx := make(chan distributor.CommonState, 10000) // Endre navn? ja faktisk
-	confirmedCommonstateC := make(chan distributor.CommonState, 10000)
-	peersRx := make(chan peers.PeerUpdate, 10000) // Endre navn?
-	peersTx := make(chan bool, 10000)
+	newOrderC 				:= make(chan elevator.Orders, config.Buffer)
+	deliveredOrderC 		:= make(chan elevio.ButtonEvent, config.Buffer)
+	newLocalStateC  		:= make(chan elevator.State, config.Buffer)
+	confirmedCommonstateC 	:= make(chan distributor.CommonState, config.Buffer)
+	networkTx 				:= make(chan distributor.CommonState, config.Buffer)
+	networkRx 				:= make(chan distributor.CommonState, config.Buffer)
+	peersRx 				:= make(chan peers.PeerUpdate, config.Buffer)
+	peersTx 				:= make(chan bool, config.Buffer)
 
 	go peers.Receiver(config.PeersPortNumber, peersRx)
-	go peers.Transmitter(config.PeersPortNumber, ElevatorID, peersTx)
+	go peers.Transmitter(config.PeersPortNumber, id, peersTx)
 
 	go bcast.Receiver(config.BcastPortNumber, networkRx)
 	go bcast.Transmitter(config.BcastPortNumber, networkTx)
 
 	go distributor.Distributor(
-		deliveredAssignmentC,
+		deliveredOrderC,
 		newLocalStateC,
 		networkTx,
 		networkRx,
 		confirmedCommonstateC,
 		peersRx,
-		ElevatorID)
+		id)
 
 	go elevator.Elevator(
-		newAssignmentC,
-		deliveredAssignmentC,
+		newOrderC,
+		deliveredOrderC,
 		newLocalStateC)
 
 	for {
 		select {
 		case cs := <-confirmedCommonstateC:
-			localAssingment := assigner.CalculateOptimalAssignments(cs, ElevatorID)
-			newAssignmentC <- localAssingment
-			lights.SetLights(cs, ElevatorID)
+			localOrder := assigner.CalculateOptimalOrders(cs, id)
+			newOrderC <- localOrder
+			lights.SetLights(cs, id)
 
 		default:
 			continue
 		}
-
 	}
 }

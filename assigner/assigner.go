@@ -24,11 +24,11 @@ type HRAInput struct {
 	States       map[string]HRAState       `json:"states"`
 }
 
-func CalculateOptimalAssignments(cs distributor.CommonState, ElevatorID int) elevator.Assignments {
+func CalculateOptimalOrders(cs distributor.CommonState, id int) elevator.Orders {
 
 	stateMap := make(map[string]HRAState)
 	for i, v := range cs.States {
-		if cs.Ackmap[i] == distributor.NotAvailable || v.State.Motorstop || v.State.Obstructed { // Remove not-available, stuck and obstructed elevators from stateMap
+		if cs.Ackmap[i] == distributor.NotAvailable || v.State.Motorstop || v.State.Obstructed {
 			continue
 		} else {
 			stateMap[strconv.Itoa(i)] = HRAState{
@@ -40,7 +40,7 @@ func CalculateOptimalAssignments(cs distributor.CommonState, ElevatorID int) ele
 		}
 	}
 
-	hall_request_assignerInput := HRAInput{cs.HallRequests, stateMap}
+	hraInput := HRAInput{cs.HallRequests, stateMap}
 
 	hraExecutable := ""
 	switch runtime.GOOS {
@@ -54,7 +54,7 @@ func CalculateOptimalAssignments(cs distributor.CommonState, ElevatorID int) ele
 		panic("OS not supported")
 	}
 
-	jsonBytes, err := json.Marshal(hall_request_assignerInput)
+	jsonBytes, err := json.Marshal(hraInput)
 	if err != nil {
 		fmt.Println("json.Marshal error: ", err)
 		panic("json.Marshal error")
@@ -67,18 +67,18 @@ func CalculateOptimalAssignments(cs distributor.CommonState, ElevatorID int) ele
 		panic("exec.Command error")
 	}
 
-	output := new(map[string]elevator.Assignments)
+	output := new(map[string]elevator.Orders)
 	err = json.Unmarshal(ret, &output)
 	if err != nil {
 		fmt.Println("json.Unmarshal error: ", err)
 		panic("json.Unmarshal error")
 	}
 
-	return (*output)[strconv.Itoa(ElevatorID)]
+	return (*output)[strconv.Itoa(id)]
 }
 
-func ToLightsAssingment(cs distributor.CommonState, ElevatorID int) elevator.Assignments {
-	var lights elevator.Assignments
+func SetLights(cs distributor.CommonState, id int) elevator.Orders {
+	var lights elevator.Orders
 
 	for f := 0; f < config.NumFloors; f++ {
 		for b := 0; b < 2; b++ {
@@ -87,7 +87,7 @@ func ToLightsAssingment(cs distributor.CommonState, ElevatorID int) elevator.Ass
 	}
 
 	for f := 0; f < config.NumFloors; f++ {
-		lights[f][elevio.BT_Cab] = cs.States[ElevatorID].CabRequests[f]
+		lights[f][elevio.BT_Cab] = cs.States[id].CabRequests[f]
 	}
 
 	return lights

@@ -10,8 +10,10 @@ const (
 	NumButtons       = 3
 	PeersPortNumber  = 58735
 	BcastPortNumber  = 58750
+	Buffer		     = 1024
+
 	DisconnectTime   = 1 * time.Second
-	DoorOpenDuration = 2 * time.Second
+	DoorOpenDuration = 3 * time.Second
 	WatchdogTime     = 5 * time.Second
 	HeartbeatTime    = 15 * time.Millisecond
 )
