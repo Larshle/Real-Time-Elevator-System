@@ -13,9 +13,10 @@ const(
 type DoorState int
 
 const (
-	Closed DoorState = iota
-	InCountDown
+	Open DoorState = iota
+	Closed
 	Obstructed
+	InCountDown
 )
 
 func Door(doorClosedC chan<- bool, doorOpenC <-chan bool) {
