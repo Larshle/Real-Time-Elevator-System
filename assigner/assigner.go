@@ -74,14 +74,10 @@ func CalculateOptimalAssignments(cs distributor.CommonState, ElevatorID int) ele
 		panic("json.Unmarshal error")
 	}
 
-	fmt.Printf("output: \n")
-	for k, v := range *output {
-<<<<<<< HEAD
-		fmt.Printf("%6v :  %+v\n", k, v)
-=======
- 	fmt.Printf("%6v :  %+v\n", k, v)
->>>>>>> parent of 09eda7c (Merge pull request #3 from Larshle/UpdatingNEWassignments)
-	}
+	//fmt.Printf("output: \n")
+	//for k, v := range *output {
+ 	//fmt.Printf("%6v :  %+v\n", k, v)
+	//}
 
 	return (*output)[strconv.Itoa(ElevatorID)]
 }
