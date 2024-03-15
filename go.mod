@@ -9,8 +9,11 @@ module root
 
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 go 1.21.5
 =======
+=======
+>>>>>>> parent of 34a4414 (Merge pull request #2 from Larshle/UpdatingNEWassignments)
 =======
 >>>>>>> parent of 34a4414 (Merge pull request #2 from Larshle/UpdatingNEWassignments)
 go 1.16
@@ -19,6 +22,9 @@ go 1.16
 replace Driver-go => ../Driver-go
 >>>>>>> origin/elevator
 <<<<<<< HEAD
+<<<<<<< HEAD
+>>>>>>> parent of 34a4414 (Merge pull request #2 from Larshle/UpdatingNEWassignments)
+=======
 >>>>>>> parent of 34a4414 (Merge pull request #2 from Larshle/UpdatingNEWassignments)
 =======
 >>>>>>> parent of 34a4414 (Merge pull request #2 from Larshle/UpdatingNEWassignments)
