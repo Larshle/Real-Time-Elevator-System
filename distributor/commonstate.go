@@ -1,7 +1,6 @@
 package distributor
 
 import (
-	"fmt"
 	"reflect"
 	"root/config"
 	"root/elevator"
@@ -78,9 +77,7 @@ func (oldCs CommonState) equals(newCs CommonState) bool {
 }
 
 func (cs *CommonState) makeLostPeersUnavailable(p peers.PeerUpdate) {
-	fmt.Println("nuuudle")
-	for a, id := range p.Lost {
-		fmt.Println("_", a, "id:", id)
+	for _, id := range p.Lost {
 		cs.Ackmap[id] = NotAvailable
 	}
 }

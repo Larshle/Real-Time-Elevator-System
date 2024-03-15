@@ -1,6 +1,7 @@
 package elevator
 
 import (
+	"fmt"
 	"root/config"
 	"root/elevio"
 	"time"
@@ -179,6 +180,7 @@ func Elevator(newAssignmentC <-chan Assignments, deliveredAssignmentC chan<- ele
 			}
 		case <-motorTimer.C:
 			if !state.Motorstop {
+				fmt.Println("Lost motor power")
 				state.Motorstop = true
 				newLocalStateC <- state
 			}
@@ -189,6 +191,7 @@ func Elevator(newAssignmentC <-chan Assignments, deliveredAssignmentC chan<- ele
 			}
 		case motor := <-motorC:
 			if state.Motorstop {
+				fmt.Println("Regained motor power")
 				state.Motorstop = motor
 				newLocalStateC <- state
 			}

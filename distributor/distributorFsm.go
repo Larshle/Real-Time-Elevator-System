@@ -1,6 +1,7 @@
 package distributor
 
 import (
+	"fmt"
 	"root/config"
 	"root/elevator"
 	"root/elevio"
@@ -47,6 +48,7 @@ func Distributor(
 		select {
 		case <-disconnectTimer.C:
 			cs.makeOthersUnavailable(id)
+			fmt.Println("Lost connection to network")
 			aloneOnNetwork = true
 
 		case P := <-peersC:
@@ -103,7 +105,10 @@ func Distributor(
 			select {
 			case <-networkRx:
 				if cs.States[id].CabRequests == [config.NumFloors]bool{} {
+					fmt.Println("Regained connection to network")
 					aloneOnNetwork = false
+				} else {
+					cs.Ackmap[id] = NotAvailable
 				}
 
 			case newOrder := <-elevioOrdersC:
