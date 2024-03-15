@@ -29,185 +29,27 @@ func (a Assignments) ReqInDirection(floor int, dir Direction) bool {
 			return false
 		case Down:
 			for i := 0; i < floor; i++ {
-				if a[i][elevio.BT_HallDown] || a[i][elevio.BT_Cab] {
-					return true
+				for j := 0; j < 3; j++ {
+					if a[i][j] {
+						return true
+					}
 				}
 			}
 			return false
 		default:
 			panic("Invalid direction")
->>>>>>> parent of 34a4414 (Merge pull request #2 from Larshle/UpdatingNEWassignments)
 		}
-		return false
-	case Down:
-		for f := 0; f < floor; f++ {
-			for b := 0; b < config.NumButtons; b++ {
-				if a[f][b] {
-					return true
-				}
-			}
-		}
-		return false
-	default:
-		panic("Invalid direction")
-	}
 }
 
 <<<<<<< HEAD
 func EmptyAssigner(floor int, dir Direction, a Assignments, orderDoneC chan<- elevio.ButtonEvent) {
 =======
 
-func EmptyAssingner(floor int, dir Direction, a Assingments, orderDoneC chan<- elevio.ButtonEvent) bool {
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
->>>>>>> parent of 34a4414 (Merge pull request #2 from Larshle/UpdatingNEWassignments)
-=======
->>>>>>> parent of 34a4414 (Merge pull request #2 from Larshle/UpdatingNEWassignments)
-=======
->>>>>>> parent of 34a4414 (Merge pull request #2 from Larshle/UpdatingNEWassignments)
-=======
->>>>>>> parent of 34a4414 (Merge pull request #2 from Larshle/UpdatingNEWassignments)
-=======
->>>>>>> parent of 34a4414 (Merge pull request #2 from Larshle/UpdatingNEWassignments)
-=======
->>>>>>> parent of 34a4414 (Merge pull request #2 from Larshle/UpdatingNEWassignments)
-=======
->>>>>>> parent of 34a4414 (Merge pull request #2 from Larshle/UpdatingNEWassignments)
-=======
->>>>>>> parent of 34a4414 (Merge pull request #2 from Larshle/UpdatingNEWassignments)
-=======
->>>>>>> parent of 34a4414 (Merge pull request #2 from Larshle/UpdatingNEWassignments)
-=======
->>>>>>> parent of 34a4414 (Merge pull request #2 from Larshle/UpdatingNEWassignments)
-=======
->>>>>>> parent of 34a4414 (Merge pull request #2 from Larshle/UpdatingNEWassignments)
-=======
->>>>>>> parent of 34a4414 (Merge pull request #2 from Larshle/UpdatingNEWassignments)
-=======
->>>>>>> parent of 34a4414 (Merge pull request #2 from Larshle/UpdatingNEWassignments)
-=======
->>>>>>> parent of 34a4414 (Merge pull request #2 from Larshle/UpdatingNEWassignments)
-=======
->>>>>>> parent of 34a4414 (Merge pull request #2 from Larshle/UpdatingNEWassignments)
-=======
->>>>>>> parent of 34a4414 (Merge pull request #2 from Larshle/UpdatingNEWassignments)
+func EmptyAssingner(floor int, dir Direction, a Assingments, orderDoneC chan<- elevio.ButtonEvent) {
 	if a[floor][elevio.BT_Cab] {
 		orderDoneC <- elevio.ButtonEvent{Floor: floor, Button: elevio.BT_Cab}
 	}
 	if a[floor][dir] {
 		orderDoneC <- elevio.ButtonEvent{Floor: floor, Button: dir.toBT()}
 	}
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
 }
-=======
-=======
->>>>>>> parent of 34a4414 (Merge pull request #2 from Larshle/UpdatingNEWassignments)
-=======
->>>>>>> parent of 34a4414 (Merge pull request #2 from Larshle/UpdatingNEWassignments)
-=======
->>>>>>> parent of 34a4414 (Merge pull request #2 from Larshle/UpdatingNEWassignments)
-=======
->>>>>>> parent of 34a4414 (Merge pull request #2 from Larshle/UpdatingNEWassignments)
-=======
->>>>>>> parent of 34a4414 (Merge pull request #2 from Larshle/UpdatingNEWassignments)
-=======
->>>>>>> parent of 34a4414 (Merge pull request #2 from Larshle/UpdatingNEWassignments)
-=======
->>>>>>> parent of 34a4414 (Merge pull request #2 from Larshle/UpdatingNEWassignments)
-=======
->>>>>>> parent of 34a4414 (Merge pull request #2 from Larshle/UpdatingNEWassignments)
-=======
->>>>>>> parent of 34a4414 (Merge pull request #2 from Larshle/UpdatingNEWassignments)
-=======
->>>>>>> parent of 34a4414 (Merge pull request #2 from Larshle/UpdatingNEWassignments)
-=======
->>>>>>> parent of 34a4414 (Merge pull request #2 from Larshle/UpdatingNEWassignments)
-=======
->>>>>>> parent of 34a4414 (Merge pull request #2 from Larshle/UpdatingNEWassignments)
-=======
->>>>>>> parent of 34a4414 (Merge pull request #2 from Larshle/UpdatingNEWassignments)
-=======
->>>>>>> parent of 34a4414 (Merge pull request #2 from Larshle/UpdatingNEWassignments)
-=======
->>>>>>> parent of 34a4414 (Merge pull request #2 from Larshle/UpdatingNEWassignments)
-	return false
-}
-
-
-
-
-
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
->>>>>>> parent of 34a4414 (Merge pull request #2 from Larshle/UpdatingNEWassignments)
-=======
->>>>>>> parent of 34a4414 (Merge pull request #2 from Larshle/UpdatingNEWassignments)
-=======
->>>>>>> parent of 34a4414 (Merge pull request #2 from Larshle/UpdatingNEWassignments)
-=======
->>>>>>> parent of 34a4414 (Merge pull request #2 from Larshle/UpdatingNEWassignments)
-=======
->>>>>>> parent of 34a4414 (Merge pull request #2 from Larshle/UpdatingNEWassignments)
-=======
->>>>>>> parent of 34a4414 (Merge pull request #2 from Larshle/UpdatingNEWassignments)
-=======
->>>>>>> parent of 34a4414 (Merge pull request #2 from Larshle/UpdatingNEWassignments)
-=======
->>>>>>> parent of 34a4414 (Merge pull request #2 from Larshle/UpdatingNEWassignments)
-=======
->>>>>>> parent of 34a4414 (Merge pull request #2 from Larshle/UpdatingNEWassignments)
-=======
->>>>>>> parent of 34a4414 (Merge pull request #2 from Larshle/UpdatingNEWassignments)
-=======
->>>>>>> parent of 34a4414 (Merge pull request #2 from Larshle/UpdatingNEWassignments)
-=======
->>>>>>> parent of 34a4414 (Merge pull request #2 from Larshle/UpdatingNEWassignments)
-=======
->>>>>>> parent of 34a4414 (Merge pull request #2 from Larshle/UpdatingNEWassignments)
-=======
->>>>>>> parent of 34a4414 (Merge pull request #2 from Larshle/UpdatingNEWassignments)
-=======
->>>>>>> parent of 34a4414 (Merge pull request #2 from Larshle/UpdatingNEWassignments)
-=======
->>>>>>> parent of 34a4414 (Merge pull request #2 from Larshle/UpdatingNEWassignments)

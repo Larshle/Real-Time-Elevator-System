@@ -21,72 +21,11 @@ func (d Direction) toBT() elevio.ButtonType {
 
 func (d Direction) toOpposite() Direction {
 	return map[Direction]Direction{Up: Down, Down: Up}[d]
-}	
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-func (d Direction) ToString() string {
+}
+
+
+func (d Direction) ToString() string{
 	return map[Direction]string{Up: "up", Down: "down"}[d]
 }
-=======
 
->>>>>>> parent of 34a4414 (Merge pull request #2 from Larshle/UpdatingNEWassignments)
-=======
-
->>>>>>> parent of 34a4414 (Merge pull request #2 from Larshle/UpdatingNEWassignments)
-=======
-
->>>>>>> parent of 34a4414 (Merge pull request #2 from Larshle/UpdatingNEWassignments)
-=======
-
->>>>>>> parent of 34a4414 (Merge pull request #2 from Larshle/UpdatingNEWassignments)
-=======
-
->>>>>>> parent of 34a4414 (Merge pull request #2 from Larshle/UpdatingNEWassignments)
-=======
-
->>>>>>> parent of 34a4414 (Merge pull request #2 from Larshle/UpdatingNEWassignments)
-=======
-
->>>>>>> parent of 34a4414 (Merge pull request #2 from Larshle/UpdatingNEWassignments)
-=======
-
->>>>>>> parent of 34a4414 (Merge pull request #2 from Larshle/UpdatingNEWassignments)
-=======
-
->>>>>>> parent of 34a4414 (Merge pull request #2 from Larshle/UpdatingNEWassignments)
-=======
-
->>>>>>> parent of 34a4414 (Merge pull request #2 from Larshle/UpdatingNEWassignments)
-=======
-
->>>>>>> parent of 34a4414 (Merge pull request #2 from Larshle/UpdatingNEWassignments)
-=======
-
->>>>>>> parent of 34a4414 (Merge pull request #2 from Larshle/UpdatingNEWassignments)
-=======
-
->>>>>>> parent of 34a4414 (Merge pull request #2 from Larshle/UpdatingNEWassignments)
-=======
-
->>>>>>> parent of 34a4414 (Merge pull request #2 from Larshle/UpdatingNEWassignments)
-=======
-
->>>>>>> parent of 34a4414 (Merge pull request #2 from Larshle/UpdatingNEWassignments)
-=======
-
->>>>>>> parent of 34a4414 (Merge pull request #2 from Larshle/UpdatingNEWassignments)
