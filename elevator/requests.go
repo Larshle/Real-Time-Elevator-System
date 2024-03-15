@@ -60,6 +60,9 @@ func EmptyAssigner(floor int, dir Direction, a Assignments, orderDoneC chan<- el
 func EmptyAssingner(floor int, dir Direction, a Assingments, orderDoneC chan<- elevio.ButtonEvent) bool {
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
+>>>>>>> parent of 34a4414 (Merge pull request #2 from Larshle/UpdatingNEWassignments)
+=======
 >>>>>>> parent of 34a4414 (Merge pull request #2 from Larshle/UpdatingNEWassignments)
 =======
 >>>>>>> parent of 34a4414 (Merge pull request #2 from Larshle/UpdatingNEWassignments)
@@ -74,8 +77,11 @@ func EmptyAssingner(floor int, dir Direction, a Assingments, orderDoneC chan<- e
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 }
 =======
+=======
+>>>>>>> parent of 34a4414 (Merge pull request #2 from Larshle/UpdatingNEWassignments)
 =======
 >>>>>>> parent of 34a4414 (Merge pull request #2 from Larshle/UpdatingNEWassignments)
 =======
@@ -89,6 +95,9 @@ func EmptyAssingner(floor int, dir Direction, a Assingments, orderDoneC chan<- e
 
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
+>>>>>>> parent of 34a4414 (Merge pull request #2 from Larshle/UpdatingNEWassignments)
+=======
 >>>>>>> parent of 34a4414 (Merge pull request #2 from Larshle/UpdatingNEWassignments)
 =======
 >>>>>>> parent of 34a4414 (Merge pull request #2 from Larshle/UpdatingNEWassignments)
