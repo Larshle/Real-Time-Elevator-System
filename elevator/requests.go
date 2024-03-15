@@ -62,6 +62,9 @@ func EmptyAssingner(floor int, dir Direction, a Assingments, orderDoneC chan<- e
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
+>>>>>>> parent of 34a4414 (Merge pull request #2 from Larshle/UpdatingNEWassignments)
+=======
 >>>>>>> parent of 34a4414 (Merge pull request #2 from Larshle/UpdatingNEWassignments)
 =======
 >>>>>>> parent of 34a4414 (Merge pull request #2 from Larshle/UpdatingNEWassignments)
@@ -82,8 +85,11 @@ func EmptyAssingner(floor int, dir Direction, a Assingments, orderDoneC chan<- e
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 }
 =======
+=======
+>>>>>>> parent of 34a4414 (Merge pull request #2 from Larshle/UpdatingNEWassignments)
 =======
 >>>>>>> parent of 34a4414 (Merge pull request #2 from Larshle/UpdatingNEWassignments)
 =======
@@ -103,6 +109,9 @@ func EmptyAssingner(floor int, dir Direction, a Assingments, orderDoneC chan<- e
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
+>>>>>>> parent of 34a4414 (Merge pull request #2 from Larshle/UpdatingNEWassignments)
+=======
 >>>>>>> parent of 34a4414 (Merge pull request #2 from Larshle/UpdatingNEWassignments)
 =======
 >>>>>>> parent of 34a4414 (Merge pull request #2 from Larshle/UpdatingNEWassignments)
