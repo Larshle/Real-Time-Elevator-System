@@ -13,15 +13,9 @@ const(
 type DoorState int
 
 const (
-	Open DoorState = iota
-	Closed
-<<<<<<< HEAD
-	Obstructed
+	Closed DoorState = iota
 	InCountDown
-=======
->>>>>>> parent of 34a4414 (Merge pull request #2 from Larshle/UpdatingNEWassignments)
 	Obstructed
-	InCountDown
 )
 
 func Door(doorClosedC chan<- bool, doorOpenC <-chan bool) {
