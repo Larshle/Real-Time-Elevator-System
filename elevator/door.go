@@ -5,32 +5,41 @@ import (
 	"root/elevio"
 	"time"
 )
+const(
+	DoorOpenDuration = 3*time.Second
+)
+>>>>>>> parent of 34a4414 (Merge pull request #2 from Larshle/UpdatingNEWassignments)
 
 type DoorState int
 
 const (
-	Closed DoorState = iota
-	InCountDown
+	Open DoorState = iota
+	Closed
 	Obstructed
+	InCountDown
 )
 
+<<<<<<< HEAD
 func Door(
 	doorClosedC		chan<- bool,
 	doorOpenC 		<-chan bool,
 	obstrucedC 		chan<- bool,
 	){
 
+=======
+func Door(doorClosedC chan<- bool, doorOpenC <-chan bool) {
+>>>>>>> a346d18674c6e853af0a1af46bf3dbee428466b7
 	elevio.SetDoorOpenLamp(false)
 	obstructionC := make(chan bool)
 	go elevio.PollObstructionSwitch(obstructionC)
 
 	obstruction := false
 	timeCounter := time.NewTimer(time.Hour)
-	ds := Closed
-	timeCounter.Stop()
+	var ds DoorState = Closed
 
 	for {
 		select {
+<<<<<<< HEAD
 		case obstruction = <-obstructionC:
 			if !obstruction && ds == Obstructed {
 				elevio.SetDoorOpenLamp(false)
@@ -54,25 +63,40 @@ func Door(
 				ds = InCountDown
 			case InCountDown:
 				timeCounter = time.NewTimer(config.DoorOpenDuration)
+=======
+			case obstruction = <-obstructionC:
+				if !obstruction && ds == Obstructed{
+					elevio.SetDoorOpenLamp(false)
+					doorClosedC <- true 
+				}
 
-			case Obstructed:
-				timeCounter = time.NewTimer(config.DoorOpenDuration)
-				ds = InCountDown
+>>>>>>> a346d18674c6e853af0a1af46bf3dbee428466b7
 
-			default:
-				panic("Door state not implemented")
-			}
-		case <-timeCounter.C:
-			if ds != InCountDown {
-				panic("Door state not implemented")
-			}
-			if obstruction {
-				ds = Obstructed
-			} else {
-				elevio.SetDoorOpenLamp(false)
-				doorClosedC <- true
-				ds = Closed
-			}
+			case <-doorOpenC:
+				switch ds{
+					case InCountDown:
+						timeCounter = time.NewTimer(DoorOpenDuration)
+					case Obstructed:
+						timeCounter = time.NewTimer(DoorOpenDuration)
+						ds = InCountDown
+					case Closed:
+						elevio.SetDoorOpenLamp(true)
+						timeCounter = time.NewTimer(DoorOpenDuration)
+						ds = InCountDown
+					default:
+						panic("Door state not implemented")
+				}
+			case <-timeCounter.C:
+				if ds != InCountDown{
+					panic("Door state not implemented")
+				}
+				if obstruction{
+					ds = Obstructed
+				}else{
+					elevio.SetDoorOpenLamp(false)
+					doorClosedC <- true
+					ds = Closed
+				}
 		}
 	}
 }

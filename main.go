@@ -1,19 +1,12 @@
+// midlertidig main fil for å teste coden vår
+
 package main
 
 import (
-	"flag"
-	"fmt"
-	"root/assigner"
-	"root/config"
-	"root/distributor"
-	"root/elevator"
-	"root/elevio"
-	"root/lights"
-	"root/network/bcast"
-	"root/network/peers"
-	"strconv"
+
 )
 
+<<<<<<< HEAD
 var Port int
 var id int
 
@@ -73,3 +66,10 @@ func main() {
 		}
 	}
 }
+=======
+
+func main() {
+
+
+}
+>>>>>>> a346d18674c6e853af0a1af46bf3dbee428466b7

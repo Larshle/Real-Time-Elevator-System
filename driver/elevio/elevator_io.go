@@ -9,59 +9,10 @@ import "fmt"
 
 const _pollRate = 20 * time.Millisecond
 
-<<<<<<< HEAD:elevio/elevio.go
-<<<<<<< HEAD:elevio/elevio.go
-<<<<<<< HEAD:elevio/elevio.go
-<<<<<<< HEAD:elevio/elevio.go
-<<<<<<< HEAD:elevio/elevio.go
-<<<<<<< HEAD:elevio/elevio.go
-<<<<<<< HEAD:elevio/elevio.go
-<<<<<<< HEAD:elevio/elevio.go
-var _initialized bool = false
-var NumFloors int
-var _mtx sync.Mutex
-var _conn net.Conn
-=======
-=======
->>>>>>> parent of 34a4414 (Merge pull request #2 from Larshle/UpdatingNEWassignments):driver/elevio/elevator_io.go
-=======
->>>>>>> parent of 34a4414 (Merge pull request #2 from Larshle/UpdatingNEWassignments):driver/elevio/elevator_io.go
-=======
->>>>>>> parent of 34a4414 (Merge pull request #2 from Larshle/UpdatingNEWassignments):driver/elevio/elevator_io.go
-=======
->>>>>>> parent of 34a4414 (Merge pull request #2 from Larshle/UpdatingNEWassignments):driver/elevio/elevator_io.go
-=======
->>>>>>> parent of 34a4414 (Merge pull request #2 from Larshle/UpdatingNEWassignments):driver/elevio/elevator_io.go
-=======
->>>>>>> parent of 34a4414 (Merge pull request #2 from Larshle/UpdatingNEWassignments):driver/elevio/elevator_io.go
-=======
->>>>>>> parent of 34a4414 (Merge pull request #2 from Larshle/UpdatingNEWassignments):driver/elevio/elevator_io.go
 var _initialized    bool = false
 var NumFloors      int = 4
 var _mtx            sync.Mutex
 var _conn           net.Conn
-<<<<<<< HEAD:elevio/elevio.go
-<<<<<<< HEAD:elevio/elevio.go
-<<<<<<< HEAD:elevio/elevio.go
-<<<<<<< HEAD:elevio/elevio.go
-<<<<<<< HEAD:elevio/elevio.go
-<<<<<<< HEAD:elevio/elevio.go
-<<<<<<< HEAD:elevio/elevio.go
->>>>>>> parent of 34a4414 (Merge pull request #2 from Larshle/UpdatingNEWassignments):driver/elevio/elevator_io.go
-=======
->>>>>>> parent of 34a4414 (Merge pull request #2 from Larshle/UpdatingNEWassignments):driver/elevio/elevator_io.go
-=======
->>>>>>> parent of 34a4414 (Merge pull request #2 from Larshle/UpdatingNEWassignments):driver/elevio/elevator_io.go
-=======
->>>>>>> parent of 34a4414 (Merge pull request #2 from Larshle/UpdatingNEWassignments):driver/elevio/elevator_io.go
-=======
->>>>>>> parent of 34a4414 (Merge pull request #2 from Larshle/UpdatingNEWassignments):driver/elevio/elevator_io.go
-=======
->>>>>>> parent of 34a4414 (Merge pull request #2 from Larshle/UpdatingNEWassignments):driver/elevio/elevator_io.go
-=======
->>>>>>> parent of 34a4414 (Merge pull request #2 from Larshle/UpdatingNEWassignments):driver/elevio/elevator_io.go
-=======
->>>>>>> parent of 34a4414 (Merge pull request #2 from Larshle/UpdatingNEWassignments):driver/elevio/elevator_io.go
 
 type MotorDirection int
 
